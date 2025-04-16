@@ -15,7 +15,7 @@ data Op = Add | Sub | Mul
 data Bexp = Or Bexp Bexp    -- (b1 or b2)
     | And Bexp Bexp         -- (b1 and b2)
     | Not Bexp              -- not b
-    | Rel Rop Aexp Aexp     -- e1 ◊ e2 where ◊ in {=, #, <, <=, >, >=}
+    | Rel Rop Aexp Aexp     -- e1 ◊ e2, where ◊ in {=, #, <, <=, >, >=}
 
 -- relation operation
 data Rop = Eq               -- =

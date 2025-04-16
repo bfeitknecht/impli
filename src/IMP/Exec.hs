@@ -10,7 +10,8 @@ type ExecResult = (State, Output)
 execStm :: Stm -> State -> Output -> ExecResult
 execStm Skip st out = (st, out)
 
-execStm (Print x) st out = let v = evalAexp (Variable x) st
+execStm (Print x) st out =
+    let v = evalAexp (Variable x) st
     in (st, out ++ [show v])
 
 execStm (Assign x e) st out =

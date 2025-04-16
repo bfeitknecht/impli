@@ -8,8 +8,8 @@ import qualified Text.Parsec.Token as Tok
 import Text.Parsec.Language (emptyDef)
 
 -- parse IMP input
-parseIMP :: String -> Either ParseError Stm
-parseIMP input = parse (whitespace *> parseStm <* eof) "<stdin>" input
+parseIMP :: String -> String -> Either ParseError Stm
+parseIMP channel input = parse (whitespace *> parseStm <* eof) channel input
 
 -- lexer
 lexer :: Tok.TokenParser ()

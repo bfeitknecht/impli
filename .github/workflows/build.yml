@@ -1,0 +1,55 @@
+name: Build IMP CLI
+
+on:
+    push:
+        tags:
+            - "v*" # Build only on version tags like v0.1.0
+    pull_request:
+        branches: [main]
+
+jobs:
+    build:
+        name: Build on ${{ matrix.os }}
+        runs-on: ${{ matrix.os }}
+        strategy:
+            matrix:
+                os: [ubuntu-latest, macos-latest, windows-latest]
+
+        steps:
+            - name: Checkout repo
+              uses: actions/checkout@v3
+
+            - name: Set up Haskell
+              uses: haskell/actions/setup@v2
+              with:
+                  ghc-version: "9.6.4"
+                  cabal-version: "3.10.1.0"
+
+            - name: Cache Cabal store
+              uses: actions/cache@v3
+              with:
+                  path: ${{ steps.setup-haskell.outputs.cabal-store }}
+                  key: ${{ runner.os }}-cabal
+
+            - name: Build IMP
+              run: |
+                  cabal update
+                  cabal build
+
+            - name: Find executable
+              shell: bash
+              run: |
+                  mkdir -p artifacts
+                  cp $(find dist-newstyle -type f -perm -u=x -name 'imp*' | head -n 1) artifacts/imp-${{ runner.os }}
+
+            - name: Upload artifact
+              uses: actions/upload-artifact@v3
+              with:
+                  name: imp-${{ runner.os }}
+                  path: artifacts/imp-${{ runner.os }}
+
+            - name: Upload to GitHub Release
+              if: startsWith(github.ref, 'refs/tags/')
+              uses: softprops/action-gh-release@v1
+              with:
+                  files: artifacts/*

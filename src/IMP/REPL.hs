@@ -15,10 +15,10 @@ repl st = runInputT defaultSettings (loop st)
         loop state = do
             input <- getInputLine "IMP> "
             case input of
-                Nothing -> outputStrLn "Goodbye!"  -- Ctrl-D
+                Nothing -> outputStrLn "Goodbye!"  -- ctrl-D
                 Just ":quit" -> outputStrLn "Goodbye!"
                 Just ":q" -> outputStrLn "Goodbye!"
-                Just line -> case parseIMP line of
+                Just line -> case parseIMP "<interactive>" line of
                     Left err -> do
                         outputStrLn $ "Parse error: " ++ show err
                         loop state

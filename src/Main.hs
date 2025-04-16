@@ -9,19 +9,19 @@ import IMP.Exec (execStm)
 import IMP.REPL (repl)
 
 -- CLI actions
-data Action = RunCode String
+data Action = RunCommand String
     | RunFile FilePath
     | RunREPL
 
 -- CLI parser
 actionParser :: Parser Action
-actionParser = RunCode <$> strOption (long "code" <> short 'c' <> metavar "CODE" <> help "Run IMP code")
+actionParser = RunCommand <$> strOption (long "command" <> short 'c' <> metavar "COMMAND" <> help "Run IMP command")
     <|> RunFile <$> argument str (metavar "FILE" <> help "Run IMP source file" )
     <|> pure RunREPL
 
 actionInfo :: ParserInfo Action
 actionInfo = info (actionParser <**> helper)
-    (fullDesc <> progDesc "IMP language interpreter" <> header "imp - imperative toy language REPL and interpreter")
+    (fullDesc <> progDesc "IMP language interpreter" <> header "imp - imperative language interpreter and REPL")
 
 -- IMP CLI entrypoint
 main :: IO ()
@@ -30,17 +30,19 @@ main = do
     case action of
         RunREPL -> runREPL
         RunFile path -> runFile path
-        RunCode code -> runCode code
+        RunCommand command -> runCommand command
 
-runCode :: String -> IO ()
-runCode code = case parseIMP code of
+runCommand :: String -> IO ()
+runCommand command = case parseIMP "<command>" command of
     Left err -> putStrLn ("Parse error:\n" ++ show err) >> exitFailure
     Right stm -> mapM_ putStrLn $ snd $ execStm stm Map.empty []
 
 runFile :: FilePath -> IO ()
 runFile path = do
-    code <- readFile path
-    runCode code
+    source <- readFile path
+    case parseIMP path source of
+        Left err -> putStrLn ("Parse error:\n" ++ show err) >> exitFailure
+        Right stm -> mapM_ putStrLn $ snd $ execStm stm Map.empty []
 
 runREPL :: IO ()
 runREPL = do
