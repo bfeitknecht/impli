@@ -10,4 +10,4 @@ To start the REPL, just run `imp` with no arguments. Pass the relative path of a
 
 ## Installation
 
-This is a work in progress. Build artifacts for macOS, Linux and Windows *should* be available under the GitHub releases page.
+Work in progress. Build artifacts for macOS, Linux and Windows *should* be available under the GitHub releases page.
