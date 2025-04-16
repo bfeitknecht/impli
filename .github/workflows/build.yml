@@ -43,7 +43,7 @@ jobs:
                   cp $(find dist-newstyle -type f -perm -u=x -name 'imp*' | head -n 1) artifacts/imp-${{ runner.os }}
 
             - name: Upload artifact
-              uses: actions/upload-artifact@v3
+              uses: actions/upload-artifact@v4
               with:
                   name: imp-${{ runner.os }}
                   path: artifacts/imp-${{ runner.os }}
