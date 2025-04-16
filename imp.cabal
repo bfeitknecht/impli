@@ -1,0 +1,26 @@
+cabal-version:       >=1.10
+name:                imp
+version:             0.1.0.0
+build-type:          Simple
+
+executable imp
+    main-is:             Main.hs
+    hs-source-dirs:      src
+    default-language:    Haskell2010
+
+    -- GHC options (optional, but helpful)
+    ghc-options:         -Wall -Wextra -Wno-name-shadowing
+
+    build-depends:
+        base >=4.14 && <5,
+        parsec >=3.1,
+        containers >=0.6,
+        haskeline >=0.8,
+        optparse-applicative >=0.15
+
+    other-modules:
+        IMP.Syntax
+        IMP.Parser
+        IMP.Eval
+        IMP.Exec
+        IMP.REPL
