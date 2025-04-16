@@ -5,7 +5,7 @@ on:
         tags:
             - "v*" # Build only on version tags like v0.1.0
     pull_request:
-        branches: [main]
+        branches: [master]
 
 jobs:
     build:
