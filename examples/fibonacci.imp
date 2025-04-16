@@ -1,0 +1,11 @@
+-- recursively computes and prints the first 100 fibonacci numbers
+
+f0 := 0;
+f1 := 1;
+while n < 100 do
+    print f0;
+    t := f0;
+    f0 := f1;
+    f1 := f0 + t;
+    n := n+1
+end
