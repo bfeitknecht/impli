@@ -10,7 +10,7 @@ To start the REPL, just run `impli` with no arguments. Pass the relative path of
 
 ## Installation
 
-Work in progress. Build artifacts for macOS, Linux and Windows *should* be available under the GitHub releases page.
+Work in progress. Build artifacts for macOS, Linux and Windows are available under the GitHub releases page.
 
 
 ## Limitations

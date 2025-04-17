@@ -1,4 +1,4 @@
--- computes the sum from 0 to n
+-- computes the sum from 0 to 100
 
 n := 100;
 while n > 0 do
