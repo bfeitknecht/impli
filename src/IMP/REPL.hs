@@ -2,15 +2,13 @@
 
 module IMP.REPL (repl) where
 
+import Control.Exception (IOException, try)
 import Control.Monad.IO.Class (liftIO)
-import Control.Exception (try, IOException)
-import System.Console.Haskeline
-import IMP.Parser (parseIMP)
-import IMP.Exec (execStm)
-import IMP.Eval (State)
 import qualified Data.Map as Map
-
-
+import IMP.Eval (State)
+import IMP.Exec (execStm)
+import IMP.Parser (parseIMP)
+import System.Console.Haskeline
 
 repl :: State -> IO ()
 repl state = runInputT defaultSettings (loop state)
@@ -19,7 +17,7 @@ loop :: State -> InputT IO ()
 loop state = do
     input <- getInputLine "IMP> "
     case input of
-        Nothing -> outputStrLn "Goodbye!"  -- ctrl-D
+        Nothing -> outputStrLn "Goodbye!" -- ctrl-D
         Just (':' : meta) -> handleMeta meta state
         Just "" -> loop state
         Just line -> case parseIMP "<interactive>" line of
@@ -39,7 +37,6 @@ handleMeta meta state = case words meta of
     ["?"] -> handleMeta "help" state
     ["l"] -> handleMeta "load" state
     ["l", path] -> handleMeta ("load " ++ path) state
-
     ["quit"] -> outputStrLn "Goodbye!"
     ["reset"] -> do
         outputStrLn "State reset."

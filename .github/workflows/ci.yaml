@@ -29,10 +29,10 @@ jobs:
             - name: Cache Cabal store
               uses: actions/cache@v3
               with:
-                  path: ${{ steps.setup-haskell.outputs.cabal-store }} # incorrect path?
+                  path: ${{ steps.setup-haskell.outputs.cabal-store }}
                   key: ${{ runner.os }}-cabal
 
-            - name: Build IMP
+            - name: Build impli
               run: |
                   cabal update
                   cabal build
@@ -41,13 +41,13 @@ jobs:
               shell: bash
               run: |
                   mkdir -p artifacts
-                  cp $(find dist-newstyle -type f -perm -u=x -name 'imp*' | head -n 1) artifacts/imp-${{ runner.os }}
+                  cp $(find dist-newstyle -type f -perm -u=x -name 'imp*' | head -n 1) artifacts/impli-${{ runner.os }}
 
             - name: Upload artifact
               uses: actions/upload-artifact@v4
               with:
-                  name: imp-${{ runner.os }}
-                  path: artifacts/imp-${{ runner.os }}
+                  name: impli-${{ runner.os }}
+                  path: artifacts/impli-${{ runner.os }}
 
             - name: Upload to GitHub Release
               if: startsWith(github.ref, 'refs/tags/')

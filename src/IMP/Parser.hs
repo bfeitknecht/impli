@@ -3,9 +3,9 @@ module IMP.Parser (parseIMP) where
 import IMP.Syntax
 import Text.Parsec
 import Text.Parsec.Expr
+import Text.Parsec.Language (emptyDef)
 import Text.Parsec.String (Parser)
 import qualified Text.Parsec.Token as Tok
-import Text.Parsec.Language (emptyDef)
 
 -- IMP input parser
 parseIMP :: String -> String -> Either ParseError Stm
@@ -16,13 +16,14 @@ lexer = Tok.makeTokenParser style
     where
         ops = ["+", "-", "*", ":=", "=", "#", "<", "<=", ">", ">=", "(", ")", ";", "not", "and", "or", "||"]
         names = ["if", "then", "else", "end", "while", "do", "skip", "print", "var", "in", "procedure", "begin"]
-        style = emptyDef {
-            Tok.commentLine = "--",
-            Tok.reservedOpNames = ops,
-            Tok.reservedNames = names,
-            Tok.identStart = letter,
-            Tok.identLetter = alphaNum <|> char '_'
-        }
+        style =
+            emptyDef
+                { Tok.commentLine = "--"
+                , Tok.reservedOpNames = ops
+                , Tok.reservedNames = names
+                , Tok.identStart = letter
+                , Tok.identLetter = alphaNum <|> char '_'
+                }
 
 -- lexer helpers
 identifier = Tok.identifier lexer
@@ -39,22 +40,24 @@ parseAexp = buildExpressionParser table term
     where
         -- operator precedence, high to low
         table =
-            [ [ Infix (reservedOp "*" >> return (Bin Mul)) AssocLeft ]
-            , [ Infix (reservedOp "+" >> return (Bin Add)) AssocLeft,
-                Infix (reservedOp "-" >> return (Bin Sub)) AssocLeft ]
+            [ [Infix (reservedOp "*" >> return (Bin Mul)) AssocLeft]
+            ,
+                [ Infix (reservedOp "+" >> return (Bin Add)) AssocLeft
+                , Infix (reservedOp "-" >> return (Bin Sub)) AssocLeft
+                ]
             ]
-        term = parens parseAexp
-            <|> (Numeral <$> integer)
-            <|> (Variable <$> identifier)
-
+        term =
+            parens parseAexp
+                <|> (Numeral <$> integer)
+                <|> (Variable <$> identifier)
 
 parseBexp :: Parser Bexp
 parseBexp = buildExpressionParser table term
     where
         table =
-            [ [ Prefix (reserved "not" >> return Not) ]
-            , [ Infix (reserved "and" >> return And) AssocLeft ]
-            , [ Infix (reserved "or" >> return Or) AssocLeft ]
+            [ [Prefix (reserved "not" >> return Not)]
+            , [Infix (reserved "and" >> return And) AssocLeft]
+            , [Infix (reserved "or" >> return Or) AssocLeft]
             ]
         term = parens parseBexp <|> parseRel
 
@@ -66,13 +69,13 @@ parseRel = do
     return $ Rel rop e1 e2
 
 parseRop :: Parser Rop
-parseRop =  (reservedOp "=" >> return Eq)
-    <|> (reservedOp "#" >> return Neq)
-    <|> (reservedOp "<=" >> return Leq)
-    <|> (reservedOp "<" >> return Lt)
-    <|> (reservedOp ">=" >> return Geq)
-    <|> (reservedOp ">" >> return Gt)
-
+parseRop =
+    (reservedOp "=" >> return Eq)
+        <|> (reservedOp "#" >> return Neq)
+        <|> (reservedOp "<=" >> return Leq)
+        <|> (reservedOp "<" >> return Lt)
+        <|> (reservedOp ">=" >> return Geq)
+        <|> (reservedOp ">" >> return Gt)
 
 parseStm :: Parser Stm
 parseStm = parseSeq
@@ -83,12 +86,13 @@ parseSeq = do
     return $ foldr1 Seq l
 
 parseSingleStm :: Parser Stm
-parseSingleStm = parseSkip
-    <|> parsePrint
-    <|> parseAssign
-    <|> parseIf
-    <|> parseWhile
-    <|> parens parseStm
+parseSingleStm =
+    parseSkip
+        <|> parsePrint
+        <|> parseAssign
+        <|> parseIf
+        <|> parseWhile
+        <|> parens parseStm
 
 parseSkip :: Parser Stm
 parseSkip = reserved "skip" >> return Skip

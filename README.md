@@ -16,7 +16,7 @@ Work in progress. Build artifacts for macOS, Linux and Windows *should* be avail
 ## Limitations
 
 Currently, only the essentials of the specification of `IMP` are supported. One fundamental deviation from it is that an arbitrary nubmer of statements can be sequences withouth the need for parantheses. The following extensions are planned.
-- local variable declaration
+- local variable declaration in statement
 - procedure declarations and calls
-- non-deterministic choice
-- parallelism
+- non-deterministic choice between statements
+- parallelism of statements

@@ -1,13 +1,13 @@
 module Main where
 
+import Control.Exception (IOException, try)
+import Control.Monad (void)
 import qualified Data.Map as Map
+import IMP.Exec (execStm)
+import IMP.Parser (parseIMP)
+import IMP.REPL (repl)
 import Options.Applicative
 import System.Exit (exitFailure)
-import IMP.Parser (parseIMP)
-import IMP.Exec (execStm)
-import IMP.REPL (repl)
-import Control.Exception (try, IOException)
-import Control.Monad (void)
 
 -- IMP CLI entrypoint
 main :: IO ()
@@ -20,22 +20,28 @@ main = do
         RunCommand command -> runCommand command
 
 -- CLI actions
-data Action = RunCommand String
+data Action
+    = RunCommand String
     | RunFile FilePath
     | RunSTDIN
     | RunREPL
 
 -- CLI parser
 actionParser :: Parser Action
-actionParser = RunCommand <$> strOption (long "command" <> short 'c' <> metavar "COMMAND" <> help "Run IMP command")
-    <|> flag' RunSTDIN (long "stdin" <> help "Read IMP program from standard input")
-    <|> argument parseChannel (metavar "FILE" <> help "Run IMP source file (use '-' for stdin)")
-    <|> pure RunREPL
-    where parseChannel = eitherReader $ \arg -> if arg == "-" then Right RunSTDIN else Right (RunFile arg)
+actionParser =
+    RunCommand
+        <$> strOption (long "command" <> short 'c' <> metavar "COMMAND" <> help "Run IMP command")
+            <|> flag' RunSTDIN (long "stdin" <> help "Read IMP program from standard input")
+            <|> argument parseChannel (metavar "FILE" <> help "Run IMP source file (use '-' for stdin)")
+            <|> pure RunREPL
+    where
+        parseChannel = eitherReader $ \arg -> if arg == "-" then Right RunSTDIN else Right (RunFile arg)
 
 actionInfo :: ParserInfo Action
-actionInfo = info (actionParser <**> helper)
-    (fullDesc <> progDesc "IMP language interpreter" <> header "impli - imperative language interpreter and REPL")
+actionInfo =
+    info
+        (actionParser <**> helper)
+        (fullDesc <> progDesc "IMP language interpreter" <> header "impli - imperative language interpreter and REPL")
 
 runCommand :: String -> IO ()
 runCommand command = case parseIMP "<command>" command of
