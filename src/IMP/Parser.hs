@@ -7,16 +7,15 @@ import Text.Parsec.String (Parser)
 import qualified Text.Parsec.Token as Tok
 import Text.Parsec.Language (emptyDef)
 
--- parse IMP input
+-- IMP input parser
 parseIMP :: String -> String -> Either ParseError Stm
 parseIMP channel input = parse (whitespace *> parseStm <* eof) channel input
 
--- lexer
 lexer :: Tok.TokenParser ()
 lexer = Tok.makeTokenParser style
     where
-        ops = ["+", "-", "*", ":=", "=", "#", "<", "<=", ">", ">=", "(", ")", ";", "not", "and", "or"]
-        names = ["if", "then", "else", "end", "while", "do", "skip", "print"]
+        ops = ["+", "-", "*", ":=", "=", "#", "<", "<=", ">", ">=", "(", ")", ";", "not", "and", "or", "||"]
+        names = ["if", "then", "else", "end", "while", "do", "skip", "print", "var", "in", "procedure", "begin"]
         style = emptyDef {
             Tok.commentLine = "--",
             Tok.reservedOpNames = ops,
@@ -35,7 +34,6 @@ semi = Tok.semi lexer
 whitespace = Tok.whiteSpace lexer
 symbol = Tok.symbol lexer
 
--- parse arithmetic expressisons
 parseAexp :: Parser Aexp
 parseAexp = buildExpressionParser table term
     where
@@ -96,7 +94,7 @@ parseSkip :: Parser Stm
 parseSkip = reserved "skip" >> return Skip
 
 parsePrint :: Parser Stm
-parsePrint = reserved "print" >> Print <$> identifier
+parsePrint = reserved "print" >> Print <$> parseAexp
 
 parseAssign :: Parser Stm
 parseAssign = do

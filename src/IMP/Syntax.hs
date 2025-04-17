@@ -27,7 +27,7 @@ data Rop = Eq               -- =
 
 -- statement
 data Stm = Skip             -- skip
-    | Print Var             -- print x
+    | Print Aexp            -- print e
     | Assign Var Aexp       -- x := e
     | Seq Stm Stm           -- (s; s')
     | If Bexp Stm Stm       -- if b then s else s' end

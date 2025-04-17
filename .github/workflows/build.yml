@@ -1,9 +1,9 @@
-name: Build IMP CLI
+name: Build impli CLI
 
 on:
     push:
         tags:
-            - "v*" # Build only on version tags like v0.1.0
+            - "v*"
     pull_request:
         branches: [master]
     workflow_dispatch:
@@ -29,7 +29,7 @@ jobs:
             - name: Cache Cabal store
               uses: actions/cache@v3
               with:
-                  path: ${{ steps.setup-haskell.outputs.cabal-store }}
+                  path: ${{ steps.setup-haskell.outputs.cabal-store }} # incorrect path?
                   key: ${{ runner.os }}-cabal
 
             - name: Build IMP

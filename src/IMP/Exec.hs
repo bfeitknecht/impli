@@ -1,35 +1,34 @@
-module IMP.Exec (execStm, Output) where
+module IMP.Exec (execStm) where
 
 import IMP.Syntax
 import IMP.Eval
 import qualified Data.Map as Map
 
-type Output = [String]
-type ExecResult = (State, Output)
+execStm :: Stm -> State -> IO State
 
-execStm :: Stm -> State -> Output -> ExecResult
-execStm Skip st out = (st, out)
+execStm Skip state = do return state
 
-execStm (Print x) st out =
-    let v = evalAexp (Variable x) st
-    in (st, out ++ [show v])
+execStm (Print e) state = do
+    let v = evalAexp e state
+    print v
+    return state
 
-execStm (Assign x e) st out =
-    let v = evalAexp e st
-    in (Map.insert x v st, out)
+execStm (Assign x e) state = do
+    let v = evalAexp e state
+    return (Map.insert x v state)
 
-execStm (Seq s1 s2) st out =
-    let (st1, out1) = execStm s1 st out
-    in execStm s2 st1 out1
+execStm (Seq s1 s2) state = do
+    state' <- execStm s1 state
+    execStm s2 state'
 
-execStm (If b s1 s2) st out =
-    if evalBexp b st
-        then execStm s1 st out
-        else execStm s2 st out
+execStm (If b s1 s2) state =
+    if evalBexp b state
+        then execStm s1 state
+        else execStm s2 state
 
-execStm (While b s) st out =
-    if evalBexp b st
-        then
-            let (st1, out1) = execStm s st out
-            in execStm (While b s) st1 out1
-        else (st, out)
+execStm (While b s) state =
+    if evalBexp b state
+        then do
+            state' <- execStm s state
+            execStm (While b s) state'
+        else return state
