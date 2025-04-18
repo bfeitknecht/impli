@@ -21,6 +21,7 @@ evalAexp (Bin op e1 e2) state =
             Mul -> v1 * v2
 
 evalBexp :: Bexp -> State -> Bool
+evalBexp (Boolean b) _ = b
 evalBexp (Or b1 b2) state = evalBexp b1 state || evalBexp b2 state
 evalBexp (And b1 b2) state = evalBexp b1 state && evalBexp b2 state
 evalBexp (Not b) state = not (evalBexp b state)

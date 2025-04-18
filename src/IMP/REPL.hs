@@ -1,5 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 module IMP.REPL (repl) where
 
 import Control.Exception (IOException, try)
@@ -48,6 +46,7 @@ handleMeta meta state = case words meta of
         outputStrLn ":help / :?    Show this help"
         -- outputStrLn ":env          Show environment"
         outputStrLn ":load FILE    Evaluate a file and load the corresponding state"
+        outputStrLn ""
         loop state
     ["load"] -> do
         outputStrLn "No filepath provided."

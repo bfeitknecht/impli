@@ -1,4 +1,4 @@
-module IMP.Parser (parseIMP) where
+module IMP.Parser where
 
 import IMP.Syntax
 import Text.Parsec
@@ -14,15 +14,31 @@ parseIMP channel input = parse (whitespace *> parseStm <* eof) channel input
 lexer :: Tok.TokenParser ()
 lexer = Tok.makeTokenParser style
     where
-        ops = ["+", "-", "*", ":=", "=", "#", "<", "<=", ">", ">=", "(", ")", ";", "not", "and", "or", "||"]
-        names = ["if", "then", "else", "end", "while", "do", "skip", "print", "var", "in", "procedure", "begin"]
+        ops = ["+", "-", "*", ":=", "=", "#", "<", "<=", ">", ">=", "(", ")", ";", "not", "and", "or", "||", ","]
+        names =
+            [ "if"
+            , "then"
+            , "else"
+            , "end"
+            , "while"
+            , "do"
+            , "skip"
+            , "print"
+            , "var"
+            , "in"
+            , "procedure"
+            , "begin"
+            , "par"
+            , "true"
+            , "false"
+            ]
         style =
             emptyDef
                 { Tok.commentLine = "--"
                 , Tok.reservedOpNames = ops
                 , Tok.reservedNames = names
                 , Tok.identStart = letter
-                , Tok.identLetter = alphaNum <|> char '_'
+                , Tok.identLetter = alphaNum -- <|> char '_'
                 }
 
 -- lexer helpers
@@ -59,7 +75,11 @@ parseBexp = buildExpressionParser table term
             , [Infix (reserved "and" >> return And) AssocLeft]
             , [Infix (reserved "or" >> return Or) AssocLeft]
             ]
-        term = parens parseBexp <|> parseRel
+        term =
+            parens parseBexp
+                <|> parseRel
+                <|> (reserved "true" >> return (Boolean True))
+                <|> (reserved "false" >> return (Boolean False))
 
 parseRel :: Parser Bexp
 parseRel = do
@@ -78,20 +98,30 @@ parseRop =
         <|> (reservedOp ">" >> return Gt)
 
 parseStm :: Parser Stm
-parseStm = parseSeq
+parseStm = buildExpressionParser table parseSeq
+    where
+        table =
+            [ [Infix (reservedOp "||" >> return NonDet) AssocLeft]
+            , [Infix (reserved "par" >> return Par) AssocLeft]
+            ]
 
 parseSeq :: Parser Stm
 parseSeq = do
-    l <- sepBy1 parseSingleStm semi
+    l <- sepBy1 parseSingle semi
     return $ foldr1 Seq l
 
-parseSingleStm :: Parser Stm
-parseSingleStm =
+parseSingle :: Parser Stm
+parseSingle =
     parseSkip
         <|> parsePrint
-        <|> parseAssign
-        <|> parseIf
+        <|> parseVarDef
+        <|> parseIfElse
         <|> parseWhile
+        <|> parseLocal
+        <|> parsePar
+        <|> parseNonDet
+        <|> parseProcDef
+        <|> parseProcInvoc
         <|> parens parseStm
 
 parseSkip :: Parser Stm
@@ -100,21 +130,20 @@ parseSkip = reserved "skip" >> return Skip
 parsePrint :: Parser Stm
 parsePrint = reserved "print" >> Print <$> parseAexp
 
-parseAssign :: Parser Stm
-parseAssign = do
+parseVarDef :: Parser Stm
+parseVarDef = do
     x <- identifier
     reservedOp ":="
     e <- parseAexp
     return $ Assign x e
 
-parseIf :: Parser Stm
-parseIf = do
+parseIfElse :: Parser Stm
+parseIfElse = do
     reserved "if"
     b <- parseBexp
     reserved "then"
     s <- parseStm
-    reserved "else"
-    s' <- parseStm
+    s' <- option Skip (reserved "else" >> parseStm)
     reserved "end"
     return $ If b s s'
 
@@ -126,3 +155,58 @@ parseWhile = do
     s <- parseStm
     reserved "end"
     return $ While b s
+
+parseLocal :: Parser Stm
+parseLocal = do
+    reserved "var"
+    x <- identifier
+    reservedOp ":="
+    e <- parseAexp
+    reserved "in"
+    s <- parseStm
+    reserved "end"
+    return $ Local x e s
+
+parsePar :: Parser Stm
+parsePar = do
+    s1 <- parseStm
+    reserved "par"
+    s2 <- parseStm
+    return $ Par s1 s2
+
+parseNonDet :: Parser Stm
+parseNonDet = do
+    s1 <- parseStm
+    reservedOp "||"
+    s2 <- parseStm
+    return $ NonDet s1 s2
+
+parseProcDef :: Parser Stm
+parseProcDef = do
+    reserved "procedure"
+    p <- identifier
+    (params, rets) <- parseParamsRets
+    reserved "begin"
+    s <- parseStm
+    reserved "end"
+    return $ ProcDef p params rets s
+
+parseProcInvoc :: Parser Stm
+parseProcInvoc = do
+    p <- identifier
+    (args, rets) <- parseArgsRets
+    return $ ProcInvoc p args rets
+
+parseParamsRets :: Parser ([Var], [Var])
+parseParamsRets = parens $ do
+    params <- sepBy identifier (symbol ",")
+    reservedOp ";"
+    rets <- sepBy identifier (symbol ",")
+    return (params, rets)
+
+parseArgsRets :: Parser ([Aexp], [Var])
+parseArgsRets = parens $ do
+    args <- sepBy parseAexp (symbol ",")
+    reservedOp ";"
+    rets <- sepBy identifier (symbol ",")
+    return (args, rets)
