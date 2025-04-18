@@ -1,16 +1,26 @@
-module IMP.REPL (repl) where
+module IMP.REPL where
 
-import Control.Exception (IOException, try)
+import Control.Exception (IOException)
 import Control.Monad.IO.Class (liftIO)
+import Data.Char (toLower)
 import System.Console.Haskeline
+import Text.Parsec (
+    ParseError,
+    choice,
+    eof,
+    parse,
+    try,
+ )
+import Text.Parsec.String (Parser)
 
+import qualified Control.Exception as Exc
 import qualified Data.Map as Map
 import qualified System.Console.ANSI as ANSI
 
-import IMP.Eval (State)
-import IMP.Exec (execStm)
-import IMP.Parser (parseIMP)
-import IMP.Syntax (Stm)
+import IMP.Eval (State, evalAexp, evalBexp)
+import IMP.Exec
+import IMP.Parser
+import IMP.Syntax
 
 repl :: State -> IO ()
 repl state = runInputT defaultSettings (loop state)
@@ -22,13 +32,13 @@ loop state = do
         Nothing -> outputStrLn "Goodbye!" -- ctrl-D
         Just (':' : meta) -> handleMeta meta state
         Just "" -> loop state
-        Just line -> case parseIMP "<interactive>" line of
+        Just input -> case parseInput input of
             Left err -> do
                 outputStrLn $ "Parse error: " ++ show err
                 loop state
-            Right stm -> do
+            Right parsed -> do
                 -- lift from InputT to IO
-                state' <- liftIO $ execStm stm state
+                state' <- dispatch parsed state
                 loop state'
 
 handleMeta :: String -> State -> InputT IO ()
@@ -63,7 +73,7 @@ handleMeta meta state = case words meta of
         outputStrLn "No filepath provided."
         loop state
     ["load", path] -> do
-        result <- liftIO $ try (readFile path) :: InputT IO (Either IOException String)
+        result <- liftIO $ Exc.try (readFile path) :: InputT IO (Either IOException String)
         case result of
             Left _ -> do
                 outputStrLn $ "File not found: " ++ path
@@ -95,3 +105,31 @@ printAST input =
             outputStrLn $ "Parse error: " ++ show err
         Right stm -> do
             outputStrLn $ pretty stm
+
+data Input
+    = InStm Stm
+    | InAexp Aexp
+    | InBexp Bexp
+
+parseInput :: String -> Either ParseError Input
+parseInput = parse parseType "<interactive>"
+
+parseType :: Parser Input
+parseType = do
+    whitespace
+    result <-
+        choice
+            [ try (InStm <$> parseStm)
+            , try (InAexp <$> parseAexp)
+            , InBexp <$> parseBexp
+            ]
+    whitespace
+    eof
+    return result
+
+dispatch :: Input -> State -> InputT IO State
+dispatch (InStm stm) state = liftIO (execStm stm state)
+dispatch (InAexp e) state = outputStrLn (show (evalAexp e state)) >> return state
+dispatch (InBexp b) state =
+    let str = show (evalBexp b state)
+    in outputStrLn (toLower (head str) : tail str) >> return state

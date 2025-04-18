@@ -1,4 +1,4 @@
-module IMP.Exec (execStm) where
+module IMP.Exec where
 
 import Control.Concurrent.Async (concurrently)
 import System.Random (randomIO)
@@ -46,6 +46,6 @@ execStm (Par s1 s2) state = do
         concurrently
             (execStm s1 state)
             (execStm s2 state)
-    -- NOTE: Map.union is left-biased; state2 overrides state1
-    let state' = Map.union state2 state1
+    -- NOTE: Map.union is left-biased; state1 overrides state2
+    let state' = Map.union state1 state2
     return state'

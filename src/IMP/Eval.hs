@@ -1,4 +1,4 @@
-module IMP.Eval (State, evalAexp, evalBexp) where
+module IMP.Eval where
 
 import Data.Map (Map)
 

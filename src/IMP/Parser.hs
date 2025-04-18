@@ -40,7 +40,7 @@ lexer = Tok.makeTokenParser style
                 , Tok.reservedOpNames = ops
                 , Tok.reservedNames = names
                 , Tok.identStart = letter
-                , Tok.identLetter = alphaNum -- <|> char '_'
+                , Tok.identLetter = alphaNum
                 }
 
 -- lexer helpers
@@ -56,7 +56,6 @@ symbol = Tok.symbol lexer
 parseAexp :: Parser Aexp
 parseAexp = buildExpressionParser table term
     where
-        -- operator precedence, high to low
         table =
             [ [Infix (reservedOp "*" >> return (Bin Mul)) AssocLeft]
             ,
@@ -116,14 +115,14 @@ parseSingle :: Parser Stm
 parseSingle =
     parseSkip
         <|> parsePrint
-        <|> parseVarDef
+        <|> try parseVarDef
         <|> parseIfElse
         <|> parseWhile
         <|> parseLocal
         <|> parsePar
         <|> parseNonDet
         <|> parseProcDef
-        <|> parseProcInvoc
+        <|> try parseProcInvoc
         <|> parens parseStm
 
 parseSkip :: Parser Stm
@@ -133,7 +132,7 @@ parsePrint :: Parser Stm
 parsePrint = reserved "print" >> Print <$> parseAexp
 
 parseVarDef :: Parser Stm
-parseVarDef = do
+parseVarDef = try $ do
     x <- identifier
     reservedOp ":="
     e <- parseAexp
@@ -194,7 +193,7 @@ parseProcDef = do
     return $ ProcDef p params rets s
 
 parseProcInvoc :: Parser Stm
-parseProcInvoc = do
+parseProcInvoc = try $ do
     p <- identifier
     (args, rets) <- parseArgsRets
     return $ ProcInvoc p args rets

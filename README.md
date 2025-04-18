@@ -15,8 +15,8 @@ Work in progress. Build artifacts for macOS, Linux and Windows are available und
 
 ## Limitations
 
-Currently, only the essentials of the specification of `IMP` are supported. One fundamental deviation from it is that an arbitrary nubmer of statements can be sequences withouth the need for parantheses. The following extensions are planned.
-- local variable declaration in statement
-- procedure definition and invocation
-- non-determinism of statements
-- parallelism of statements
+In the REPL the execution of expressions leads to intermination, as the parser currently cannot parse that.
+
+## Specification
+
+Currently, the only extension not implemented is procedure definitions and invocations. One fundamental deviation from the specification is that an arbitrary nubmer of statements can be sequences withouth the need for parantheses. Another is that the final state in a parallel execution is determined by the lefthandside.
