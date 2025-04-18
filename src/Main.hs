@@ -2,12 +2,14 @@ module Main where
 
 import Control.Exception (IOException, try)
 import Control.Monad (void)
+import Options.Applicative
+import System.Exit (exitFailure)
+
 import qualified Data.Map as Map
+
 import IMP.Exec (execStm)
 import IMP.Parser (parseIMP)
 import IMP.REPL (repl)
-import Options.Applicative
-import System.Exit (exitFailure)
 
 -- IMP CLI entrypoint
 main :: IO ()

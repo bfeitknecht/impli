@@ -2,11 +2,13 @@ module IMP.REPL (repl) where
 
 import Control.Exception (IOException, try)
 import Control.Monad.IO.Class (liftIO)
+import System.Console.Haskeline
+
 import qualified Data.Map as Map
+
 import IMP.Eval (State)
 import IMP.Exec (execStm)
 import IMP.Parser (parseIMP)
-import System.Console.Haskeline
 
 repl :: State -> IO ()
 repl state = runInputT defaultSettings (loop state)

@@ -1,10 +1,12 @@
 module IMP.Exec (execStm) where
 
 import Control.Concurrent.Async (concurrently)
+import System.Random (randomIO)
+
 import qualified Data.Map as Map
+
 import IMP.Eval
 import IMP.Syntax
-import System.Random (randomIO)
 
 execStm :: Stm -> State -> IO State
 execStm Skip state = do return state

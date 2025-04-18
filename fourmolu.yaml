@@ -4,14 +4,14 @@ column-limit: none
 function-arrows: trailing
 comma-style: leading
 import-export-style: diff-friendly
-import-grouping: legacy
+import-grouping: by-scope-then-qualified
 indent-wheres: true
 record-brace-space: false
 newlines-between-decls: 1
 haddock-style: multi-line
 haddock-style-module: null
-let-style: auto
-in-style: right-align
+let-style: mixed
+in-style: no-space
 single-constraint-parens: always
 single-deriving-parens: always
 sort-constraints: false

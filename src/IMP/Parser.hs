@@ -1,11 +1,13 @@
 module IMP.Parser where
 
-import IMP.Syntax
 import Text.Parsec
 import Text.Parsec.Expr
 import Text.Parsec.Language (emptyDef)
 import Text.Parsec.String (Parser)
+
 import qualified Text.Parsec.Token as Tok
+
+import IMP.Syntax
 
 -- IMP input parser
 parseIMP :: String -> String -> Either ParseError Stm

@@ -12,8 +12,8 @@ Aexp
 
 Rop = '=' | '#' | '<' | '<=' | '>' | '>='                                           -- relation operation
 Bexp
-    = '(' Bexp 'or' Bexp ')'                                                         -- disjunction
-    | '(' Bexp 'and' Bexp ')'                                                        -- conjunction
+    = '(' Bexp 'or' Bexp ')'                                                        -- disjunction
+    | '(' Bexp 'and' Bexp ')'                                                       -- conjunction
     | 'not' Bexp                                                                    -- negation
     | Aexp Rop Aexp                                                                 -- relation
 
@@ -23,11 +23,8 @@ Stm
     | '(' Stm ';' Stm ')'                                                           -- sequence
     | 'if' Bexp 'then' Stm 'else' Stm 'end'                                         -- conditional
     | 'while' Bexp 'do' Stm 'end                                                    -- iteration
-    | Ext                                                                           -- extension
-
-Ext
-    = 'var' Var ':=' Aexp 'in' Stm 'end'                                            -- local variable definition
-    | 'procedure' Ident '(' { Var ',' }* '~' { Var ',' }* ')' 'begin' Stm 'end'    -- procedure definition
-    | Ident '(' { Aexp ',' }* '~' { Var ',' }* ')' 'begin' Stm 'end'               -- procedure invocation
+    | 'var' Var ':=' Aexp 'in' Stm 'end'                                            -- local variable definition
+    | 'procedure' Ident '(' { Var ',' }* ';' { Var ',' }* ')' 'begin' Stm 'end'     -- procedure definition
+    | Ident '(' { Aexp ',' }* ';' { Var ',' }* ')' 'begin' Stm 'end'                -- procedure invocation
     | Stm '||' Stm                                                                  -- non-determinism
     | Stm 'par' Stm                                                                 -- parallelization
