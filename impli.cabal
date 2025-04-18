@@ -1,6 +1,6 @@
 cabal-version:       >=1.10
 name:                impli
-version:             0.1.3.0
+version:             0.1.4.0
 build-type:          Simple
 
 executable impli
@@ -17,7 +17,8 @@ executable impli
         haskeline >=0.8,
         optparse-applicative >=0.15,
         random,
-        async
+        async,
+        ansi-terminal
 
     other-modules:
         IMP.Syntax

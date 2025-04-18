@@ -43,7 +43,10 @@ actionInfo :: ParserInfo Action
 actionInfo =
     info
         (actionParser <**> helper)
-        (fullDesc <> progDesc "IMP language interpreter" <> header "impli - imperative language interpreter and REPL")
+        ( fullDesc
+            <> progDesc "An interpreter and REPL for the imperative toy language IMP"
+            <> header "impli - IMP language interpreter"
+        )
 
 runCommand :: String -> IO ()
 runCommand command = case parseIMP "<command>" command of

@@ -1,0 +1,5 @@
+x := 42;
+var x := x + 17 in
+    print x
+end;
+print x
