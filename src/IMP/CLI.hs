@@ -6,8 +6,7 @@ import Data.Version (showVersion)
 import Options.Applicative
 import System.Exit (exitFailure)
 
-import qualified Data.Map as Map
-
+import IMP.Eval
 import IMP.Exec
 import IMP.Parser
 import IMP.REPL
@@ -44,7 +43,7 @@ actionInfo =
 runCommand :: String -> IO ()
 runCommand command = case parseProgram "<command>" command of
     Left err -> putStrLn ("Parse error:\n" ++ show err) >> exitFailure
-    Right stm -> void $ execStm stm Map.empty
+    Right stm -> void $ execStm stm emptyState
 
 runFile :: FilePath -> IO ()
 runFile "-" = runSTDIN
@@ -55,19 +54,19 @@ runFile path = do
             putStrLn $ "File not found: " ++ path
         Right content -> case parseProgram path content of
             Left err -> putStrLn ("Parse error:\n" ++ show err) >> exitFailure
-            Right stm -> void $ execStm stm Map.empty
+            Right stm -> void $ execStm stm emptyState
 
 runREPL :: IO ()
 runREPL = do
     putStrLn "Welcome to the IMP REPL! Type :quit to exit."
-    repl Map.empty
+    repl emptyState
 
 runSTDIN :: IO ()
 runSTDIN = do
     input <- getContents
     case parseProgram "<stdin>" input of
         Left err -> putStrLn $ "Parse error:\n" ++ show err
-        Right stm -> void $ execStm stm Map.empty
+        Right stm -> void $ execStm stm emptyState
 
 versionString :: String
 versionString = "impli " ++ showVersion Paths.version

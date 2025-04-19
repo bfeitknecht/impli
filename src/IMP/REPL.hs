@@ -5,7 +5,6 @@ import Control.Monad.IO.Class (liftIO)
 import Data.Char (toLower)
 import System.Console.Haskeline
 
-import qualified Data.Map as Map
 import qualified System.Console.ANSI as ANSI
 
 import IMP.Eval
@@ -60,7 +59,7 @@ handleMeta meta state = case words meta of
         loop state
     ["reset"] -> do
         outputStrLn "State reset."
-        loop Map.empty
+        loop emptyState
     ["load"] -> do
         outputStrLn "No filepath provided."
         loop state

@@ -1,19 +1,36 @@
 module IMP.Eval where
 
-import Data.Map (Map)
-
 import qualified Data.Map as Map
 
 import IMP.Syntax
 
-type State = Map Var Val
+type VarEnv = Map.Map Var Integer
+type ProcEnv = Map.Map Var Proc
+type State = (VarEnv, ProcEnv)
+
+data Proc = Proc [Var] [Var] Stm
+
+emptyState :: State
+emptyState = (Map.empty, Map.empty)
+
+getVar :: Var -> State -> Integer
+getVar x (vars, _) = Map.findWithDefault 0 x vars
+
+setVar :: Var -> Integer -> State -> State
+setVar x v (vars, procs) = (Map.insert x v vars, procs)
+
+setVars :: [(Var, Integer)] -> State -> State
+setVars bindings (vars, procs) = (foldr (uncurry Map.insert) vars bindings, procs)
+
+getProc :: Var -> State -> Maybe Proc
+getProc name (_, procs) = Map.lookup name procs
+
+setProc :: Var -> Proc -> State -> State
+setProc name def (vars, procs) = (vars, Map.insert name def procs)
 
 evalAexp :: Aexp -> State -> Val
 evalAexp (Numeral n) _ = n
-evalAexp (Variable x) state =
-    case Map.lookup x state of
-        Just v -> v
-        Nothing -> 0 -- default zero initialized variable
+evalAexp (Variable x) state = getVar x state
 evalAexp (Bin op e1 e2) state =
     let
         v1 = evalAexp e1 state

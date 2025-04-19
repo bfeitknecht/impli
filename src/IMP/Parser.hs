@@ -153,18 +153,18 @@ parseNonDet = do
 parseProcDef :: Parser Stm
 parseProcDef = do
     reserved "procedure"
-    p <- identifier
+    name <- identifier
     (params, rets) <- parseParamsRets
     reserved "begin"
-    s <- parseStm
+    body <- parseStm
     reserved "end"
-    return $ ProcDef p params rets s
+    return $ ProcDef name params rets body
 
 parseProcInvoc :: Parser Stm
 parseProcInvoc = try $ do
-    p <- identifier
+    name <- identifier
     (args, rets) <- parseArgsRets
-    return $ ProcInvoc p args rets
+    return $ ProcInvoc name args rets
 
 parseParamsRets :: Parser ([Var], [Var])
 parseParamsRets = parens $ do
