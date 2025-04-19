@@ -1,0 +1,9 @@
+-- demonstrates procedure definition and invocation
+
+procedure foo(x; y) begin
+    print x;
+    y := x * 2
+end;
+
+foo(10; x);
+print x

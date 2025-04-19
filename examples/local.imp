@@ -1,3 +1,5 @@
+-- illustrates local variable definition
+
 x := 42;
 var x := x + 17 in
     print x

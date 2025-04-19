@@ -10,7 +10,7 @@ data Aexp
     | Numeral Val
     deriving (Show)
 
--- arithmethic operation
+-- arithmetic operation
 data Op = Add | Sub | Mul deriving (Show)
 
 -- boolean expression
@@ -43,7 +43,7 @@ data Stm
     | Local Var Aexp Stm -- var x := e in s end
     | Par Stm Stm -- s par s'
     | NonDet Stm Stm -- s || s'
-    | ProcDef Var [Var] [Var] Stm -- procedure p(args; rets) begin s end
+    | ProcDef Var [Var] [Var] Stm -- procedure p(params; rets) begin s end
     | ProcInvoc Var [Aexp] [Var] -- p(args, rets)
     deriving (Show)
 

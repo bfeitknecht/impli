@@ -1,2 +1,4 @@
-x := 10 par x := 20;
-print x par print x+x
+-- shows the behavior of parallel execution
+
+x := 10;
+(x := x+1; print x par x := x-1; print x)

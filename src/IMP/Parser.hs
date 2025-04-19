@@ -11,9 +11,11 @@ import IMP.Syntax
 
 parseConstruct :: Parser Construct
 parseConstruct =
-    try (Arithm <$> parseAexp)
-        <|> try (Bool <$> parseBexp)
-        <|> (Statement <$> parseStm)
+    choice
+        [ try $ Statement <$> parseStm
+        , try $ Arithm <$> parseAexp
+        , Bool <$> parseBexp
+        ]
 
 parseInput :: String -> String -> Either ParseError Construct
 parseInput = parse (whitespace *> parseConstruct <* eof)
@@ -81,17 +83,17 @@ parseSeq = do
 
 parseSingle :: Parser Stm
 parseSingle =
-    parseSkip
-        <|> parsePrint
-        <|> try parseVarDef
-        <|> parseIfElse
-        <|> parseWhile
-        <|> parseLocal
-        <|> parsePar
-        <|> parseNonDet
-        <|> parseProcDef
-        <|> try parseProcInvoc
-        <|> parens parseStm
+    choice . map try $
+        [ parseSkip
+        , parsePrint
+        , parseVarDef
+        , parseIfElse
+        , parseWhile
+        , parseLocal
+        , parseProcDef
+        , parseProcInvoc
+        , parens parseStm
+        ]
 
 parseSkip :: Parser Stm
 parseSkip = reserved "skip" >> return Skip

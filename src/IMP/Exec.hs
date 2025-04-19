@@ -63,11 +63,11 @@ execStm stm state@(vars, procs) = case stm of
                 let local = (vars', procs)
 
                 -- execute body
-                (results, _) <- execStm body local
+                (rets'', procs') <- execStm body local
 
                 -- extract return values from local state
-                let extracts = zip rets (map (\v -> Map.findWithDefault 0 v results) rets')
+                let extracts = zip rets (map (\v -> Map.findWithDefault 0 v rets'') rets')
 
                 -- insert into previous environment
                 let fin = foldr (uncurry Map.insert) vars extracts
-                return (fin, procs)
+                return (fin, procs')
