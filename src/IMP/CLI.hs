@@ -24,12 +24,12 @@ data Action
 actionParser :: Parser Action
 actionParser =
     RunCommand
-        <$> strOption (long "command" <> short 'c' <> metavar "COMMAND" <> help "Run IMP command")
+        <$> strOption (long "command" <> short 'c' <> metavar "COMMAND" <> help "Interpret command")
             <|> PrintAST
-        <$> strOption (long "ast" <> short 'a' <> metavar "CONSTRUCT" <> help "Print the AST of the given construct")
+        <$> strOption (long "ast" <> short 'a' <> metavar "CONSTRUCT" <> help "Print AST")
             <|> RunFile
-        <$> strArgument (metavar "FILE" <> help "Run IMP source file (use '-' for stdin)")
-            <|> flag' RunSTDIN (long "stdin" <> help "Read IMP program from standard input")
+        <$> strArgument (metavar "FILE" <> help "Interpret source file")
+            <|> flag' RunSTDIN (long "stdin" <> help "Interpret from standard input")
             <|> pure RunREPL
 
 actionInfo :: ParserInfo Action
