@@ -17,7 +17,7 @@ import qualified Control.Exception as Exc
 import qualified Data.Map as Map
 import qualified System.Console.ANSI as ANSI
 
-import IMP.Eval (State, evalAexp, evalBexp)
+import IMP.Eval
 import IMP.Exec
 import IMP.Parser
 import IMP.Syntax
@@ -37,12 +37,13 @@ loop state = do
                 outputStrLn $ "Parse error: " ++ show err
                 loop state
             Right parsed -> do
-                -- lift from InputT to IO
                 state' <- dispatch parsed state
                 loop state'
 
 handleMeta :: String -> State -> InputT IO ()
 handleMeta meta state = case words meta of
+    [")"] -> outputStrLn "You look good today!" >> loop state
+    ["("] -> outputStrLn "Hang in there, it'll be okay." >> loop state
     ["?"] -> handleMeta "help" state
     ["h"] -> handleMeta "help" state
     ["q"] -> outputStrLn "Goodbye!"
@@ -106,30 +107,12 @@ printAST input =
         Right stm -> do
             outputStrLn $ pretty stm
 
-data Input
-    = InStm Stm
-    | InAexp Aexp
-    | InBexp Bexp
+parseInput :: String -> Either ParseError Construct
+parseInput = parse (whitespace *> parseConstruct <* eof) "<interactive>"
 
-parseInput :: String -> Either ParseError Input
-parseInput = parse parseType "<interactive>"
-
-parseType :: Parser Input
-parseType = do
-    whitespace
-    result <-
-        choice
-            [ try (InStm <$> parseStm)
-            , try (InAexp <$> parseAexp)
-            , InBexp <$> parseBexp
-            ]
-    whitespace
-    eof
-    return result
-
-dispatch :: Input -> State -> InputT IO State
-dispatch (InStm stm) state = liftIO (execStm stm state)
-dispatch (InAexp e) state = outputStrLn (show (evalAexp e state)) >> return state
-dispatch (InBexp b) state =
+dispatch :: Construct -> State -> InputT IO State
+dispatch (Statement stm) state = liftIO (execStm stm state)
+dispatch (Arithm e) state = outputStrLn (show (evalAexp e state)) >> return state
+dispatch (Bool b) state =
     let str = show (evalBexp b state)
     in outputStrLn (toLower (head str) : tail str) >> return state

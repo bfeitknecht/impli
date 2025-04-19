@@ -28,3 +28,8 @@ Stm
     | Ident '(' { Aexp ',' }* ';' { Var ',' }* ')' 'begin' Stm 'end'                -- procedure invocation
     | Stm '||' Stm                                                                  -- non-determinism
     | Stm 'par' Stm                                                                 -- parallelization
+
+Construct
+    = Aexp
+    | Bexp
+    | Stm

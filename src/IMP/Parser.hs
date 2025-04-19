@@ -9,6 +9,12 @@ import qualified Text.Parsec.Token as Tok
 
 import IMP.Syntax
 
+parseConstruct :: Parser Construct
+parseConstruct =
+    try (Arithm <$> parseAexp)
+        <|> try (Bool <$> parseBexp)
+        <|> (Statement <$> parseStm)
+
 -- IMP input parser
 parseIMP :: String -> String -> Either ParseError Stm
 parseIMP channel input = parse (whitespace *> parseStm <* eof) channel input
@@ -108,8 +114,8 @@ parseStm = buildExpressionParser table parseSeq
 
 parseSeq :: Parser Stm
 parseSeq = do
-    l <- sepBy1 parseSingle semi
-    return $ foldr1 Seq l
+    singles <- sepBy1 parseSingle semi
+    return $ foldr1 Seq singles
 
 parseSingle :: Parser Stm
 parseSingle =
@@ -136,7 +142,7 @@ parseVarDef = try $ do
     x <- identifier
     reservedOp ":="
     e <- parseAexp
-    return $ Assign x e
+    return $ Def x e
 
 parseIfElse :: Parser Stm
 parseIfElse = do

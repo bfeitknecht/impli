@@ -14,7 +14,7 @@ execStm (Print e) state = do
     let v = evalAexp e state
     print v
     return state
-execStm (Assign x e) state = do
+execStm (Def x e) state = do
     let v = evalAexp e state
     return (Map.insert x v state)
 execStm (Seq s1 s2) state = do

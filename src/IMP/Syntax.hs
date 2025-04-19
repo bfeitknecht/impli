@@ -36,13 +36,19 @@ data Rop
 data Stm
     = Skip -- skip
     | Print Aexp -- print e
-    | Assign Var Aexp -- x := e
+    | Def Var Aexp -- x := e
     | Seq Stm Stm -- (s; s')
     | If Bexp Stm Stm -- if b then s else s' end
     | While Bexp Stm -- while b do s end
-    | Local Var Aexp Stm
-    | Par Stm Stm
-    | NonDet Stm Stm
-    | ProcDef Var [Var] [Var] Stm
-    | ProcInvoc Var [Aexp] [Var]
+    | Local Var Aexp Stm -- var x := e in s end
+    | Par Stm Stm -- s par s'
+    | NonDet Stm Stm -- s || s'
+    | ProcDef Var [Var] [Var] Stm -- procedure p(args; rets) begin s end
+    | ProcInvoc Var [Aexp] [Var] -- p(args, rets)
+    deriving (Show)
+
+data Construct
+    = Statement Stm
+    | Arithm Aexp
+    | Bool Bexp
     deriving (Show)
