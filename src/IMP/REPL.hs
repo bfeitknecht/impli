@@ -1,19 +1,10 @@
 module IMP.REPL where
 
-import Control.Exception (IOException)
+import Control.Exception (IOException, try)
 import Control.Monad.IO.Class (liftIO)
 import Data.Char (toLower)
 import System.Console.Haskeline
-import Text.Parsec (
-    ParseError,
-    choice,
-    eof,
-    parse,
-    try,
- )
-import Text.Parsec.String (Parser)
 
-import qualified Control.Exception as Exc
 import qualified Data.Map as Map
 import qualified System.Console.ANSI as ANSI
 
@@ -32,7 +23,7 @@ loop state = do
         Nothing -> outputStrLn "Goodbye!" -- ctrl-D
         Just (':' : meta) -> handleMeta meta state
         Just "" -> loop state
-        Just input -> case parseInput input of
+        Just input -> case parseInput "<interactive>" input of
             Left err -> do
                 outputStrLn $ "Parse error: " ++ show err
                 loop state
@@ -74,13 +65,13 @@ handleMeta meta state = case words meta of
         outputStrLn "No filepath provided."
         loop state
     ["load", path] -> do
-        result <- liftIO $ Exc.try (readFile path) :: InputT IO (Either IOException String)
+        result <- liftIO $ try (readFile path) :: InputT IO (Either IOException String)
         case result of
             Left _ -> do
                 outputStrLn $ "File not found: " ++ path
                 loop state
             Right content ->
-                case parseIMP path content of
+                case parseProgram path content of
                     Left err -> do
                         outputStrLn $ "Parse error in file: " ++ path ++ "\n" ++ show err
                         loop state
@@ -96,23 +87,20 @@ handleMeta meta state = case words meta of
         outputStrLn $ "Not a meta command. :" ++ meta
         handleMeta "help" state
 
-pretty :: Stm -> String
-pretty = show -- replace with actual pretty printer someday
-
-printAST :: String -> InputT IO ()
-printAST input =
-    case parseIMP "<ast>" input of
-        Left err -> do
-            outputStrLn $ "Parse error: " ++ show err
-        Right stm -> do
-            outputStrLn $ pretty stm
-
-parseInput :: String -> Either ParseError Construct
-parseInput = parse (whitespace *> parseConstruct <* eof) "<interactive>"
-
 dispatch :: Construct -> State -> InputT IO State
 dispatch (Statement stm) state = liftIO (execStm stm state)
 dispatch (Arithm e) state = outputStrLn (show (evalAexp e state)) >> return state
 dispatch (Bool b) state =
     let str = show (evalBexp b state)
     in outputStrLn (toLower (head str) : tail str) >> return state
+
+printAST :: String -> InputT IO ()
+printAST input = case parseInput "<ast>" input of
+    Left err -> do outputStrLn $ "Parse error: " ++ show err
+    Right construct -> do outputStrLn $ pretty construct
+
+pretty :: Construct -> String -- replace with actual pretty printer someday
+pretty construct = case construct of
+    Statement stm -> show stm
+    Arithm e -> show e
+    Bool b -> show b

@@ -15,49 +15,11 @@ parseConstruct =
         <|> try (Bool <$> parseBexp)
         <|> (Statement <$> parseStm)
 
--- IMP input parser
-parseIMP :: String -> String -> Either ParseError Stm
-parseIMP channel input = parse (whitespace *> parseStm <* eof) channel input
+parseInput :: String -> String -> Either ParseError Construct
+parseInput = parse (whitespace *> parseConstruct <* eof)
 
-lexer :: Tok.TokenParser ()
-lexer = Tok.makeTokenParser style
-    where
-        ops = ["+", "-", "*", ":=", "=", "#", "<", "<=", ">", ">=", "(", ")", ";", "not", "and", "or", "||", ","]
-        names =
-            [ "if"
-            , "then"
-            , "else"
-            , "end"
-            , "while"
-            , "do"
-            , "skip"
-            , "print"
-            , "var"
-            , "in"
-            , "procedure"
-            , "begin"
-            , "par"
-            , "true"
-            , "false"
-            ]
-        style =
-            emptyDef
-                { Tok.commentLine = "--"
-                , Tok.reservedOpNames = ops
-                , Tok.reservedNames = names
-                , Tok.identStart = letter
-                , Tok.identLetter = alphaNum
-                }
-
--- lexer helpers
-identifier = Tok.identifier lexer
-reserved = Tok.reserved lexer
-reservedOp = Tok.reservedOp lexer
-parens = Tok.parens lexer
-integer = Tok.integer lexer
-semi = Tok.semi lexer
-whitespace = Tok.whiteSpace lexer
-symbol = Tok.symbol lexer
+parseProgram :: String -> String -> Either ParseError Stm
+parseProgram = parse (whitespace *> parseStm <* eof)
 
 parseAexp :: Parser Aexp
 parseAexp = buildExpressionParser table term
@@ -217,3 +179,42 @@ parseArgsRets = parens $ do
     reservedOp ";"
     rets <- sepBy identifier (symbol ",")
     return (args, rets)
+
+lexer :: Tok.TokenParser ()
+lexer = Tok.makeTokenParser style
+    where
+        ops = ["+", "-", "*", ":=", "=", "#", "<", "<=", ">", ">=", "(", ")", ";", "not", "and", "or", "||", ","]
+        names =
+            [ "if"
+            , "then"
+            , "else"
+            , "end"
+            , "while"
+            , "do"
+            , "skip"
+            , "print"
+            , "var"
+            , "in"
+            , "procedure"
+            , "begin"
+            , "par"
+            , "true"
+            , "false"
+            ]
+        style =
+            emptyDef
+                { Tok.commentLine = "--"
+                , Tok.reservedOpNames = ops
+                , Tok.reservedNames = names
+                , Tok.identStart = letter
+                , Tok.identLetter = alphaNum
+                }
+
+identifier = Tok.identifier lexer
+reserved = Tok.reserved lexer
+reservedOp = Tok.reservedOp lexer
+parens = Tok.parens lexer
+integer = Tok.integer lexer
+semi = Tok.semi lexer
+whitespace = Tok.whiteSpace lexer
+symbol = Tok.symbol lexer
