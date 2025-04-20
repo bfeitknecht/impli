@@ -6,10 +6,9 @@ import Data.Version (showVersion)
 import Options.Applicative
 import System.Exit (exitFailure)
 
-import IMP.Eval
-import IMP.Exec
 import IMP.Parser
 import IMP.REPL
+import IMP.Semantics
 
 import qualified Paths_impli as Paths
 

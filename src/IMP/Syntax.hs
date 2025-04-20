@@ -44,7 +44,7 @@ data Stm
     | Par Stm Stm -- s par s'
     | NonDet Stm Stm -- s || s'
     | ProcDef Var [Var] [Var] Stm -- procedure p(params; rets) begin s end
-    | ProcInvoc Var [Aexp] [Var] -- p(args, rets)
+    | ProcInvoc Var [Aexp] [Var] -- p(args; rets)
     deriving (Show)
 
 data Construct

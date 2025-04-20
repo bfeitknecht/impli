@@ -5,11 +5,11 @@ import Control.Monad.IO.Class (liftIO)
 import Data.Char (toLower)
 import System.Console.Haskeline
 
+import qualified Data.Map as Map
 import qualified System.Console.ANSI as ANSI
 
-import IMP.Eval
-import IMP.Exec
 import IMP.Parser
+import IMP.Semantics
 import IMP.Syntax
 
 repl :: State -> IO ()
@@ -60,6 +60,13 @@ handleMeta meta state = case words meta of
     ["reset"] -> do
         outputStrLn "State reset."
         loop emptyState
+    ["env"] -> do
+        let (vars, procs) = state
+        outputStrLn "Defined Variables:"
+        mapM_ (\(k, v) -> outputStrLn $ "\t" ++ k ++ " = " ++ show v) (Map.toList vars)
+        outputStrLn "Defined Procedures:"
+        mapM_ (\(k, p) -> outputStrLn $ "\t" ++ k ++ " -> " ++ show p) (Map.toList procs)
+        loop state
     ["load"] -> do
         outputStrLn "No filepath provided."
         loop state
@@ -100,6 +107,6 @@ printAST input = case parseInput "<ast>" input of
 
 pretty :: Construct -> String -- replace with actual pretty printer someday
 pretty construct = case construct of
-    Statement stm -> show stm
+    Statement s -> show s
     Arithm e -> show e
     Bool b -> show b

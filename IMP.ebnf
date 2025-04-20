@@ -4,34 +4,34 @@ Ident = Letter { Letter | Digit }
 Numeral = Digit | Numeral Digit
 Var = Ident
 
-Op = '+' | '-' | '*'                                                                -- arithmetic operation
+Op = '+' | '-' | '*'                                                                (* arithmetic operation *)
 Aexp
-    = '(' Aexp Op Aexp ')'                                                          -- computation
-    | Var                                                                           -- variable
-    | Numeral                                                                       -- value
+    = '(' Aexp Op Aexp ')'                                                          (* computation *)
+    | Var                                                                           (* variable *)
+    | Numeral                                                                       (* value *)
 
-Rop = '=' | '#' | '<' | '<=' | '>' | '>='                                           -- relation operation
+Rop = '=' | '#' | '<' | '<=' | '>' | '>='                                           (* relation operation *)
 Bexp
-    = '(' Bexp 'or' Bexp ')'                                                        -- disjunction
-    | '(' Bexp 'and' Bexp ')'                                                       -- conjunction
-    | 'not' Bexp                                                                    -- negation
-    | Aexp Rop Aexp                                                                 -- relation
+    = '(' Bexp 'or' Bexp ')'                                                        (* disjunction *)
+    | '(' Bexp 'and' Bexp ')'                                                       (* conjunction *)
+    | 'not' Bexp                                                                    (* negation *)
+    | Aexp Rop Aexp                                                                 (* relation *)
 
 Stm
-    = 'skip'                                                                        -- no-op
-    | Var ':=' Aexp                                                                 -- definition
-    | '(' Stm ';' Stm ')'                                                           -- sequence
-    | 'if' Bexp 'then' Stm 'else' Stm 'end'                                         -- conditional
-    | 'while' Bexp 'do' Stm 'end'                                                   -- iteration
-    | 'var' Var ':=' Aexp 'in' Stm 'end'                                            -- local variable definition
-    | 'procedure' Ident '(' Params ';' Rets ')' 'begin' Stm 'end'                   -- procedure definition
-    | Ident '(' Args ';' Rets ')'                                                   -- procedure invocation
-    | Stm '||' Stm                                                                  -- non-determinism
-    | Stm 'par' Stm                                                                 -- parallelization
+    = 'skip'                                                                        (* no-op *)
+    | Var ':=' Aexp                                                                 (* definition *)
+    | '(' Stm ';' Stm ')'                                                           (* sequence *)
+    | 'if' Bexp 'then' Stm 'else' Stm 'end'                                         (* conditional *)
+    | 'while' Bexp 'do' Stm 'end'                                                   (* iteration *)
+    | 'var' Var ':=' Aexp 'in' Stm 'end'                                            (* local variable definition *)
+    | 'procedure' Ident '(' Params ';' Rets ')' 'begin' Stm 'end'                   (* procedure definition *)
+    | Ident '(' Args ';' Rets ')'                                                   (* procedure invocation *)
+    | Stm '||' Stm                                                                  (* non-determinism *)
+    | Stm 'par' Stm                                                                 (* parallelization *)
 
-Args = [ Aexp { ',' Aexp } ]                                                        -- zero or more comma seperated Aexp
-Params = [ Var { ',' Var } ]                                                        -- .. Var
-Rets = Params                                                                       -- dito
+Args = [ Aexp { ',' Aexp } ]                                                        (* zero or more comma separated Aexp *)
+Params = [ Var { ',' Var } ]                                                        (* " .. Var *)
+Rets = Params                                                                       (* " .. *)
 
 Construct
     = Aexp

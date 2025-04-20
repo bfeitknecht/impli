@@ -23,9 +23,8 @@ executable impli
 
     other-modules:
         IMP.Syntax
+        IMP.Semantics
         IMP.Parser
-        IMP.Eval
-        IMP.Exec
         IMP.REPL
         IMP.CLI
         Paths_impli
