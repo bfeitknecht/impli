@@ -22,7 +22,7 @@ Bterm
 
 Stm
     = 'skip'                                                                        (* no-op *)
-    | Ident ':=' Aexp                                                               (* definition *)
+    | ( Ident | '_' ) ':=' Aexp                                                     (* definition *)
     | Stm ';' Stm                                                                   (* sequence *)
     | 'if' Bexp 'then' Stm 'else' Stm 'end'                                         (* conditional *)
     | 'while' Bexp 'do' Stm 'end'                                                   (* iteration *)
