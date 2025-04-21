@@ -10,10 +10,13 @@ To start the REPL, just run `impli` with no arguments. Pass the relative path of
 
 ## Installation
 
-Work in progress. Build artifacts for macOS, Linux and Windows are available under the GitHub releases page.
+Work in progress. Build artifacts for macOS, Linux and Windows are available under the GitHub releases page. On macOS, users may need to modify execution privileges and remove the quarantine.
+```bash
+chmod +x impli-*
+xattr -d com.apple.quarantine impli-*
+```
 
 
 ## Specification
 
-One fundamental deviation from the specification is that an arbitrary number of statements can be sequences without the need for parentheses. Furthermore, in parallel execution the lefthandside dominates race conditions. The EBNF is given below.
-https://github.com/bfeitknecht/impli/blob/master/IMP.ebnf
+The most apparent deviations from the specifications are that parentheses are not strictly required for arithmetic operations and relations in expressions. The same applies to sequencing.

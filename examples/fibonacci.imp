@@ -7,5 +7,5 @@ while n < 100 do
     t := f0;
     f0 := f1;
     f1 := f0 + t;
-    n := n+1
+    n := n + 1
 end

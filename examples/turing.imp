@@ -1,0 +1,15 @@
+-- register machine implemented in IMP proves its turing completeness
+
+-- compute the quotient and remainder of d divided by v
+procedure divmod(d, v; q, r) begin
+    q := 0;
+    r := d;
+    if not v = 0 then
+        while r >= v do
+            r := r -  v;
+            q := q + 1
+        end
+    end
+end;
+
+skip

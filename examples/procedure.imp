@@ -1,9 +1,16 @@
 -- demonstrates procedure definition and invocation
 
-procedure foo(x; y) begin
-    print x;
-    y := x * 2
+procedure fib(n; x) begin
+    f0 := 0;
+    f1 := 1;
+    while k < n do
+        t := f0;
+        f0 := f1;
+        f1 := f0 + t;
+        k := k + 1
+    end;
+    x := f1
 end;
 
-foo(10; x);
+fib(10; x);
 print x

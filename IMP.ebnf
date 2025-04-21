@@ -1,37 +1,41 @@
 Letter = 'a' .. 'z' | 'A' .. 'Z'
 Digit = '0' .. '9'
 Ident = Letter { Letter | Digit }
-Numeral = Digit | Numeral Digit
-Var = Ident
+Numeral = [ '-' ] ( Digit | Numeral Digit )
+Bool = 'true' | 'false'
 
-Op = '+' | '-' | '*'                                                                (* arithmetic operation *)
-Aexp
-    = '(' Aexp Op Aexp ')'                                                          (* computation *)
-    | Var                                                                           (* variable *)
+Aop = '+' | '-' | '*'                                                               (* arithmetic operation *)
+Aexp = Aterm { Aop Term }                                                           (* arithmetic expression *)
+Aterm
+    = Ident                                                                         (* variable *)
     | Numeral                                                                       (* value *)
+    | '(' Aexp ')'                                                                  (* parenthesized expression *)
 
 Rop = '=' | '#' | '<' | '<=' | '>' | '>='                                           (* relation operation *)
-Bexp
-    = '(' Bexp 'or' Bexp ')'                                                        (* disjunction *)
-    | '(' Bexp 'and' Bexp ')'                                                       (* conjunction *)
+Bop = 'and' | 'or'                                                                  (* boolean operation *)
+Bexp = Bterm { Bop Bterm }                                                          (* boolean expression *)
+Bterm
+    = Bool                                                                          (* value *)
     | 'not' Bexp                                                                    (* negation *)
     | Aexp Rop Aexp                                                                 (* relation *)
+    | '(' Bexp ')'                                                                  (* parenthesized expression *)
 
 Stm
     = 'skip'                                                                        (* no-op *)
-    | Var ':=' Aexp                                                                 (* definition *)
-    | '(' Stm ';' Stm ')'                                                           (* sequence *)
+    | Ident ':=' Aexp                                                               (* definition *)
+    | Stm ';' Stm                                                                   (* sequence *)
     | 'if' Bexp 'then' Stm 'else' Stm 'end'                                         (* conditional *)
     | 'while' Bexp 'do' Stm 'end'                                                   (* iteration *)
-    | 'var' Var ':=' Aexp 'in' Stm 'end'                                            (* local variable definition *)
+    | 'var' Ident ':=' Aexp 'in' Stm 'end'                                          (* local variable definition *)
     | 'procedure' Ident '(' Params ';' Rets ')' 'begin' Stm 'end'                   (* procedure definition *)
     | Ident '(' Args ';' Rets ')'                                                   (* procedure invocation *)
     | Stm '||' Stm                                                                  (* non-determinism *)
     | Stm 'par' Stm                                                                 (* parallelization *)
+    | '(' Stm ')'                                                                   (* parenthesized statement *)
 
 Args = [ Aexp { ',' Aexp } ]                                                        (* zero or more comma separated Aexp *)
-Params = [ Var { ',' Var } ]                                                        (* " .. Var *)
-Rets = Params                                                                       (* " .. *)
+Params = [ Ident { ',' Ident } ]                                                    (* '' .. Ident *)
+Rets = Params                                                                       (* '' .. *)
 
 Construct
     = Aexp

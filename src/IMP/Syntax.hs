@@ -52,3 +52,5 @@ data Construct
     | Arithm Aexp
     | Bool Bexp
     deriving (Show)
+
+data Proc = Proc [Var] [Var] Stm deriving (Show)
