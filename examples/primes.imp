@@ -1,0 +1,48 @@
+// compute the quotient and remainder of d divided by v
+procedure divmod(d, v; q, r) begin
+    q := 0;
+    r := d;
+    if not v = 0 then
+        while r >= v do
+            r := r -  v;
+            q := q + 1
+        end
+    end
+end;
+
+procedure sqrtfloor(n; r) begin
+    r := 0;
+    temp := 0;
+    done := 0;
+    while done = 0 do
+        r := r + 1;
+        temp := r * r;
+        if temp > n then
+            r := r - 1;
+            done := 1
+        end
+    end
+end;
+
+
+procedure prime(n; p) begin
+    candidate := 1;
+    count := 0;
+    while count < n do
+        candidate := candidate + 1;
+        i := 2;
+        prime := 1;
+        sqrtfloor(candidate; sqrt);
+        while i < sqrt do
+            divmod(candidate, i; q, r);
+            if r = 0 then
+                prime := 0
+            end;
+            i := i + 1
+        end;
+        if prime = 1 then
+            count := count + 1
+        end
+    end;
+    p := candidate
+end

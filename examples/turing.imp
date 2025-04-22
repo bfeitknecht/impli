@@ -1,6 +1,6 @@
--- register machine implemented in IMP proves its turing completeness
+// register machine implemented in IMP to prove its turing completeness
 
--- compute the quotient and remainder of d divided by v
+// compute the quotient and remainder of d divided by v
 procedure divmod(d, v; q, r) begin
     q := 0;
     r := d;

@@ -8,19 +8,23 @@ import Text.Parsec.String (Parser)
 import qualified Text.Parsec.Token as Tok
 
 import IMP.Syntax
+import IMP.Pretty
+
+wrap :: String -> String
+wrap = ('<' :) . (++ ">") -- this is why haskell is awesome
 
 parseInput :: String -> String -> Either ParseError Construct
-parseInput = parse (whitespace *> parseConstruct <* eof)
+parseInput channel = parse (whitespace *> parseConstruct <* eof) $ wrap channel
 
 parseProgram :: String -> String -> Either ParseError Stm
-parseProgram = parse (whitespace *> parseStm <* eof)
+parseProgram channel = parse (whitespace *> parseStm <* eof) $ wrap channel
 
 parseConstruct :: Parser Construct
 parseConstruct =
-    choice
-        [ try $ Statement <$> parseStm
-        , try $ Arithm <$> parseAexp
+    choice . map try $
+        [ Statement <$> parseStm
         , Bool <$> parseBexp
+        , Arithm <$> parseAexp
         ]
 
 parseStm :: Parser Stm
@@ -57,11 +61,11 @@ parseVar :: Parser Var
 parseVar = parsePlaceholder <|> identifier
 
 parseVarDef :: Parser Stm
-parseVarDef = try $ do
+parseVarDef = do
     x <- parseVar
     reservedOp ":="
     e <- parseAexp
-    return $ Def x e
+    return $ VarDef x e
 
 parseIfElse :: Parser Stm
 parseIfElse = do
@@ -69,7 +73,7 @@ parseIfElse = do
     b <- parseBexp
     reserved "then"
     s <- parseStm
-    s' <- option Skip (reserved "else" >> parseStm)
+    s' <- option Skip (reserved "else" >> parseStm) -- else branch is optional
     reserved "end"
     return $ If b s s'
 
@@ -104,7 +108,7 @@ parseProcDef = do
     return $ ProcDef p ps rs s
 
 parseProcInvoc :: Parser Stm
-parseProcInvoc = try $ do
+parseProcInvoc = do
     p <- identifier
     (as, rs) <- parseArgsRets
     return $ ProcInvoc p as rs
@@ -120,7 +124,7 @@ parseArgsRets :: Parser ([Aexp], [Var])
 parseArgsRets = parens $ do
     as <- sepBy parseAexp (symbol ",")
     reservedOp ";"
-    rs <- sepBy identifier (symbol ",")
+    rs <- sepBy parseVar (symbol ",") -- allow placeholders in invocation's returns
     return (as, rs)
 
 parseAexp :: Parser Aexp
@@ -211,9 +215,9 @@ lexer = Tok.makeTokenParser style
             ]
         style =
             emptyDef
-                { Tok.commentLine = "--"
-                , Tok.commentStart = "{-"
-                , Tok.commentEnd = "-}"
+                { Tok.commentLine = "//"
+                , Tok.commentStart = "/*"
+                , Tok.commentEnd = "*/"
                 , Tok.reservedOpNames = ops
                 , Tok.reservedNames = names
                 , Tok.identStart = letter

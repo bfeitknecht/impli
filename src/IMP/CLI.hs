@@ -40,8 +40,8 @@ actionInfo =
         )
 
 runCommand :: String -> IO ()
-runCommand command = case parseProgram "<command>" command of
-    Left err -> putStrLn ("Parse error:\n" ++ show err) >> exitFailure
+runCommand command = case parseProgram "command" command of
+    Left err -> putStrLn ("ERROR! no parse: " ++ command ++ "\n" ++ show err) >> exitFailure
     Right stm -> void $ execStm stm emptyState
 
 runFile :: FilePath -> IO ()
@@ -50,9 +50,9 @@ runFile path = do
     result <- try (readFile path) :: IO (Either IOException String)
     case result of
         Left _ -> do
-            putStrLn $ "File not found: " ++ path
-        Right content -> case parseProgram path content of
-            Left err -> putStrLn ("Parse error:\n" ++ show err) >> exitFailure
+            putStrLn $ "ERROR! file not found: " ++ path
+        Right content -> case parseProgram "interpreter" content of
+            Left err -> putStrLn ("ERROR! no parse in file: " ++ path ++ "\n" ++ show err) >> exitFailure
             Right stm -> void $ execStm stm emptyState
 
 runREPL :: IO ()
@@ -63,8 +63,8 @@ runREPL = do
 runSTDIN :: IO ()
 runSTDIN = do
     input <- getContents
-    case parseProgram "<stdin>" input of
-        Left err -> putStrLn $ "Parse error:\n" ++ show err
+    case parseProgram "stdin" input of
+        Left err -> putStrLn $ "ERROR! no parse:" ++ input ++ "\n" ++ show err
         Right stm -> void $ execStm stm emptyState
 
 versionString :: String

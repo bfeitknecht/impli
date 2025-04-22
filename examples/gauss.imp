@@ -1,8 +1,7 @@
--- computes the sum from 0 to 100
+// computes the sum from 0 to 100
 
-n := 100;
-while n > 0 do
+while n < 100 do
     s := s + n;
-    n := n - 1
+    n := n + 1
 end;
 print s

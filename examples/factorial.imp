@@ -1,4 +1,4 @@
--- computes the tenth factorial
+// computes the tenth factorial
 
 fac := 1;
 while n <= 10 do

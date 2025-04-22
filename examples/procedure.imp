@@ -1,4 +1,4 @@
--- demonstrates procedure definition and invocation
+// demonstrates procedure definition and invocation
 
 procedure fib(n; x) begin
     f0 := 0;

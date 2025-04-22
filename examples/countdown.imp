@@ -1,4 +1,4 @@
--- just counts down from ten
+// just counts down from ten
 
 n := 10;
 while n >= 0 do

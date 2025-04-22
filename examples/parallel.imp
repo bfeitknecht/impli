@@ -1,4 +1,4 @@
--- shows the behavior of parallel execution
+// shows the behavior of parallel execution
 
 x := 10;
 (x := x+1; print x par x := x-1; print x)

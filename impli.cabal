@@ -27,4 +27,5 @@ executable impli
         IMP.Parser
         IMP.REPL
         IMP.CLI
+        IMP.Pretty
         Paths_impli
