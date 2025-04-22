@@ -13,6 +13,7 @@ import IMP.Pretty
 import IMP.Semantics
 import IMP.Syntax
 
+type Result a = InputT IO (Either IOException a)
 type Trace = [Stm]
 type Env = (State, Trace)
 
@@ -71,7 +72,7 @@ handleMeta meta env = case words meta of
     ["clear"] -> do
         liftIO $ ANSI.clearScreen >> ANSI.setCursorPosition 0 0
         loop env
-    ["reset"] -> outputStrLn "INFO: state reset." >> loop (emptyState, [])
+    ["reset"] -> outputStrLn "INFO: state reset" >> loop (emptyState, [])
     ["trace"] -> do
         outputStrLn "Trace:"
         mapM_
@@ -87,7 +88,7 @@ handleMeta meta env = case words meta of
         loop env
     ["load"] -> outputStrLn "INFO: no filepath provided" >> loop env
     ["load", path] -> do
-        result <- liftIO $ try (readFile path) :: InputT IO (Either IOException String)
+        result <- liftIO $ try (readFile path) :: Result String
         case result of
             Left _ -> (outputStrLn $ "INFO: file not found: " ++ path) >> loop env
             Right content ->
@@ -99,14 +100,20 @@ handleMeta meta env = case words meta of
                         state' <- liftIO $ execStm stm $ state env
                         loop (state', trace env)
     ["write"] -> outputStrLn "INFO: no filepath provided" >> loop env
-    ["write", path] -> outputStrLn "TODO!" >> loop env
+    ["write", path] -> do
+        let content = showTrace $ trace env
+        result <- liftIO $ try (writeFile path content) :: Result ()
+        case result of
+            Left err -> outputStrLn $ "ERROR! IO failure writing to file: " ++ path ++ "\n" ++ show err
+            Right () -> outputStrLn $ "INFO: trace written to: " ++ path
+        loop env
     ("ast" : input) -> do
         if null input
-            then outputStrLn "INFO: nothing to parse."
+            then outputStrLn "INFO: nothing to parse"
             else printAST (unwords input)
         loop env
     _ -> do
-        outputStrLn $ "INFO: not a meta command. :" ++ meta ++ "\n"
+        outputStrLn $ "INFO: not a meta command :" ++ meta ++ "\n"
         handleMeta "help" env
 
 dispatch :: Construct -> Env -> InputT IO Env
@@ -121,3 +128,9 @@ printAST :: String -> InputT IO ()
 printAST input = case parseInput "ast" input of
     Left err -> do outputStrLn $ "ERROR! no parse: " ++ input ++ "\n" ++ show err
     Right construct -> do outputStrLn $ show construct
+
+showTrace :: [Stm] -> String
+showTrace [] = "skip\n"
+showTrace stms = unlines $ map (++ ";") (init strs) ++ [last strs]
+    where
+        strs = map pretty stms

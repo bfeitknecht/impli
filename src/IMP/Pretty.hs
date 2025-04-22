@@ -5,13 +5,6 @@ import Data.List (intercalate)
 
 import IMP.Syntax
 
-data Proc = Proc [Var] [Var] Stm
-
-data Construct
-    = Statement Stm
-    | Arithm Aexp
-    | Bool Bexp
-
 class Pretty a where
     pretty :: a -> String
 
@@ -42,6 +35,8 @@ instance Pretty Stm where
             commas = intercalate ", "
             returns rets = (if null rets then "" else " ") ++ commas rets
 
+-- indent str = "\t" ++ str -- make this split on newlines
+
 instance Pretty Aexp where
     pretty e = case e of
         Numeral n -> show n
@@ -62,22 +57,3 @@ instance Pretty Bexp where
         Rel Gt e1 e2 -> pretty e1 ++ " > " ++ pretty e2
         Rel Geq e1 e2 -> pretty e1 ++ " >= " ++ pretty e2
         Boolean bool -> map toLower $ show bool
-
--- replace with procdef
-instance Show Proc where
-    show (Proc params rets body) =
-        "("
-            ++ commas params
-            ++ ";"
-            ++ (if null rets then "" else " ")
-            ++ commas rets
-            ++ "): "
-            ++ show body
-        where
-            commas = intercalate ", "
-
-instance Show Construct where
-    show construct = case construct of
-        Statement s -> show s
-        Arithm e -> show e
-        Bool b -> show b

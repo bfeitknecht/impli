@@ -8,7 +8,6 @@ import Text.Parsec.String (Parser)
 import qualified Text.Parsec.Token as Tok
 
 import IMP.Syntax
-import IMP.Pretty
 
 wrap :: String -> String
 wrap = ('<' :) . (++ ">") -- this is why haskell is awesome

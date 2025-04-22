@@ -46,3 +46,14 @@ data Stm
     | ProcDef Var [Var] [Var] Stm -- procedure p(params; rets) begin s end
     | ProcInvoc Var [Aexp] [Var] -- p(args; rets)
     deriving (Show)
+
+data Construct
+    = Statement Stm
+    | Arithm Aexp
+    | Bool Bexp
+
+instance Show Construct where
+    show construct = case construct of
+        Statement s -> show s
+        Arithm e -> show e
+        Bool b -> show b
