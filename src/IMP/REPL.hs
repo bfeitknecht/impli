@@ -36,7 +36,8 @@ loop env = do
             Left err -> do
                 outputStrLn $ "ERROR! no parse: " ++ input ++ "\n" ++ show err
                 loop env
-            Right parsed -> do
+            Right Nothing -> loop env
+            Right (Just parsed) -> do
                 env' <- dispatch parsed env
                 loop env'
 
@@ -56,7 +57,7 @@ handleMeta meta env = case words meta of
     ["w", path] -> handleMeta ("write " ++ path) env
     ("a" : input) -> handleMeta ("ast " ++ (unwords input)) env
     ["help"] -> do
-        outputStrLn "All meta commands can be abbreviated by their first letter."
+        outputStrLn "All meta commands can be abbreviated by their first letter.\n"
         outputStrLn ":help / :?    Show this help"
         outputStrLn ":quit         Quit REPL"
         outputStrLn ":clear        Clear screen"
@@ -84,7 +85,7 @@ handleMeta meta env = case words meta of
         outputStrLn "Variables:"
         mapM_ (\(k, v) -> outputStrLn $ "\t" ++ k ++ " = " ++ show v) (Map.toList vars)
         outputStrLn "Procedures:"
-        mapM_ (\(k, p) -> outputStrLn $ "\t" ++ k ++ show p) (Map.toList procs)
+        mapM_ (\(k, p) -> outputStrLn $ "\t" ++ k ++ pretty p) (Map.toList procs)
         loop env
     ["load"] -> outputStrLn "INFO: no filepath provided" >> loop env
     ["load", path] -> do
@@ -104,7 +105,8 @@ handleMeta meta env = case words meta of
         let content = showTrace $ trace env
         result <- liftIO $ try (writeFile path content) :: Result ()
         case result of
-            Left err -> outputStrLn $ "ERROR! IO failure writing to file: " ++ path ++ "\n" ++ show err
+            Left err ->
+                outputStrLn $ "ERROR! IO failure writing to file: " ++ path ++ "\n" ++ show err
             Right () -> outputStrLn $ "INFO: trace written to: " ++ path
         loop env
     ("ast" : input) -> do
@@ -127,7 +129,8 @@ dispatch construct env@(st, tr) = case construct of
 printAST :: String -> InputT IO ()
 printAST input = case parseInput "ast" input of
     Left err -> do outputStrLn $ "ERROR! no parse: " ++ input ++ "\n" ++ show err
-    Right construct -> do outputStrLn $ show construct
+    Right Nothing -> do outputStrLn $ "ERROR! no parse, empty input"
+    Right (Just construct) -> do outputStrLn $ show construct
 
 showTrace :: [Stm] -> String
 showTrace [] = "skip\n"

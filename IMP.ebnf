@@ -1,6 +1,7 @@
 Letter = 'a' .. 'z' | 'A' .. 'Z'
 Digit = '0' .. '9'
 Ident = Letter { Letter | Digit }
+Var = Ident | '_'
 Numeral = [ '-' ] ( Digit | Numeral Digit )
 Bool = 'true' | 'false'
 
@@ -22,7 +23,7 @@ Bterm
 
 Stm
     = 'skip'                                                                        (* no-op *)
-    | ( Ident | '_' ) ':=' Aexp                                                     (* definition *)
+    | Var ':=' Aexp                                                                 (* variable definition *)
     | Stm ';' Stm                                                                   (* sequence *)
     | 'if' Bexp 'then' Stm 'else' Stm 'end'                                         (* conditional *)
     | 'while' Bexp 'do' Stm 'end'                                                   (* iteration *)
@@ -35,9 +36,4 @@ Stm
 
 Args = [ Aexp { ',' Aexp } ]                                                        (* zero or more comma separated Aexp *)
 Params = [ Ident { ',' Ident } ]                                                    (* '' .. Ident *)
-Rets = Params                                                                       (* '' .. *)
-
-Construct
-    = Aexp
-    | Bexp
-    | Stm
+Rets = [ Var { ',' Var } ]                                                          (* '' .. Var *)

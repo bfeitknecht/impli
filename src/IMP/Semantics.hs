@@ -1,26 +1,12 @@
 module IMP.Semantics where
 
 import Control.Concurrent.Async (concurrently)
-import Data.List (intercalate)
 import System.Random (randomIO)
 
 import qualified Data.Map as Map
 
 import IMP.Pretty
 import IMP.Syntax
-
-data Proc = Proc [Var] [Var] Stm
-instance Show Proc where
-    show (Proc params rets body) =
-        "("
-            ++ commas params
-            ++ ";"
-            ++ returns rets
-            ++ "): "
-            ++ pretty body
-        where
-            commas = intercalate ", "
-            returns rets = (if null rets then "" else " ") ++ commas rets
 
 type Vars = Map.Map Var Integer
 type Procs = Map.Map Var Proc

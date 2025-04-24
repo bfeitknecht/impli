@@ -38,29 +38,62 @@ jobs:
                   cabal update
                   cabal build
 
-            - name: Find and rename executable
+            - name: Upload executable to artifacts
               shell: bash
               run: |
                   mkdir -p artifacts
-                  BIN=$(find dist-newstyle -type f -perm -u+x -name 'impli' | head -n 1)
 
-                  # detect platform
-                  ARCH=$(uname -m | sed 's/arm64/aarch64/')
+                  # Fallback platform detection
+                  ARCH=$(uname -m)
                   OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+
+                  # Normalize architecture name
+                  if [[ "$ARCH" == "arm64" ]]; then
+                  ARCH="aarch64"
+                  elif [[ "$ARCH" == "x86_64" || "$ARCH" == "amd64" ]]; then
+                  ARCH="x86_64"
+                  fi
+
+                  # Normalize OS name
+                  if [[ "$RUNNER_OS" == "Windows" ]]; then
+                  OS="windows"
+                  EXT=".exe"
+                  elif [[ "$RUNNER_OS" == "macOS" ]]; then
+                  OS="darwin"
+                  EXT=""
+                  else
+                  OS="linux"
+                  EXT=""
+                  fi
+
                   PLATFORM="${ARCH}-${OS}"
+                  BINARY_NAME="impli${EXT}"
 
-                  # make executable (for macOS/Linux)
+                  echo "🔍 Looking for binary: $BINARY_NAME"
+
+                  # Locate the binary (executable)
+                  BIN=$(find dist-newstyle -type f -name "$BINARY_NAME" | head -n 1)
+
+                  if [[ -z "$BIN" ]]; then
+                  echo "❌ ERROR: Could not find compiled binary '$BINARY_NAME'"
+                  exit 1
+                  fi
+
+                  # Make it executable on Unix
+                  if [[ "$OS" != "windows" ]]; then
                   chmod +x "$BIN"
+                  fi
 
-                  # rename binary
-                  cp "$BIN" "artifacts/impli-${PLATFORM}"
-                  cp $(find dist-newstyle -type f -perm -u=x -name 'imp*' | head -n 1) artifacts/impli-${{ runner.os }}
+                  # Copy and rename with platform suffix
+                  cp "$BIN" "artifacts/impli-${PLATFORM}${EXT}"
 
-            - name: Upload artifact
-              uses: actions/upload-artifact@v4
-              with:
-                  name: impli-${{ runner.os }}
-                  path: artifacts/impli-${{ runner.os }}
+                  echo "✅ Binary copied to artifacts/impli-${PLATFORM}${EXT}"
+
+            - name: Get latest Git tag (fallback)
+              if: github.event_name == 'workflow_dispatch'
+              id: get_tag
+              run: |
+                  echo "tag=$(git describe --tags --abbrev=0)" >> "$GITHUB_OUTPUT"
 
             - name: Upload to GitHub Release
               if: startsWith(github.ref, 'refs/tags/')

@@ -5,13 +5,13 @@ type Val = Integer -- unbounded numerals
 
 -- arithmetic expression
 data Aexp
-    = Bin Op Aexp Aexp
+    = Bin Aop Aexp Aexp
     | Variable Var
     | Numeral Val
     deriving (Show)
 
 -- arithmetic operation
-data Op = Add | Sub | Mul deriving (Show)
+data Aop = Add | Sub | Mul deriving (Show)
 
 -- boolean expression
 data Bexp
@@ -51,7 +51,6 @@ data Construct
     = Statement Stm
     | Arithm Aexp
     | Bool Bexp
-
 instance Show Construct where
     show construct = case construct of
         Statement s -> show s

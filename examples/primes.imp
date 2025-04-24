@@ -10,6 +10,7 @@ procedure divmod(d, v; q, r) begin
     end
 end;
 
+// compute the floored square root
 procedure sqrtfloor(n; r) begin
     r := 0;
     temp := 0;
@@ -24,7 +25,7 @@ procedure sqrtfloor(n; r) begin
     end
 end;
 
-
+// compute the n-th prime number
 procedure prime(n; p) begin
     candidate := 1;
     count := 0;

@@ -1,15 +1,39 @@
 // register machine implemented in IMP to prove its turing completeness
 
-// compute the quotient and remainder of d divided by v
-procedure divmod(d, v; q, r) begin
-    q := 0;
-    r := d;
-    if not v = 0 then
-        while r >= v do
-            r := r -  v;
-            q := q + 1
-        end
+// increment
+procedure inc(pc, reg, next; pc, reg) begin
+    reg := reg + 1;
+    pc := next
+end;
+
+// decrement or jump on zero
+procedure decjz(pc, reg, dec, label; pc, reg) begin
+    if reg = 0 then
+        pc := label
+    else
+        reg := reg - 1;
+        pc := dec
     end
 end;
 
-skip
+// unconditional jump
+procedure jump(pc, label; pc) begin
+    pc := label
+end;
+
+// registers
+r0 := 0;
+r1 := 3;
+pc := 0;
+halt := 0;
+
+// copy r1 to r0
+while halt = 0 do
+    if pc = 0 then
+        decjz(pc, r1, 1, 3; pc, r1)
+    else if pc = 1 then
+        inc(pc, r0, 0; pc, r0)
+    else if pc = 3 then
+        halt := 1
+    end
+end

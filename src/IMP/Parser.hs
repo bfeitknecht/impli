@@ -12,8 +12,9 @@ import IMP.Syntax
 wrap :: String -> String
 wrap = ('<' :) . (++ ">") -- this is why haskell is awesome
 
-parseInput :: String -> String -> Either ParseError Construct
-parseInput channel = parse (whitespace *> parseConstruct <* eof) $ wrap channel
+parseInput :: String -> String -> Either ParseError (Maybe Construct)
+parseInput channel =
+    parse (whitespace *> optionMaybe parseConstruct <* eof) $ wrap channel
 
 parseProgram :: String -> String -> Either ParseError Stm
 parseProgram channel = parse (whitespace *> parseStm <* eof) $ wrap channel
@@ -30,7 +31,7 @@ parseStm :: Parser Stm
 parseStm = buildExpressionParser table term
     where
         table =
-            [ [Infix (reservedOp "||" >> return NonDet) AssocLeft]
+            [ [Infix (operator "||" >> return NonDet) AssocLeft]
             , [Infix (reserved "par" >> return Par) AssocLeft]
             , [Infix (semi >> return Seq) AssocLeft]
             ]
@@ -39,7 +40,7 @@ parseStm = buildExpressionParser table term
                 [ parseSkip
                 , parsePrint
                 , parseVarDef
-                , parseIfElse
+                , parseIf
                 , parseWhile
                 , parseLocal
                 , parseProcDef
@@ -62,19 +63,24 @@ parseVar = parsePlaceholder <|> identifier
 parseVarDef :: Parser Stm
 parseVarDef = do
     x <- parseVar
-    reservedOp ":="
+    operator ":="
     e <- parseAexp
     return $ VarDef x e
 
-parseIfElse :: Parser Stm
-parseIfElse = do
+parseIf :: Parser Stm
+parseIf = do
     reserved "if"
     b <- parseBexp
     reserved "then"
-    s <- parseStm
-    s' <- option Skip (reserved "else" >> parseStm) -- else branch is optional
-    reserved "end"
-    return $ If b s s'
+    s1 <- parseStm
+    s2 <- parseElse -- allow no else clause and chained else if
+    return $ If b s1 s2
+
+parseElse :: Parser Stm
+parseElse =
+    try (reserved "else" >> parseIf) -- else if ..
+        <|> (reserved "else" >> parseStm <* reserved "end") -- else .. end
+        <|> (reserved "end" >> return Skip) -- end
 
 parseWhile :: Parser Stm
 parseWhile = do
@@ -89,7 +95,7 @@ parseLocal :: Parser Stm
 parseLocal = do
     reserved "var"
     x <- identifier
-    reservedOp ":="
+    operator ":="
     e <- parseAexp
     reserved "in"
     s <- parseStm
@@ -115,25 +121,25 @@ parseProcInvoc = do
 parseParamsRets :: Parser ([Var], [Var])
 parseParamsRets = parens $ do
     ps <- sepBy identifier (symbol ",")
-    reservedOp ";"
+    operator ";"
     rs <- sepBy identifier (symbol ",")
     return (ps, rs)
 
 parseArgsRets :: Parser ([Aexp], [Var])
 parseArgsRets = parens $ do
     as <- sepBy parseAexp (symbol ",")
-    reservedOp ";"
-    rs <- sepBy parseVar (symbol ",") -- allow placeholders in invocation's returns
+    operator ";"
+    rs <- sepBy parseVar (symbol ",") -- allow placeholders in returns
     return (as, rs)
 
 parseAexp :: Parser Aexp
 parseAexp = buildExpressionParser table term
     where
         table =
-            [ [Infix (reservedOp "*" >> return (Bin Mul)) AssocLeft]
+            [ [Infix (operator "*" >> return (Bin Mul)) AssocLeft]
             ,
-                [ Infix (reservedOp "+" >> return (Bin Add)) AssocLeft
-                , Infix (reservedOp "-" >> return (Bin Sub)) AssocLeft
+                [ Infix (operator "+" >> return (Bin Add)) AssocLeft
+                , Infix (operator "-" >> return (Bin Sub)) AssocLeft
                 ]
             ]
         term =
@@ -164,12 +170,12 @@ parseRel = do
 
 parseRop :: Parser Rop
 parseRop =
-    (reservedOp "=" >> return Eq)
-        <|> (reservedOp "#" >> return Neq)
-        <|> (reservedOp "<=" >> return Leq)
-        <|> (reservedOp "<" >> return Lt)
-        <|> (reservedOp ">=" >> return Geq)
-        <|> (reservedOp ">" >> return Gt)
+    (operator "=" >> return Eq)
+        <|> (operator "#" >> return Neq)
+        <|> (operator "<=" >> return Leq)
+        <|> (operator "<" >> return Lt)
+        <|> (operator ">=" >> return Geq)
+        <|> (operator ">" >> return Gt)
 
 lexer :: Tok.TokenParser ()
 lexer = Tok.makeTokenParser style
@@ -194,7 +200,7 @@ lexer = Tok.makeTokenParser style
             , "||"
             , ","
             ]
-        names =
+        keywords =
             [ "if"
             , "then"
             , "else"
@@ -218,14 +224,14 @@ lexer = Tok.makeTokenParser style
                 , Tok.commentStart = "/*"
                 , Tok.commentEnd = "*/"
                 , Tok.reservedOpNames = ops
-                , Tok.reservedNames = names
+                , Tok.reservedNames = keywords
                 , Tok.identStart = letter
                 , Tok.identLetter = alphaNum
                 }
 
 identifier = Tok.identifier lexer
 reserved = Tok.reserved lexer
-reservedOp = Tok.reservedOp lexer
+operator = Tok.reservedOp lexer
 parens = Tok.parens lexer
 integer = Tok.integer lexer
 semi = Tok.semi lexer

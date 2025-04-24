@@ -5,8 +5,23 @@ import Data.List (intercalate)
 
 import IMP.Syntax
 
+commas :: [String] -> String
+commas = intercalate ", "
+
+returns :: [String] -> String
+returns rets = ";" ++ (if null rets then "" else " ") ++ commas rets
+
 class Pretty a where
     pretty :: a -> String
+
+data Proc = Proc [Var] [Var] Stm
+instance Pretty Proc where
+    pretty (Proc params rets body) =
+        "("
+            ++ commas params
+            ++ returns rets
+            ++ "): " --  why the long face?
+            ++ pretty body -- when you look like that?
 
 instance Pretty Stm where
     pretty stm = case stm of
@@ -14,9 +29,28 @@ instance Pretty Stm where
         Print e -> "print " ++ pretty e
         VarDef x e -> x ++ " := " ++ pretty e
         Seq s1 s2 -> pretty s1 ++ "; " ++ pretty s2
-        If b s1 s2 -> "if " ++ pretty b ++ " then " ++ pretty s1 ++ " else " ++ pretty s2
-        While b s -> "while " ++ pretty b ++ " do " ++ pretty s
-        Local x e s -> "var " ++ x ++ " := " ++ pretty e ++ " in " ++ pretty s ++ " end"
+        If b s1 s2 ->
+            "if "
+                ++ pretty b
+                ++ " then "
+                ++ pretty s1
+                ++ " else "
+                ++ pretty s2
+                ++ " end"
+        While b s ->
+            "while "
+                ++ pretty b
+                ++ " do "
+                ++ pretty s
+                ++ " end"
+        Local x e s ->
+            "var "
+                ++ x
+                ++ " := "
+                ++ pretty e
+                ++ " in "
+                ++ pretty s
+                ++ " end"
         Par s1 s2 -> pretty s1 ++ " par " ++ pretty s2
         NonDet s1 s2 -> pretty s1 ++ " || " ++ pretty s2
         ProcDef name params rets body ->
@@ -24,18 +58,17 @@ instance Pretty Stm where
                 ++ name
                 ++ "("
                 ++ commas params
-                ++ ";"
-                ++ (returns rets)
+                ++ returns rets
                 ++ ") "
                 ++ "begin "
                 ++ pretty body
                 ++ " end"
-        ProcInvoc name args rets -> name ++ "(" ++ commas (map pretty args) ++ ";" ++ (returns rets) ++ ")"
-        where
-            commas = intercalate ", "
-            returns rets = (if null rets then "" else " ") ++ commas rets
-
--- indent str = "\t" ++ str -- make this split on newlines
+        ProcInvoc name args rets ->
+            name
+                ++ "("
+                ++ commas (map pretty args)
+                ++ returns rets
+                ++ ")"
 
 instance Pretty Aexp where
     pretty e = case e of

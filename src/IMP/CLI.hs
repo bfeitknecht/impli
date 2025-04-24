@@ -22,7 +22,8 @@ data Action
 actionParser :: Parser Action
 actionParser =
     RunCommand
-        <$> strOption (long "command" <> short 'c' <> metavar "COMMAND" <> help "Interpret command")
+        <$> strOption
+            (long "command" <> short 'c' <> metavar "COMMAND" <> help "Interpret command")
             <|> PrintAST
         <$> strOption (long "ast" <> short 'a' <> metavar "CONSTRUCT" <> help "Print AST")
             <|> RunFile
@@ -52,7 +53,9 @@ runFile path = do
         Left _ -> do
             putStrLn $ "ERROR! file not found: " ++ path
         Right content -> case parseProgram "interpreter" content of
-            Left err -> putStrLn ("ERROR! no parse in file: " ++ path ++ "\n" ++ show err) >> exitFailure
+            Left err ->
+                putStrLn ("ERROR! no parse in file: " ++ path ++ "\n" ++ show err)
+                    >> exitFailure
             Right stm -> void $ execStm stm emptyState
 
 runREPL :: IO ()
