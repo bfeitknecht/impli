@@ -12,28 +12,32 @@ import IMP.Syntax
 wrap :: String -> String
 wrap = ('<' :) . (++ ">") -- this is why haskell is awesome
 
-parseInput :: String -> String -> Either ParseError (Maybe Construct)
-parseInput channel =
-    parse (whitespace *> optionMaybe parseConstruct <* eof) $ wrap channel
+-- input
+parseInput :: String -> String -> Either ParseError Construct
+parseInput channel = parse (whitespace *> parseConstruct <* eof) $ wrap channel
 
+-- program
 parseProgram :: String -> String -> Either ParseError Stm
 parseProgram channel = parse (whitespace *> parseStm <* eof) $ wrap channel
 
+-- construct
 parseConstruct :: Parser Construct
 parseConstruct =
     choice . map try $
         [ Statement <$> parseStm
         , Bool <$> parseBexp
         , Arithm <$> parseAexp
+        , Whitespace <$ whitespace
         ]
 
+-- statement
 parseStm :: Parser Stm
 parseStm = buildExpressionParser table term
     where
         table =
-            [ [Infix (operator "||" >> return NonDet) AssocLeft]
-            , [Infix (reserved "par" >> return Par) AssocLeft]
-            , [Infix (semi >> return Seq) AssocLeft]
+            [ [Infix (NonDet <$ operator "||") AssocLeft]
+            , [Infix (Par <$ reserved "par") AssocLeft]
+            , [Infix (Seq <$ semi) AssocLeft]
             ]
         term =
             choice . map try $
@@ -49,133 +53,137 @@ parseStm = buildExpressionParser table term
                 ]
 
 parseSkip :: Parser Stm
-parseSkip = reserved "skip" >> return Skip
+parseSkip = Skip <$ reserved "skip"
 
 parsePrint :: Parser Stm
-parsePrint = reserved "print" >> Print <$> parseAexp
+parsePrint = Print <$ reserved "print" <*> parseAexp
 
 parsePlaceholder :: Parser Var
-parsePlaceholder = reserved "_" >> return "_"
+parsePlaceholder = "_" <$ reserved "_"
 
 parseVar :: Parser Var
 parseVar = parsePlaceholder <|> identifier
 
 parseVarDef :: Parser Stm
-parseVarDef = do
-    x <- parseVar
-    operator ":="
-    e <- parseAexp
-    return $ VarDef x e
+parseVarDef =
+    VarDef
+        <$> parseVar
+        <* operator ":="
+        <*> parseAexp
 
 parseIf :: Parser Stm
-parseIf = do
-    reserved "if"
-    b <- parseBexp
-    reserved "then"
-    s1 <- parseStm
-    s2 <- parseElse -- allow no else clause and chained else if
-    return $ If b s1 s2
+parseIf =
+    If
+        <$ reserved "if"
+        <*> parseBexp
+        <* reserved "then"
+        <*> parseStm
+        <*> parseElse
 
 parseElse :: Parser Stm
 parseElse =
-    try (reserved "else" >> parseIf) -- else if ..
-        <|> (reserved "else" >> parseStm <* reserved "end") -- else .. end
-        <|> (reserved "end" >> return Skip) -- end
+    choice . map try $
+        [ reserved "end" *> pure Skip -- end
+        , reserved "else" *> parseStm <* reserved "end" -- else if .. end
+        , reserved "else" *> parseIf -- else if .. end
+        ]
 
 parseWhile :: Parser Stm
-parseWhile = do
-    reserved "while"
-    b <- parseBexp
-    reserved "do"
-    s <- parseStm
-    reserved "end"
-    return $ While b s
+parseWhile =
+    While
+        <$ reserved "while"
+        <*> parseBexp
+        <* reserved "do"
+        <*> parseStm
+        <* reserved "end"
 
 parseLocal :: Parser Stm
-parseLocal = do
-    reserved "var"
-    x <- identifier
-    operator ":="
-    e <- parseAexp
-    reserved "in"
-    s <- parseStm
-    reserved "end"
-    return $ Local x e s
+parseLocal =
+    Local
+        <$ reserved "var"
+        <*> parseVar
+        <* operator ":="
+        <*> parseAexp
+        <* reserved "in"
+        <*> parseStm
+        <* reserved "end"
 
 parseProcDef :: Parser Stm
-parseProcDef = do
-    reserved "procedure"
-    p <- identifier
-    (ps, rs) <- parseParamsRets
-    reserved "begin"
-    s <- parseStm
-    reserved "end"
-    return $ ProcDef p ps rs s
+parseProcDef =
+    ProcDef
+        <$ reserved "procedure"
+        <*> identifier
+        <*> parseParamsRets
+        <* reserved "begin"
+        <*> parseStm
+        <* reserved "end"
 
 parseProcInvoc :: Parser Stm
-parseProcInvoc = do
-    p <- identifier
-    (as, rs) <- parseArgsRets
-    return $ ProcInvoc p as rs
+parseProcInvoc =
+    ProcInvoc
+        <$> identifier
+        <*> parseArgsRets
 
 parseParamsRets :: Parser ([Var], [Var])
-parseParamsRets = parens $ do
-    ps <- sepBy identifier (symbol ",")
-    operator ";"
-    rs <- sepBy identifier (symbol ",")
-    return (ps, rs)
+parseParamsRets =
+    parens $
+        (,)
+            <$> sepBy identifier (symbol ",")
+            <* operator ";"
+            <*> sepBy identifier (symbol ",")
 
 parseArgsRets :: Parser ([Aexp], [Var])
-parseArgsRets = parens $ do
-    as <- sepBy parseAexp (symbol ",")
-    operator ";"
-    rs <- sepBy parseVar (symbol ",") -- allow placeholders in returns
-    return (as, rs)
+parseArgsRets =
+    parens $
+        (,)
+            <$> sepBy parseAexp (symbol ",")
+            <* operator ";"
+            <*> sepBy parseVar (symbol ",") -- allow placeholders in returns
 
+-- arithmetic expression
 parseAexp :: Parser Aexp
 parseAexp = buildExpressionParser table term
     where
         table =
-            [ [Infix (operator "*" >> return (Bin Mul)) AssocLeft]
+            [ [Infix (Bin Mul <$ operator "*") AssocLeft]
             ,
-                [ Infix (operator "+" >> return (Bin Add)) AssocLeft
-                , Infix (operator "-" >> return (Bin Sub)) AssocLeft
+                [ Infix (Bin Add <$ operator "+") AssocLeft
+                , Infix (Bin Sub <$ operator "-") AssocLeft
                 ]
             ]
         term =
-            parens parseAexp
+            try (parens parseAexp)
                 <|> (Numeral <$> integer)
                 <|> (Variable <$> identifier)
 
+-- boolean expression
 parseBexp :: Parser Bexp
 parseBexp = buildExpressionParser table term
     where
         table =
-            [ [Prefix (reserved "not" >> return Not)]
-            , [Infix (reserved "and" >> return And) AssocLeft]
-            , [Infix (reserved "or" >> return Or) AssocLeft]
+            [ [Prefix (Not <$ reserved "not")]
+            , [Infix (And <$ reserved "and") AssocLeft]
+            , [Infix (Or <$ reserved "or") AssocLeft]
             ]
         term =
-            parens parseBexp
+            try (parens parseBexp)
                 <|> parseRel
-                <|> (reserved "true" >> return (Boolean True))
-                <|> (reserved "false" >> return (Boolean False))
+                <|> (Boolean True <$ reserved "true")
+                <|> (Boolean False <$ reserved "false")
 
 parseRel :: Parser Bexp
-parseRel = do
-    e1 <- parseAexp
-    rop <- parseRop
-    e2 <- parseAexp
-    return $ Rel rop e1 e2
+parseRel = flip Rel <$> parseAexp <*> parseRop <*> parseAexp -- constructor parameters differ from parse order
 
 parseRop :: Parser Rop
 parseRop =
-    (operator "=" >> return Eq)
-        <|> (operator "#" >> return Neq)
-        <|> (operator "<=" >> return Leq)
-        <|> (operator "<" >> return Lt)
-        <|> (operator ">=" >> return Geq)
-        <|> (operator ">" >> return Gt)
+    choice
+        [ Eq <$ operator "="
+        , Neq <$ operator "#"
+        , Leq <$ operator "<="
+        , Lt <$ operator "<"
+        , Geq <$ operator ">="
+        , Gt <$ operator ">"
+        ]
 
 lexer :: Tok.TokenParser ()
 lexer = Tok.makeTokenParser style
@@ -217,6 +225,12 @@ lexer = Tok.makeTokenParser style
             , "true"
             , "false"
             , "_"
+            , "for"
+            , "to"
+            , "times"
+            , "time"
+            , "repeat"
+            , "until"
             ]
         style =
             emptyDef

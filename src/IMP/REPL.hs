@@ -1,8 +1,8 @@
 module IMP.REPL where
 
 import Control.Exception (IOException, try)
+import Control.Monad (void)
 import Control.Monad.IO.Class (liftIO)
-import Data.Char (toLower)
 import System.Console.Haskeline
 
 import qualified Data.Map as Map
@@ -13,14 +13,14 @@ import IMP.Pretty
 import IMP.Semantics
 import IMP.Syntax
 
-type Result a = InputT IO (Either IOException a)
 type Trace = [Stm]
 type Env = (State, Trace)
 
-state :: Env -> State
-state = fst
-trace :: Env -> Trace
-trace = snd
+st :: Env -> State
+st = fst
+
+tr :: Env -> Trace
+tr = snd
 
 repl :: State -> IO ()
 repl state = runInputT defaultSettings (loop (state, []))
@@ -31,14 +31,13 @@ loop env = do
     case line of
         Nothing -> outputStrLn "Goodbye!" -- ctrl-d
         Just (':' : meta) -> handleMeta meta env
-        Just "" -> loop env
         Just input -> case parseInput "interactive" input of
             Left err -> do
-                outputStrLn $ "ERROR! no parse: " ++ input ++ "\n" ++ show err
+                outputStrLn $ "ERROR! parse failure in: " ++ input
+                outputStrLn $ show err
                 loop env
-            Right Nothing -> loop env
-            Right (Just parsed) -> do
-                env' <- dispatch parsed env
+            Right parsed -> do
+                env' <- dispatch env parsed
                 loop env'
 
 handleMeta :: String -> Env -> InputT IO ()
@@ -73,15 +72,15 @@ handleMeta meta env = case words meta of
     ["clear"] -> do
         liftIO $ ANSI.clearScreen >> ANSI.setCursorPosition 0 0
         loop env
-    ["reset"] -> outputStrLn "INFO: state reset" >> loop (emptyState, [])
+    ["reset"] -> outputStrLn "INFO: state reset" >> loop (initial, [])
     ["trace"] -> do
         outputStrLn "Trace:"
         mapM_
             (\(i, s) -> outputStrLn $ "[" ++ show i ++ "]\t" ++ pretty s)
-            (zip [1 ..] (trace env))
+            (zip [1 :: Int ..] (tr env))
         loop env
     ["state"] -> do
-        let (vars, procs) = state env
+        let (vars, procs) = st env
         outputStrLn "Variables:"
         mapM_ (\(k, v) -> outputStrLn $ "\t" ++ k ++ " = " ++ show v) (Map.toList vars)
         outputStrLn "Procedures:"
@@ -89,51 +88,75 @@ handleMeta meta env = case words meta of
         loop env
     ["load"] -> outputStrLn "INFO: no filepath provided" >> loop env
     ["load", path] -> do
-        result <- liftIO $ try (readFile path) :: Result String
+        result <- liftIO $ readIMP (st env) path
         case result of
-            Left _ -> (outputStrLn $ "INFO: file not found: " ++ path) >> loop env
-            Right content ->
-                case parseProgram path content of
-                    Left err -> do
-                        outputStrLn $ "ERROR! no parse in file: " ++ path ++ "\n" ++ show err
-                        loop env
-                    Right stm -> do
-                        state' <- liftIO $ execStm stm $ state env
-                        loop (state', trace env)
+            Nothing -> loop env
+            Just state -> loop (state, tr env)
     ["write"] -> outputStrLn "INFO: no filepath provided" >> loop env
     ["write", path] -> do
-        let content = showTrace $ trace env
-        result <- liftIO $ try (writeFile path content) :: Result ()
-        case result of
-            Left err ->
-                outputStrLn $ "ERROR! IO failure writing to file: " ++ path ++ "\n" ++ show err
-            Right () -> outputStrLn $ "INFO: trace written to: " ++ path
+        let content = showTrace $ tr env
+        void $ liftIO $ writeIMP path content
         loop env
     ("ast" : input) -> do
         if null input
             then outputStrLn "INFO: nothing to parse"
-            else printAST (unwords input)
+            else do void $ liftIO $ printAST (unwords input)
         loop env
     _ -> do
-        outputStrLn $ "INFO: not a meta command :" ++ meta ++ "\n"
+        outputStrLn $ "ERROR: not a meta command :" ++ meta ++ "\n"
         handleMeta "help" env
 
-dispatch :: Construct -> Env -> InputT IO Env
-dispatch construct env@(st, tr) = case construct of
+dispatch :: Env -> Construct -> InputT IO Env
+dispatch env@(state, trace) construct = liftIO $ case construct of
     Statement s -> do
-        st' <- liftIO $ execStm s st
-        return (st', tr ++ [s])
-    Arithm e -> outputStrLn (show $ evalAexp e st) >> return env
-    Bool b -> outputStrLn (map toLower $ show $ evalBexp b st) >> return env
+        state' <- execStm state s
+        return (state', trace ++ [s])
+    Arithm e -> print (evalAexp state e) >> return env
+    Bool b -> print (pretty $ Boolean $ evalBexp state b) >> return env
+    Whitespace -> return env
 
-printAST :: String -> InputT IO ()
+printAST :: String -> IO Bool
 printAST input = case parseInput "ast" input of
-    Left err -> do outputStrLn $ "ERROR! no parse: " ++ input ++ "\n" ++ show err
-    Right Nothing -> do outputStrLn $ "ERROR! no parse, empty input"
-    Right (Just construct) -> do outputStrLn $ show construct
+    Left err -> do
+        putStrLn $ "ERROR! parse failure in: " ++ input
+        print err
+        return False
+    Right parsed -> do
+        print parsed
+        return True
 
 showTrace :: [Stm] -> String
 showTrace [] = "skip\n"
 showTrace stms = unlines $ map (++ ";") (init strs) ++ [last strs]
     where
         strs = map pretty stms
+
+readIMP :: State -> FilePath -> IO (Maybe State)
+readIMP state path = do
+    result <- try (readFile path) :: IO (Either IOException String)
+    case result of
+        Left err -> do
+            putStrLn $ "ERROR! IO failure reading from file: " ++ path
+            print err
+            return Nothing
+        Right content -> case parseProgram path content of
+            Left err -> do
+                putStrLn $ "ERROR! parse failure in: " ++ path
+                print err
+                return Nothing
+            Right stm -> do
+                state' <- execStm state stm
+                putStrLn $ "INFO: interpreted file: " ++ path
+                return $ Just state'
+
+writeIMP :: FilePath -> String -> IO Bool
+writeIMP path content = do
+    result <- try (writeFile path content) :: IO (Either IOException ())
+    case result of
+        Left err -> do
+            putStrLn $ "ERROR! IO failure writing to file: " ++ path
+            print err
+            return False
+        Right () -> do
+            putStrLn $ "INFO: trace written to: " ++ path
+            return True

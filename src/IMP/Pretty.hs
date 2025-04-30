@@ -5,18 +5,12 @@ import Data.List (intercalate)
 
 import IMP.Syntax
 
-commas :: [String] -> String
-commas = intercalate ", "
-
-returns :: [String] -> String
-returns rets = ";" ++ (if null rets then "" else " ") ++ commas rets
-
 class Pretty a where
     pretty :: a -> String
 
-data Proc = Proc [Var] [Var] Stm
+data Proc = Proc ([Var], [Var]) Stm deriving (Eq, Show)
 instance Pretty Proc where
-    pretty (Proc params rets body) =
+    pretty (Proc (params, rets) body) =
         "("
             ++ commas params
             ++ returns rets
@@ -53,7 +47,7 @@ instance Pretty Stm where
                 ++ " end"
         Par s1 s2 -> pretty s1 ++ " par " ++ pretty s2
         NonDet s1 s2 -> pretty s1 ++ " || " ++ pretty s2
-        ProcDef name params rets body ->
+        ProcDef name (params, rets) body ->
             "procedure "
                 ++ name
                 ++ "("
@@ -63,7 +57,7 @@ instance Pretty Stm where
                 ++ "begin "
                 ++ pretty body
                 ++ " end"
-        ProcInvoc name args rets ->
+        ProcInvoc name (args, rets) ->
             name
                 ++ "("
                 ++ commas (map pretty args)
@@ -80,13 +74,19 @@ instance Pretty Aexp where
 
 instance Pretty Bexp where
     pretty b = case b of
+        Boolean bool -> map toLower $ show bool
+        Not b -> "not " ++ pretty b
         Or b1 b2 -> pretty b1 ++ " or " ++ pretty b2
         And b1 b2 -> pretty b1 ++ " and " ++ pretty b2
-        Not b -> "not " ++ pretty b
         Rel Eq e1 e2 -> pretty e1 ++ " = " ++ pretty e2
         Rel Neq e1 e2 -> pretty e1 ++ " # " ++ pretty e2
         Rel Lt e1 e2 -> pretty e1 ++ " < " ++ pretty e2
         Rel Leq e1 e2 -> pretty e1 ++ " <= " ++ pretty e2
         Rel Gt e1 e2 -> pretty e1 ++ " > " ++ pretty e2
         Rel Geq e1 e2 -> pretty e1 ++ " >= " ++ pretty e2
-        Boolean bool -> map toLower $ show bool
+
+commas :: [String] -> String
+commas = intercalate ", "
+
+returns :: [String] -> String
+returns rets = ";" ++ (if null rets then "" else " ") ++ commas rets

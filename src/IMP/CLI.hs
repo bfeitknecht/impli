@@ -1,6 +1,5 @@
 module IMP.CLI where
 
-import Control.Exception (IOException, try)
 import Control.Monad (void)
 import Data.Version (showVersion)
 import Options.Applicative
@@ -13,71 +12,57 @@ import IMP.Semantics
 import qualified Paths_impli as Paths
 
 data Action
-    = RunCommand String
-    | RunFile FilePath
-    | RunSTDIN
-    | RunREPL
-    | PrintAST String
+    = Command String
+    | File FilePath
+    | STDIN
+    | REPL
+    | AST String
+    | Version
 
 actionParser :: Parser Action
 actionParser =
-    RunCommand
-        <$> strOption
-            (long "command" <> short 'c' <> metavar "COMMAND" <> help "Interpret command")
-            <|> PrintAST
-        <$> strOption (long "ast" <> short 'a' <> metavar "CONSTRUCT" <> help "Print AST")
-            <|> RunFile
-        <$> strArgument (metavar "FILE" <> help "Interpret source file")
-            <|> flag' RunSTDIN (long "stdin" <> help "Interpret from standard input")
-            <|> pure RunREPL
+    asum
+        [ Command <$> strOption (long "command" <> short 'c' <> metavar "COMMAND" <> help "Interpret command")
+        , AST <$> strOption (long "ast" <> short 'a' <> metavar "CONSTRUCT" <> help "Print AST")
+        , File <$> strArgument (metavar "FILE" <> help "Interpret source file")
+        , flag' STDIN (long "stdin" <> help "Interpret from standard input")
+        , flag' Version (long "version" <> short 'v' <> help "Print version")
+        , pure REPL
+        ]
 
 actionInfo :: ParserInfo Action
-actionInfo =
-    info
-        (actionParser <**> helper <**> printVersion)
-        ( fullDesc
-            <> progDesc "An interpreter and REPL for the imperative toy language IMP"
-            <> header "impli - The IMP language interpreter"
-        )
+actionInfo = info parser description
+    where
+        parser = actionParser <**> helper
+        description =
+            fullDesc
+                <> progDesc "An interpreter and REPL for the imperative toy language IMP"
+                <> header "impli - The IMP language interpreter"
 
 runCommand :: String -> IO ()
-runCommand command = case parseProgram "command" command of
-    Left err -> putStrLn ("ERROR! no parse: " ++ command ++ "\n" ++ show err) >> exitFailure
-    Right stm -> void $ execStm stm emptyState
+runCommand input = case parseProgram "command" input of
+    Left err -> do
+        putStrLn $ "ERROR! parse failure in: " ++ input
+        print err
+        exitFailure
+    Right stm -> void $ execStm initial stm
 
 runFile :: FilePath -> IO ()
 runFile "-" = runSTDIN
-runFile path = do
-    result <- try (readFile path) :: IO (Either IOException String)
-    case result of
-        Left _ -> do
-            putStrLn $ "ERROR! file not found: " ++ path
-        Right content -> case parseProgram "interpreter" content of
-            Left err ->
-                putStrLn ("ERROR! no parse in file: " ++ path ++ "\n" ++ show err)
-                    >> exitFailure
-            Right stm -> void $ execStm stm emptyState
+runFile path = void $ readIMP initial path
 
 runREPL :: IO ()
-runREPL = do
-    putStrLn "Welcome to the IMP REPL! Type :quit to exit."
-    repl emptyState
+runREPL = putStrLn "Welcome to the IMP REPL! Type :quit to exit" >> repl initial
 
 runSTDIN :: IO ()
 runSTDIN = do
     input <- getContents
     case parseProgram "stdin" input of
-        Left err -> putStrLn $ "ERROR! no parse:" ++ input ++ "\n" ++ show err
-        Right stm -> void $ execStm stm emptyState
+        Left err -> do
+            putStrLn $ "ERROR! parse failure"
+            print err
+            exitFailure
+        Right parsed -> void $ execStm initial parsed
 
-versionString :: String
-versionString = "impli " ++ showVersion Paths.version
-
-printVersion :: Parser (a -> a)
-printVersion =
-    infoOption
-        versionString
-        ( long "version"
-            <> short 'v'
-            <> help "Show version"
-        )
+version :: String
+version = "impli " ++ showVersion Paths.version

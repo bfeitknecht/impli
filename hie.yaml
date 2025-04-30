@@ -1,2 +1,6 @@
 cradle:
     cabal:
+        - path: "./test"
+          component: "impli:test:impli-test"
+        - path: "./src"
+          component: "lib:impli"

@@ -14,9 +14,9 @@ let-style: mixed
 in-style: no-space
 single-constraint-parens: always
 single-deriving-parens: always
-sort-constraints: false
-sort-derived-classes: false
-sort-deriving-clauses: false
+sort-constraints: true
+sort-derived-classes: true
+sort-deriving-clauses: true
 trailing-section-operators: true
 unicode: never
 respectful: true

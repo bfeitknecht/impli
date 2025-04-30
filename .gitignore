@@ -2,3 +2,4 @@
 dist-newstyle
 TODO.md
 bin/
+cabal.project.local
