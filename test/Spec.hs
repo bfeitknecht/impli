@@ -36,6 +36,14 @@ parseTests =
         , assertParseStm "x := 1 par y := 2" (Par (VarDef "x" (Numeral 1)) (VarDef "y" (Numeral 2)))
         , assertParseStm "skip par skip; skip par skip" (Seq (Par Skip Skip) (Par Skip Skip))
         , assertParseStm "x := 1 || y := 2" (NonDet (VarDef "x" (Numeral 1)) (VarDef "y" (Numeral 2)))
+        , let
+            a = VarDef "a" (Numeral 1)
+            b = VarDef "b" (Numeral 2)
+            c = If (Boolean True) (VarDef "c" (Numeral 3)) Skip
+          in
+            assertParseStm
+                "x := time (a := 1; b := 2; if true then c := 3 else skip end)"
+                (VarDef "x" (Time (Seq (Seq a b) c)))
         , assertParseConstruct "1" $ Arithm (Numeral 1)
         , assertParseConstruct "x" $ Arithm (Variable "x")
         , assertParseConstruct "1 + 2" $ Arithm (Bin Add (Numeral 1) (Numeral 2))
@@ -55,6 +63,12 @@ evalTests =
         , assertEvalAexp initial (Bin Add (Numeral 1) (Numeral 2)) 3
         , assertEvalAexp initial (Bin Sub (Numeral 4) (Numeral 5)) (-1)
         , assertEvalAexp initial (Bin Mul (Numeral 2) (Numeral 3)) 6
+        , let
+            a = VarDef "a" (Numeral 1)
+            b = VarDef "b" (Numeral 2)
+            c = If (Boolean True) (VarDef "c" (Numeral 3)) Skip
+          in
+            assertEvalAexp initial (Time (Seq a (Seq b c))) 3
         , assertEvalBexp initial (Rel Eq (Numeral 1) (Numeral 1)) True
         , assertEvalBexp initial (Rel Neq (Numeral 1) (Numeral 2)) True
         , assertEvalBexp initial (Rel Lt (Numeral 1) (Numeral 2)) True
@@ -106,6 +120,15 @@ execTests =
                 initial
                 (Seq def invoc)
                 ([("y", 11)], [("inc", Proc (["x"], ["x"]) body)])
+        , let
+            a = VarDef "a" (Numeral 1)
+            b = VarDef "a" (Numeral 2)
+            c = If (Boolean True) (VarDef "c" (Numeral 3)) Skip
+          in
+            assertExec
+                initial
+                (VarDef "x" (Time (Seq a (Seq b c))))
+                ([("x", 3)], [])
         ]
 
 assertParseStm :: String -> Stm -> TestTree
@@ -124,7 +147,7 @@ assertEvalAexp state e val = testCase (pretty e) $ evalAexp state e @?= val
 assertEvalBexp :: State -> Bexp -> Bool -> TestTree
 assertEvalBexp state b bool = testCase (pretty b) $ evalBexp state b @?= bool
 
-assertExec :: State -> Stm -> ([(Var, Val)], [(Var, Proc)]) -> TestTree
+assertExec :: State -> Stm -> ([(Ident, Val)], [(Ident, Proc)]) -> TestTree
 assertExec state stm (vars, procs) = testCase (pretty stm) $ do
     state' <- execStm state stm
     case stm of

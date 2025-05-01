@@ -8,27 +8,27 @@ import qualified Data.Map as Map
 import IMP.Pretty
 import IMP.Syntax
 
-type Vars = Map.Map Var Integer
-type Procs = Map.Map Var Proc
+type Vars = Map.Map Ident Integer
+type Procs = Map.Map Ident Proc
 type State = (Vars, Procs)
 
 initial :: State
 initial = (Map.empty, Map.empty)
 
-getVar :: State -> Var -> Integer
+getVar :: State -> Ident -> Integer
 getVar (vars, _) x = Map.findWithDefault 0 x vars
 
-setVar :: State -> Var -> Integer -> State
+setVar :: State -> Ident -> Integer -> State
 setVar state "_" _ = state -- placeholder write-only variable
 setVar (vars, procs) x v = (Map.insert x v vars, procs)
 
-setVars :: State -> [(Var, Integer)] -> State
+setVars :: State -> [(Ident, Integer)] -> State
 setVars = foldl (uncurry . setVar)
 
-getProc :: State -> Var -> Maybe Proc
+getProc :: State -> Ident -> Maybe Proc
 getProc (_, procs) name = Map.lookup name procs
 
-setProc :: State -> Var -> Proc -> State
+setProc :: State -> Ident -> Proc -> State
 setProc (vars, procs) name def = (vars, Map.insert name def procs)
 
 evalAexp :: State -> Aexp -> Val
@@ -44,6 +44,29 @@ evalAexp state aexp = case aexp of
                 Add -> v1 + v2
                 Sub -> v1 - v2
                 Mul -> v1 * v2
+    Time s -> countVarDefs state s
+
+countVarDefs :: State -> Stm -> Val
+countVarDefs state stm = case stm of
+    Skip -> 0
+    Print _ -> 0
+    VarDef _ _ -> 1
+    Seq s1 s2 -> countVarDefs state s1 + countVarDefs state s2
+    If b s1 s2 ->
+        if evalBexp state b
+            then countVarDefs state s1
+            else countVarDefs state s2
+    While b s ->
+        if evalBexp state b
+            then countVarDefs state s
+            else 0
+    Local _ _ s -> countVarDefs state s + 1
+    NonDet s1 s2 -> max (countVarDefs state s1) (countVarDefs state s2)
+    Par s1 s2 -> countVarDefs state s1 + countVarDefs state s2
+    ProcDef _ _ _ -> 0
+    ProcInvoc name (args, _) -> case getProc state name of
+        Just (Proc _ body) -> countVarDefs state body + toInteger (length args)
+        Nothing -> 0
 
 evalBexp :: State -> Bexp -> Bool
 evalBexp state bexp = case bexp of

@@ -112,7 +112,7 @@ dispatch env@(state, trace) construct = liftIO $ case construct of
         state' <- execStm state s
         return (state', trace ++ [s])
     Arithm e -> print (evalAexp state e) >> return env
-    Bool b -> print (pretty $ Boolean $ evalBexp state b) >> return env
+    Bool b -> putStrLn (if evalBexp state b then "true" else "false") >> return env
     Whitespace -> return env
 
 printAST :: String -> IO Bool

@@ -1,6 +1,5 @@
 module IMP.Pretty where
 
-import Data.Char (toLower)
 import Data.List (intercalate)
 
 import IMP.Syntax
@@ -8,7 +7,7 @@ import IMP.Syntax
 class Pretty a where
     pretty :: a -> String
 
-data Proc = Proc ([Var], [Var]) Stm deriving (Eq, Show)
+data Proc = Proc ([Ident], [Ident]) Stm deriving (Eq, Show)
 instance Pretty Proc where
     pretty (Proc (params, rets) body) =
         "("
@@ -71,10 +70,11 @@ instance Pretty Aexp where
         Bin Add e1 e2 -> pretty e1 ++ " + " ++ pretty e2
         Bin Sub e1 e2 -> pretty e1 ++ " - " ++ pretty e2
         Bin Mul e1 e2 -> pretty e1 ++ " * " ++ pretty e2
+        Time s -> "time " ++ pretty s
 
 instance Pretty Bexp where
     pretty b = case b of
-        Boolean bool -> map toLower $ show bool
+        Boolean bool -> if bool then "true" else "false"
         Not b -> "not " ++ pretty b
         Or b1 b2 -> pretty b1 ++ " or " ++ pretty b2
         And b1 b2 -> pretty b1 ++ " and " ++ pretty b2

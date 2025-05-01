@@ -10,6 +10,7 @@ Aexp = Aterm { Aop Term }                                                       
 Aterm
     = Ident                                                                         (* variable *)
     | Numeral                                                                       (* value *)
+    | 'time' Stm                                                                    (* time statement *)
     | '(' Aexp ')'                                                                  (* parenthesized expression *)
 
 Rop = '=' | '#' | '<' | '<=' | '>' | '>='                                           (* relation operation *)
@@ -21,13 +22,14 @@ Bterm
     | Aexp Rop Aexp                                                                 (* relation *)
     | '(' Bexp ')'                                                                  (* parenthesized expression *)
 
+Dop = ':=' | '+=' | '-=' | '*='                                                     (* definition operator *)
 Stm
     = 'skip'                                                                        (* no-op *)
-    | Var ':=' Aexp                                                                 (* variable definition *)
+    | Var Dop Aexp                                                                  (* variable definition *)
     | Stm ';' Stm                                                                   (* sequence *)
     | 'if' Bexp 'then' Stm 'else' Stm 'end'                                         (* conditional *)
     | 'while' Bexp 'do' Stm 'end'                                                   (* iteration *)
-    | 'var' Ident ':=' Aexp 'in' Stm 'end'                                          (* local variable definition *)
+    | 'var' Var Dop Aexp 'in' Stm 'end'                                             (* local variable definition *)
     | 'procedure' Ident '(' Params ';' Rets ')' 'begin' Stm 'end'                   (* procedure definition *)
     | Ident '(' Args ';' Rets ')'                                                   (* procedure invocation *)
     | Stm '||' Stm                                                                  (* non-determinism *)

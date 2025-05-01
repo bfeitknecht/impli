@@ -40,8 +40,9 @@ parseStm = buildExpressionParser table term
             , [Infix (Seq <$ semi) AssocLeft]
             ]
         term =
-            choice . map try $
-                [ parseSkip
+            choice
+                [ parens parseStm
+                , parseSkip
                 , parsePrint
                 , parseVarDef
                 , parseIf
@@ -49,7 +50,8 @@ parseStm = buildExpressionParser table term
                 , parseLocal
                 , parseProcDef
                 , parseProcInvoc
-                , parens parseStm
+                , parseRepeat
+                , parseFor
                 ]
 
 parseSkip :: Parser Stm
@@ -58,18 +60,27 @@ parseSkip = Skip <$ reserved "skip"
 parsePrint :: Parser Stm
 parsePrint = Print <$ reserved "print" <*> parseAexp
 
-parsePlaceholder :: Parser Var
+parsePlaceholder :: Parser Ident
 parsePlaceholder = "_" <$ reserved "_"
 
-parseVar :: Parser Var
+parseVar :: Parser Ident
 parseVar = parsePlaceholder <|> identifier
 
 parseVarDef :: Parser Stm
 parseVarDef =
-    VarDef
+    (\x f e -> VarDef x $ f (Variable x) e)
         <$> parseVar
-        <* operator ":="
+        <*> parseDefOp
         <*> parseAexp
+
+parseDefOp :: Parser (Aexp -> Aexp -> Aexp)
+parseDefOp =
+    choice
+        [ flip const <$ operator ":="
+        , Bin Add <$ operator "+="
+        , Bin Sub <$ operator "-="
+        , Bin Mul <$ operator "*="
+        ]
 
 parseIf :: Parser Stm
 parseIf =
@@ -102,7 +113,7 @@ parseLocal =
     Local
         <$ reserved "var"
         <*> parseVar
-        <* operator ":="
+        <* parseDefOp
         <*> parseAexp
         <* reserved "in"
         <*> parseStm
@@ -124,7 +135,7 @@ parseProcInvoc =
         <$> identifier
         <*> parseArgsRets
 
-parseParamsRets :: Parser ([Var], [Var])
+parseParamsRets :: Parser ([Ident], [Ident])
 parseParamsRets =
     parens $
         (,)
@@ -132,13 +143,38 @@ parseParamsRets =
             <* operator ";"
             <*> sepBy identifier (symbol ",")
 
-parseArgsRets :: Parser ([Aexp], [Var])
+parseArgsRets :: Parser ([Aexp], [Ident])
 parseArgsRets =
     parens $
         (,)
             <$> sepBy parseAexp (symbol ",")
             <* operator ";"
             <*> sepBy parseVar (symbol ",") -- allow placeholders in returns
+
+parseRepeat :: Parser Stm
+parseRepeat =
+    ( \s b ->
+        Seq s $ While (Not b) s
+    )
+        <$ reserved "repeat"
+        <*> parseStm
+        <* reserved "until"
+        <*> parseBexp
+
+parseFor :: Parser Stm
+parseFor =
+    ( \x e1 e2 s ->
+        Local x e1 $ While (Rel Lt (Variable x) e2) (Seq s (inc x))
+    )
+        <$ reserved "for"
+        <*> identifier
+        <* parseDefOp
+        <*> parseAexp
+        <* reserved "to"
+        <*> parseAexp
+        <* reserved "do"
+        <*> parseStm
+        <* reserved "end"
 
 -- arithmetic expression
 parseAexp :: Parser Aexp
@@ -152,9 +188,12 @@ parseAexp = buildExpressionParser table term
                 ]
             ]
         term =
-            try (parens parseAexp)
-                <|> (Numeral <$> integer)
-                <|> (Variable <$> identifier)
+            choice
+                [ parens parseAexp
+                , Numeral <$> integer
+                , Variable <$> identifier
+                , Time <$ reserved "time" <*> parseStm
+                ]
 
 -- boolean expression
 parseBexp :: Parser Bexp
@@ -166,10 +205,12 @@ parseBexp = buildExpressionParser table term
             , [Infix (Or <$ reserved "or") AssocLeft]
             ]
         term =
-            try (parens parseBexp)
-                <|> parseRel
-                <|> (Boolean True <$ reserved "true")
-                <|> (Boolean False <$ reserved "false")
+            choice
+                [ parens parseBexp
+                , parseRel
+                , Boolean True <$ reserved "true"
+                , Boolean False <$ reserved "false"
+                ]
 
 parseRel :: Parser Bexp
 parseRel = flip Rel <$> parseAexp <*> parseRop <*> parseAexp -- constructor parameters differ from parse order
@@ -207,6 +248,9 @@ lexer = Tok.makeTokenParser style
             , "or"
             , "||"
             , ","
+            , "+="
+            , "-="
+            , "*="
             ]
         keywords =
             [ "if"
@@ -227,10 +271,9 @@ lexer = Tok.makeTokenParser style
             , "_"
             , "for"
             , "to"
-            , "times"
-            , "time"
             , "repeat"
             , "until"
+            , "time"
             ]
         style =
             emptyDef
