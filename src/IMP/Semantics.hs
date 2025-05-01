@@ -8,21 +8,21 @@ import qualified Data.Map as Map
 import IMP.Pretty
 import IMP.Syntax
 
-type Vars = Map.Map Ident Integer
+type Vars = Map.Map Ident Val
 type Procs = Map.Map Ident Proc
 type State = (Vars, Procs)
 
 initial :: State
 initial = (Map.empty, Map.empty)
 
-getVar :: State -> Ident -> Integer
+getVar :: State -> Ident -> Val
 getVar (vars, _) x = Map.findWithDefault 0 x vars
 
-setVar :: State -> Ident -> Integer -> State
+setVar :: State -> Ident -> Val -> State
 setVar state "_" _ = state -- placeholder write-only variable
 setVar (vars, procs) x v = (Map.insert x v vars, procs)
 
-setVars :: State -> [(Ident, Integer)] -> State
+setVars :: State -> [(Ident, Val)] -> State
 setVars = foldl (uncurry . setVar)
 
 getProc :: State -> Ident -> Maybe Proc

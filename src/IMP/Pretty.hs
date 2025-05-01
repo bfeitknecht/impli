@@ -12,7 +12,7 @@ instance Pretty Proc where
     pretty (Proc (params, rets) body) =
         "("
             ++ commas params
-            ++ returns rets
+            ++ semicommas rets
             ++ "): " --  why the long face?
             ++ pretty body -- when you look like that?
 
@@ -51,7 +51,7 @@ instance Pretty Stm where
                 ++ name
                 ++ "("
                 ++ commas params
-                ++ returns rets
+                ++ semicommas rets
                 ++ ") "
                 ++ "begin "
                 ++ pretty body
@@ -60,7 +60,7 @@ instance Pretty Stm where
             name
                 ++ "("
                 ++ commas (map pretty args)
-                ++ returns rets
+                ++ semicommas rets
                 ++ ")"
 
 instance Pretty Aexp where
@@ -75,7 +75,7 @@ instance Pretty Aexp where
 instance Pretty Bexp where
     pretty b = case b of
         Boolean bool -> if bool then "true" else "false"
-        Not b -> "not " ++ pretty b
+        Not b' -> "not " ++ pretty b'
         Or b1 b2 -> pretty b1 ++ " or " ++ pretty b2
         And b1 b2 -> pretty b1 ++ " and " ++ pretty b2
         Rel Eq e1 e2 -> pretty e1 ++ " = " ++ pretty e2
@@ -88,5 +88,5 @@ instance Pretty Bexp where
 commas :: [String] -> String
 commas = intercalate ", "
 
-returns :: [String] -> String
-returns rets = ";" ++ (if null rets then "" else " ") ++ commas rets
+semicommas :: [String] -> String
+semicommas rets = ";" ++ (if null rets then "" else " ") ++ commas rets

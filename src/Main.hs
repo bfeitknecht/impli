@@ -1,16 +1,17 @@
+{-# LANGUAGE CPP #-}
+
 module Main where
 
 import Options.Applicative
 import System.Exit (exitFailure, exitSuccess)
-import System.Posix.IO (stdInput)
-import System.Posix.Terminal (queryTerminal)
 
 import IMP.CLI
 import IMP.REPL
+import IMP.TTY (isTTY)
 
 main :: IO ()
 main = do
-    isTTY <- queryTerminal stdInput
+    tty <- isTTY
     action <- execParser actionInfo
     case action of
         STDIN -> runSTDIN
@@ -23,6 +24,6 @@ main = do
                 then exitSuccess
                 else exitFailure
         REPL ->
-            if isTTY
+            if tty
                 then runREPL
                 else runSTDIN

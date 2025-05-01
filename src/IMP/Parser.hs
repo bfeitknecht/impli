@@ -286,11 +286,26 @@ lexer = Tok.makeTokenParser style
                 , Tok.identLetter = alphaNum
                 }
 
+identifier :: Parser String
 identifier = Tok.identifier lexer
+
+reserved :: String -> Parser ()
 reserved = Tok.reserved lexer
+
+operator :: String -> Parser ()
 operator = Tok.reservedOp lexer
+
+parens :: Parser a -> Parser a
 parens = Tok.parens lexer
+
+integer :: Parser Val
 integer = Tok.integer lexer
+
+semi :: Parser String
 semi = Tok.semi lexer
+
+whitespace :: Parser ()
 whitespace = Tok.whiteSpace lexer
+
+symbol :: String -> Parser String
 symbol = Tok.symbol lexer

@@ -1,39 +1,12 @@
-cabal-version:       >=1.10
+cabal-version:       3.0
 name:                impli
-version:             1.0.0.0
+version:             1.0.3.0
 build-type:          Simple
 
-library
-    exposed-modules:
-        IMP.Syntax
-        IMP.Semantics
-        IMP.Parser
-        IMP.REPL
-        IMP.Pretty
-    other-modules:
-        Paths_impli
-    hs-source-dirs:
-        src
-    default-language:
-        Haskell2010
+common shared-settings
+    default-language:       Haskell2010
     build-depends:
         base >=4.14 && <5,
-        parsec,
-        containers,
-        haskeline,
-        optparse-applicative,
-        random,
-        async,
-        ansi-terminal
-
-executable impli
-    main-is:             Main.hs
-    hs-source-dirs:      src
-    default-language:    Haskell2010
-    ghc-options:         -Wall -Wextra -Wno-name-shadowing -Wno-missing-signatures
-    build-depends:
-        base >=4.14 && <5,
-        impli,
         parsec,
         containers,
         haskeline,
@@ -41,34 +14,53 @@ executable impli
         random,
         async,
         ansi-terminal,
-        unix
+
+common shared-modules
     other-modules:
-            IMP.CLI
-            IMP.Parser
-            IMP.Pretty
-            IMP.REPL
-            IMP.Semantics
-            IMP.Syntax
-            Paths_impli
+        IMP.Syntax
+        IMP.Semantics
+        IMP.Parser
+        IMP.REPL
+        IMP.Pretty
+
+library
+    import:
+        shared-settings,
+    exposed-modules:
+        IMP.Syntax
+        IMP.Semantics
+        IMP.Parser
+        IMP.REPL
+        IMP.Pretty
+    hs-source-dirs:
+        src
+
+executable impli
+    import:
+        shared-settings,
+        shared-modules,
+    main-is:                Main.hs
+    hs-source-dirs:         src
+    ghc-options:            -Wall -Wextra -Wno-name-shadowing -Wno-missing-signatures
+    build-depends:
+        impli,
+    if os(windows)
+        build-depends: win32
+    else
+        build-depends: unix
+    other-modules:
+        IMP.CLI
+        IMP.TTY
+        Paths_impli
 
 test-suite impli-test
-    type:                exitcode-stdio-1.0
-    main-is:             Spec.hs
-    hs-source-dirs:      test
-    default-language:    Haskell2010
-    ghc-options: -Wall -Werror -Wextra
+    import:
+        shared-settings,
+    type:                   exitcode-stdio-1.0
+    main-is:                Spec.hs
+    hs-source-dirs:         test
+    ghc-options:            -Wall -Werror -Wextra
     build-depends:
-            base >=4.14 && <5,
-            impli,
-            tasty,
-            tasty-hunit,
-            parsec,
-            containers,
-            haskeline,
-            optparse-applicative,
-            random,
-            async,
-            ansi-terminal,
-            tasty
-    other-modules:
-            Paths_impli
+        impli,
+        tasty,
+        tasty-hunit,
