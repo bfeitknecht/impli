@@ -3,12 +3,12 @@
 module TTY (isTTY) where
 
 #ifdef mingw32_HOST_OS
-import System.Win32.Console (getConsoleMode, stdinHandle)
+import System.Win32.Console (getConsoleMode)
+import System.Win32.Handle (stdInputHandle)
 
 isTTY :: IO Bool
 isTTY = do
-    handle <- stdinHandle
-    result <- getConsoleMode handle
+    result <- getConsoleMode stdInputHandle
     return $ result /= 0
 #else
 import System.Posix.IO (stdInput)
