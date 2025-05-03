@@ -31,21 +31,6 @@ getProc (_, procs) name = Map.lookup name procs
 setProc :: State -> Ident -> Proc -> State
 setProc (vars, procs) name def = (vars, Map.insert name def procs)
 
-evalAexp :: State -> Aexp -> Val
-evalAexp state aexp = case aexp of
-    Numeral n -> n
-    Variable x -> getVar state x
-    Bin op e1 e2 ->
-        let
-            v1 = evalAexp state e1
-            v2 = evalAexp state e2
-        in
-            case op of
-                Add -> v1 + v2
-                Sub -> v1 - v2
-                Mul -> v1 * v2
-    Time s -> countVarDefs state s
-
 countVarDefs :: State -> Stm -> Val
 countVarDefs state stm = case stm of
     Skip -> 0
@@ -67,6 +52,21 @@ countVarDefs state stm = case stm of
     ProcInvoc name (args, _) -> case getProc state name of
         Just (Proc _ body) -> countVarDefs state body + toInteger (length args)
         Nothing -> 0
+
+evalAexp :: State -> Aexp -> Val
+evalAexp state aexp = case aexp of
+    Numeral n -> n
+    Variable x -> getVar state x
+    Bin op e1 e2 ->
+        let
+            v1 = evalAexp state e1
+            v2 = evalAexp state e2
+        in
+            case op of
+                Add -> v1 + v2
+                Sub -> v1 - v2
+                Mul -> v1 * v2
+    Time s -> countVarDefs state s
 
 evalBexp :: State -> Bexp -> Bool
 evalBexp state bexp = case bexp of
@@ -128,12 +128,11 @@ execStm state stm = case stm of
     ProcInvoc name (arguments, returns) ->
         case getProc state name of
             Nothing -> do
-                putStrLn $ "ERROR! undefined procedure: '" ++ name ++ "'"
+                putStrLn $ "ERROR: undefined procedure: " ++ name
                 return state
-            Just (Proc (params, rets) s) -> do
+            Just (Proc (params, rets) body) -> do
                 let vals = map (evalAexp state) arguments -- evaluate arguments
                 let local = (Map.fromList (zip params vals), snd state) -- into local state
-                state' <- execStm local s -- execute body
+                state' <- execStm local body -- execute body
                 let rets' = zip returns $ map (getVar state') rets -- extract returns
                 return $ setVars state rets' -- insert into callside
-                -- _ -> error $ "ERROR! unknown type of statement: " ++ show stm -- NOTE: development safeguard

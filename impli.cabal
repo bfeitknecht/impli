@@ -1,19 +1,32 @@
 cabal-version:       3.0
 name:                impli
-version:             1.0.3.0
+version:             1.0.4.0
 build-type:          Simple
+license:             MIT
+license-file:        LICENSE.md
+author:              Basil Feitknecht
+maintainer:          bfeitknecht@ethz.ch
+category:            Language
+synopsis:            Interpreter for an imperative toy language
+description:
+    Minimal imperative language interpreter built for educational purposes.
+
+source-repository head
+    type:     git
+    location: https://github.com/bfeitknecht/impli.git
 
 common shared-settings
     default-language:       Haskell2010
+    ghc-options:            -Wall -Wextra
     build-depends:
         base >=4.14 && <5,
-        parsec,
-        containers,
-        haskeline,
-        optparse-applicative,
-        random,
-        async,
-        ansi-terminal,
+        parsec >=3.1 && <3.2,
+        containers >=0.6 && <0.7,
+        haskeline >=0.8 && <0.9,
+        optparse-applicative >=0.15 && <0.19,
+        random >=1.1 && <1.3,
+        async >=2.2 && <2.3,
+        ansi-terminal >=0.11 && <1.1
 
 common shared-modules
     other-modules:
@@ -41,16 +54,17 @@ executable impli
         shared-modules,
     main-is:                Main.hs
     hs-source-dirs:         src
-    ghc-options:            -Wall -Wextra -Wno-name-shadowing -Wno-missing-signatures
+    autogen-modules:
+        Paths_impli
     build-depends:
         impli,
     if os(windows)
-        build-depends: win32
+        build-depends: Win32 >=2.3 && <2.14
     else
-        build-depends: unix
+        build-depends: unix >=2.7 && <2.9
     other-modules:
         IMP.CLI
-        IMP.TTY
+        TTY
         Paths_impli
 
 test-suite impli-test
@@ -59,8 +73,7 @@ test-suite impli-test
     type:                   exitcode-stdio-1.0
     main-is:                Spec.hs
     hs-source-dirs:         test
-    ghc-options:            -Wall -Werror -Wextra
     build-depends:
         impli,
-        tasty,
-        tasty-hunit,
+        tasty >=1.4 && <1.5,
+        tasty-hunit >=0.10 && <0.11

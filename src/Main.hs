@@ -7,13 +7,13 @@ import System.Exit (exitFailure, exitSuccess)
 
 import IMP.CLI
 import IMP.REPL
-import IMP.TTY (isTTY)
+import TTY (isTTY)
 
 main :: IO ()
 main = do
     tty <- isTTY
-    action <- execParser actionInfo
-    case action of
+    invoc <- execParser actionInfo
+    case invoc of
         STDIN -> runSTDIN
         File path -> runFile path
         Command input -> runCommand input

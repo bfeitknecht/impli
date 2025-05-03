@@ -40,7 +40,7 @@ parseStm = buildExpressionParser table term
             , [Infix (Seq <$ semi) AssocLeft]
             ]
         term =
-            choice
+            choice . map try $
                 [ parens parseStm
                 , parseSkip
                 , parsePrint
@@ -52,6 +52,7 @@ parseStm = buildExpressionParser table term
                 , parseProcInvoc
                 , parseRepeat
                 , parseFor
+                , parseDoTimes
                 ]
 
 parseSkip :: Parser Stm
@@ -76,7 +77,7 @@ parseVarDef =
 parseDefOp :: Parser (Aexp -> Aexp -> Aexp)
 parseDefOp =
     choice
-        [ flip const <$ operator ":="
+        [ flip const <$ operator ":=" -- \_ e -> e
         , Bin Add <$ operator "+="
         , Bin Sub <$ operator "-="
         , Bin Mul <$ operator "*="
@@ -95,7 +96,7 @@ parseElse :: Parser Stm
 parseElse =
     choice . map try $
         [ reserved "end" *> pure Skip -- end
-        , reserved "else" *> parseStm <* reserved "end" -- else if .. end
+        , reserved "else" *> parseStm <* reserved "end" -- else .. end
         , reserved "else" *> parseIf -- else if .. end
         ]
 
@@ -153,9 +154,7 @@ parseArgsRets =
 
 parseRepeat :: Parser Stm
 parseRepeat =
-    ( \s b ->
-        Seq s $ While (Not b) s
-    )
+    (\s b -> Seq s $ While (Not b) s)
         <$ reserved "repeat"
         <*> parseStm
         <* reserved "until"
@@ -163,9 +162,8 @@ parseRepeat =
 
 parseFor :: Parser Stm
 parseFor =
-    ( \x e1 e2 s ->
-        Local x e1 $ While (Rel Lt (Variable x) e2) (Seq s (inc x))
-    )
+    -- stop condition is evaluated every iteration
+    (\x e1 e2 s -> Local x e1 $ While (Rel Lt (Variable x) e2) (Seq s (inc x)))
         <$ reserved "for"
         <*> identifier
         <* parseDefOp
@@ -175,6 +173,15 @@ parseFor =
         <* reserved "do"
         <*> parseStm
         <* reserved "end"
+
+parseDoTimes :: Parser Stm
+parseDoTimes =
+    -- reserved keyword as counter variable prevents modification from body
+    (\e s -> Local "times" e $ While (Rel Gt (Variable "times") (Numeral 0)) (Seq s (dec "times")))
+        <$ reserved "do"
+        <*> parseAexp
+        <* reserved "times"
+        <*> parseStm
 
 -- arithmetic expression
 parseAexp :: Parser Aexp

@@ -21,30 +21,49 @@ tests =
         , execTests
         ]
 
--- add operator precedence parse
 parseTests :: TestTree
 parseTests =
     testGroup
         "Parse"
         [ assertParseStm "skip" Skip
+        , assertParseStm "print 1" (Print (Numeral 1))
         , assertParseStm "x := 1" (VarDef "x" (Numeral 1))
+        , assertParseStm "(skip; skip)" (Seq Skip Skip)
         , assertParseStm "if true then skip end" (If (Boolean True) Skip Skip)
         , assertParseStm "if true then skip else skip end" (If (Boolean True) Skip Skip)
+        , assertParseStm
+            "if true then skip else if true then skip end"
+            (If (Boolean True) Skip (If (Boolean True) Skip Skip))
+        , assertParseStm
+            "if true then skip else if true then skip end end"
+            (If (Boolean True) Skip (If (Boolean True) Skip Skip))
         , assertParseStm "while true do skip end" (While (Boolean True) Skip)
         , assertParseStm "var x := 1 in skip end" (Local "x" (Numeral 1) Skip)
-        , assertParseStm "x := 1; y := 2" (Seq (VarDef "x" (Numeral 1)) (VarDef "y" (Numeral 2)))
-        , assertParseStm "x := 1 par y := 2" (Par (VarDef "x" (Numeral 1)) (VarDef "y" (Numeral 2)))
-        , assertParseStm "skip par skip; skip par skip" (Seq (Par Skip Skip) (Par Skip Skip))
-        , assertParseStm "x := 1 || y := 2" (NonDet (VarDef "x" (Numeral 1)) (VarDef "y" (Numeral 2)))
-        , let
-            a = VarDef "a" (Numeral 1)
-            b = VarDef "b" (Numeral 2)
-            c = If (Boolean True) (VarDef "c" (Numeral 3)) Skip
-          in
-            assertParseStm
-                "x := time (a := 1; b := 2; if true then c := 3 else skip end)"
-                (VarDef "x" (Time (Seq (Seq a b) c)))
-        , assertParseConstruct "1" $ Arithm (Numeral 1)
+        , assertParseStm
+            "x := 1 par y := 2"
+            (Par (VarDef "x" (Numeral 1)) (VarDef "y" (Numeral 2)))
+        , assertParseStm
+            "x := 1 || y := 2"
+            (NonDet (VarDef "x" (Numeral 1)) (VarDef "y" (Numeral 2)))
+        , assertParseStm
+            "skip par skip; skip || skip"
+            (Seq (Par Skip Skip) (NonDet Skip Skip))
+        , assertParseStm
+            "x := time (a := 1; b := 2)"
+            (VarDef "x" (Time (Seq (VarDef "a" (Numeral 1)) (VarDef "b" (Numeral 2)))))
+        , assertParseStm
+            "procedure foo(;) begin skip end; foo(;)"
+            (Seq (ProcDef "foo" ([], []) Skip) (ProcInvoc "foo" ([], [])))
+        , assertParseStm
+            "repeat x := 1 until true"
+            (Seq (VarDef "x" (Numeral 1)) (While (Not (Boolean True)) (VarDef "x" (Numeral 1))))
+        , assertParseStm
+            "for i := 0 to 3 do skip end"
+            (Local "i" (Numeral 0) (While (Rel Lt (Variable "i") (Numeral 3)) (Seq Skip (inc "i"))))
+        , assertParseStm
+            "do 4 times skip"
+            (Local "times" (Numeral 4) (While (Rel Gt (Variable "times") (Numeral 0)) (Seq Skip (dec "times"))))
+        , assertParseConstruct "(1)" $ Arithm (Numeral 1)
         , assertParseConstruct "x" $ Arithm (Variable "x")
         , assertParseConstruct "1 + 2" $ Arithm (Bin Add (Numeral 1) (Numeral 2))
         , assertParseConstruct "1 - 2" $ Arithm (Bin Sub (Numeral 1) (Numeral 2))
@@ -53,7 +72,6 @@ parseTests =
         , assertParseConstruct "/**/" $ Whitespace
         ]
 
--- add operator precedence
 evalTests :: TestTree
 evalTests =
     testGroup
@@ -61,14 +79,14 @@ evalTests =
         [ assertEvalAexp initial (Numeral 1) 1
         , assertEvalAexp initial (Variable "x") 0
         , assertEvalAexp initial (Bin Add (Numeral 1) (Numeral 2)) 3
-        , assertEvalAexp initial (Bin Sub (Numeral 4) (Numeral 5)) (-1)
-        , assertEvalAexp initial (Bin Mul (Numeral 2) (Numeral 3)) 6
-        , let
-            a = VarDef "a" (Numeral 1)
-            b = VarDef "b" (Numeral 2)
-            c = If (Boolean True) (VarDef "c" (Numeral 3)) Skip
-          in
-            assertEvalAexp initial (Time (Seq a (Seq b c))) 3
+        , assertEvalAexp initial (Bin Sub (Numeral 2) (Numeral 3)) (-1)
+        , assertEvalAexp initial (Bin Mul (Numeral 3) (Numeral 4)) 12
+        , let stm =
+                Time $
+                    Seq
+                        (Seq (VarDef "a" (Numeral 1)) (VarDef "a" (Numeral 2)))
+                        (If (Boolean True) (VarDef "c" (Numeral 3)) Skip)
+          in assertEvalAexp initial stm 3
         , assertEvalBexp initial (Rel Eq (Numeral 1) (Numeral 1)) True
         , assertEvalBexp initial (Rel Neq (Numeral 1) (Numeral 2)) True
         , assertEvalBexp initial (Rel Lt (Numeral 1) (Numeral 2)) True
@@ -77,6 +95,9 @@ evalTests =
         , assertEvalBexp initial (Rel Geq (Numeral 2) (Numeral 1)) True
         , assertEvalBexp initial (Boolean True) True
         , assertEvalBexp initial (Boolean False) False
+        , assertEvalBexp initial (And (Boolean True) (Boolean False)) False
+        , assertEvalBexp initial (Or (Boolean False) (Boolean True)) True
+        , assertEvalBexp initial (Not (Boolean True)) False
         ]
 
 execTests :: TestTree
@@ -93,12 +114,11 @@ execTests =
             initial
             (If (Boolean False) Skip (VarDef "x" (Numeral 2)))
             ([("x", 2)], [])
-        , let
-            cond = Rel Gt (Variable "x") (Numeral 0)
-            body = VarDef "x" (Bin Sub (Variable "x") (Numeral 1))
-            state = setVar initial "x" 3
-          in
-            assertExec state (While cond body) ([("x", 0)], [])
+        , let stm =
+                While
+                    (Rel Gt (Variable "x") (Numeral 0))
+                    (VarDef "x" (Bin Sub (Variable "x") (Numeral 1)))
+          in assertExec (setVar initial "x" 3) stm ([("x", 0)], [])
         , assertExec
             initial
             (Local "x" (Numeral 5) (VarDef "y" (Variable "x")))
@@ -113,22 +133,24 @@ execTests =
             ([("x", 1), ("y", 2)], [])
         , let
             body = VarDef "x" (Bin Add (Variable "x") (Numeral 1))
-            def = ProcDef "inc" (["x"], ["x"]) body
-            invoc = ProcInvoc "inc" ([Numeral 10], ["y"])
+            stm =
+                Seq
+                    (ProcDef "inc" (["x"], ["x"]) body)
+                    (ProcInvoc "inc" ([Numeral 10], ["y"]))
           in
-            assertExec
-                initial
-                (Seq def invoc)
-                ([("y", 11)], [("inc", Proc (["x"], ["x"]) body)])
-        , let
-            a = VarDef "a" (Numeral 1)
-            b = VarDef "a" (Numeral 2)
-            c = If (Boolean True) (VarDef "c" (Numeral 3)) Skip
-          in
-            assertExec
-                initial
-                (VarDef "x" (Time (Seq a (Seq b c))))
-                ([("x", 3)], [])
+            assertExec initial stm ([("y", 11)], [("inc", Proc (["x"], ["x"]) body)])
+        , let stm =
+                VarDef "x" $
+                    Time $
+                        Seq
+                            (Seq (VarDef "a" (Numeral 1)) (VarDef "a" (Numeral 2)))
+                            (If (Boolean True) (VarDef "c" (Numeral 3)) Skip)
+          in assertExec initial stm ([("x", 3)], [])
+        , let stm =
+                Seq
+                    (VarDef "x" (Numeral 1))
+                    (While (Not (Boolean True)) (VarDef "x" (Numeral 1)))
+          in assertExec initial stm ([("x", 1)], [])
         ]
 
 assertParseStm :: String -> Stm -> TestTree

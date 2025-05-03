@@ -1,6 +1,6 @@
 {-# LANGUAGE CPP #-}
 
-module IMP.TTY (isTTY) where
+module TTY (isTTY) where
 
 #ifdef mingw32_HOST_OS
 import System.Win32.Console (getConsoleMode, stdinHandle)
