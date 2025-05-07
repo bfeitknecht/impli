@@ -1,6 +1,6 @@
 cabal-version:       3.0
 name:                impli
-version:             1.1.0.0
+version:             1.1.1.0
 build-type:          Simple
 license:             MIT
 license-file:        LICENSE.md
@@ -58,13 +58,8 @@ executable impli
         Paths_impli
     build-depends:
         impli,
-    if os(windows)
-        build-depends: Win32 >=2.3 && <2.14
-    else
-        build-depends: unix >=2.7 && <2.9
     other-modules:
         IMP.CLI
-        TTY
         Paths_impli
 
 test-suite impli-test

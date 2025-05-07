@@ -2,14 +2,14 @@ module Main where
 
 import Options.Applicative
 import System.Exit (exitFailure, exitSuccess)
+import System.IO (hIsTerminalDevice, stdin)
 
 import IMP.CLI
 import IMP.REPL
-import TTY (isTTY)
 
 main :: IO ()
 main = do
-    tty <- isTTY
+    tty <- hIsTerminalDevice stdin
     invoc <- execParser actionInfo
     case invoc of
         STDIN -> runSTDIN
