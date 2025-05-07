@@ -1,4 +1,4 @@
-// liearly computes and prints the first 100 fibonacci numbers
+// linearly computes and prints the first 100 fibonacci numbers
 
 f0 := 0;
 f1 := 1;

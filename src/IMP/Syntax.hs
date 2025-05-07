@@ -36,16 +36,19 @@ data Rop
 -- statement
 data Stm
     = Skip -- skip
-    | Print Aexp -- print e
     | VarDef Ident Aexp -- x := e
     | Seq Stm Stm -- s1; s2
     | If Bexp Stm Stm -- if b then s1 else s2 end
     | While Bexp Stm -- while b do s end
+    | Print Aexp -- print e
+    | Read Ident -- read x
     | Local Ident Aexp Stm -- var x := e in s end
     | Par Stm Stm -- s1 par s2
     | NonDet Stm Stm -- s1 || s2
-    | ProcDef Ident ([Ident], [Ident]) Stm -- procedure p(params; rets) begin s end
+    | ProcDef Proc -- procedure p(params; rets) begin s end
     | ProcInvoc Ident ([Aexp], [Ident]) -- p(args; rets)
+    | Break -- break
+    | Revert Stm Bexp -- revert s if b
     deriving (Eq, Show)
 
 inc :: Ident -> Stm
@@ -53,6 +56,13 @@ inc x = VarDef x (Bin Add (Variable x) (Numeral 1))
 
 dec :: Ident -> Stm
 dec x = VarDef x (Bin Sub (Variable x) (Numeral 1))
+
+data Proc = Proc
+    { procname :: Ident
+    , procsign :: ([Ident], [Ident])
+    , procbody :: Stm
+    }
+    deriving (Eq, Show)
 
 data Construct
     = Statement Stm

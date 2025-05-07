@@ -42,7 +42,7 @@ actionInfo = info parser description
 runCommand :: String -> IO ()
 runCommand input = case parseProgram "command" input of
     Left err -> do
-        putStrLn $ "ERROR: parse failure in: " ++ input
+        putStrLn $ "*** ERROR: parse failure in: " ++ input
         putStrLn $ show err
         exitFailure
     Right stm -> void $ execStm initial stm
@@ -59,7 +59,7 @@ runSTDIN = do
     input <- getContents
     case parseProgram "stdin" input of
         Left err -> do
-            putStrLn $ "ERROR: parse failure"
+            putStrLn $ "*** ERROR: parse failure"
             putStrLn $ show err
             exitFailure
         Right parsed -> void $ execStm initial parsed

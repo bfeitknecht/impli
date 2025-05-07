@@ -43,16 +43,19 @@ parseStm = buildExpressionParser table term
             choice . map try $
                 [ parens parseStm
                 , parseSkip
-                , parsePrint
                 , parseVarDef
                 , parseIf
                 , parseWhile
+                , parsePrint
+                , parseRead
                 , parseLocal
                 , parseProcDef
                 , parseProcInvoc
                 , parseRepeat
                 , parseFor
                 , parseDoTimes
+                , parseRevert
+                , parseBreak -- this also parses outside while
                 ]
 
 parseSkip :: Parser Stm
@@ -122,13 +125,14 @@ parseLocal =
 
 parseProcDef :: Parser Stm
 parseProcDef =
-    ProcDef
-        <$ reserved "procedure"
-        <*> identifier
-        <*> parseParamsRets
-        <* reserved "begin"
-        <*> parseStm
-        <* reserved "end"
+    fmap ProcDef $
+        Proc
+            <$ reserved "procedure"
+            <*> identifier
+            <*> parseParamsRets
+            <* reserved "begin"
+            <*> parseStm
+            <* reserved "end"
 
 parseProcInvoc :: Parser Stm
 parseProcInvoc =
@@ -166,7 +170,7 @@ parseFor =
     (\x e1 e2 s -> Local x e1 $ While (Rel Lt (Variable x) e2) (Seq s (inc x)))
         <$ reserved "for"
         <*> identifier
-        <* parseDefOp
+        <* operator ":="
         <*> parseAexp
         <* reserved "to"
         <*> parseAexp
@@ -182,6 +186,23 @@ parseDoTimes =
         <*> parseAexp
         <* reserved "times"
         <*> parseStm
+
+parseRead :: Parser Stm
+parseRead =
+    Read
+        <$ reserved "read"
+        <*> identifier
+
+parseRevert :: Parser Stm
+parseRevert =
+    Revert
+        <$ reserved "revert"
+        <*> parseStm
+        <* reserved "if"
+        <*> parseBexp
+
+parseBreak :: Parser Stm
+parseBreak = Break <$ reserved "break"
 
 -- arithmetic expression
 parseAexp :: Parser Aexp
@@ -220,7 +241,12 @@ parseBexp = buildExpressionParser table term
                 ]
 
 parseRel :: Parser Bexp
-parseRel = flip Rel <$> parseAexp <*> parseRop <*> parseAexp -- constructor parameters differ from parse order
+parseRel =
+    -- \e1 r e2 -> Rel r e1 e2
+    flip Rel
+        <$> parseAexp
+        <*> parseRop
+        <*> parseAexp
 
 parseRop :: Parser Rop
 parseRop =
@@ -241,41 +267,43 @@ lexer = Tok.makeTokenParser style
             , "-"
             , "*"
             , ":="
+            , "not"
+            , "and"
+            , "or"
             , "="
             , "#"
             , "<"
             , "<="
             , ">"
             , ">="
-            , "("
-            , ")"
-            , ";"
-            , "not"
-            , "and"
-            , "or"
-            , "||"
-            , ","
             , "+="
             , "-="
             , "*="
+            , "("
+            , ","
+            , ";"
+            , ")"
+            , "||"
             ]
         keywords =
-            [ "if"
+            [ "skip"
+            , "if"
             , "then"
             , "else"
             , "end"
             , "while"
             , "do"
-            , "skip"
+            , "true"
+            , "false"
             , "print"
+            , "read"
+            , "_"
             , "var"
             , "in"
             , "procedure"
             , "begin"
             , "par"
-            , "true"
-            , "false"
-            , "_"
+            , "break"
             , "for"
             , "to"
             , "repeat"

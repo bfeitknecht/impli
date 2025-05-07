@@ -4,11 +4,18 @@ procedure divmod(d, v; q, r) begin
     r := d;
     if not v = 0 then
         while r >= v do
-            r := r -  v;
-            q := q + 1
+            tmpv := v;
+            tmpq := 1;
+            while r >= tmpv + tmpv do
+                tmpv := tmpv + tmpv;
+                tmpq := tmpq + tmpq
+            end;
+            r := r - tmpv;
+            q := q + tmpq
         end
     end
 end;
+
 
 // compute the floored square root
 procedure sqrtfloor(n; r) begin
@@ -31,15 +38,23 @@ procedure prime(n; p) begin
     count := 0;
     while count < n do
         candidate := candidate + 1;
-        i := 2;
-        prime := 1;
-        sqrtfloor(candidate; sqrt);
-        while i < sqrt do
-            divmod(candidate, i; q, r);
-            if r = 0 then
-                prime := 0
-            end;
-            i := i + 1
+        if candidate = 2 or candidate = 3 then
+            prime := 1
+        else
+            i := 2;
+            prime := 1;
+            sqrtfloor(candidate; sqrt);
+            while i <= sqrt and prime = 1 do
+                divmod(candidate, i; q, r);
+                if r = 0 then
+                    prime := 0
+                end;
+                if i = 2 then
+                    i := 3
+                else
+                    i := i + 2
+                end
+            end
         end;
         if prime = 1 then
             count := count + 1

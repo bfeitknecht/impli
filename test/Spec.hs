@@ -1,6 +1,5 @@
 module Main (main) where
 
-import Control.Monad (forM_)
 import Test.Tasty
 import Test.Tasty.HUnit
 
@@ -19,6 +18,7 @@ tests =
         [ parseTests
         , evalTests
         , execTests
+        , precedenceTests
         ]
 
 parseTests :: TestTree
@@ -26,7 +26,6 @@ parseTests =
     testGroup
         "Parse"
         [ assertParseStm "skip" Skip
-        , assertParseStm "print 1" (Print (Numeral 1))
         , assertParseStm "x := 1" (VarDef "x" (Numeral 1))
         , assertParseStm "(skip; skip)" (Seq Skip Skip)
         , assertParseStm "if true then skip end" (If (Boolean True) Skip Skip)
@@ -38,6 +37,8 @@ parseTests =
             "if true then skip else if true then skip end end"
             (If (Boolean True) Skip (If (Boolean True) Skip Skip))
         , assertParseStm "while true do skip end" (While (Boolean True) Skip)
+        , assertParseStm "print 1" (Print (Numeral 1))
+        , assertParseStm "read x" (Read "x")
         , assertParseStm "var x := 1 in skip end" (Local "x" (Numeral 1) Skip)
         , assertParseStm
             "x := 1 par y := 2"
@@ -53,7 +54,7 @@ parseTests =
             (VarDef "x" (Time (Seq (VarDef "a" (Numeral 1)) (VarDef "b" (Numeral 2)))))
         , assertParseStm
             "procedure foo(;) begin skip end; foo(;)"
-            (Seq (ProcDef "foo" ([], []) Skip) (ProcInvoc "foo" ([], [])))
+            (Seq (ProcDef $ Proc "foo" ([], []) Skip) (ProcInvoc "foo" ([], [])))
         , assertParseStm
             "repeat x := 1 until true"
             (Seq (VarDef "x" (Numeral 1)) (While (Not (Boolean True)) (VarDef "x" (Numeral 1))))
@@ -63,6 +64,9 @@ parseTests =
         , assertParseStm
             "do 4 times skip"
             (Local "times" (Numeral 4) (While (Rel Gt (Variable "times") (Numeral 0)) (Seq Skip (dec "times"))))
+        , assertParseStm
+            "revert x := 1 if true"
+            (Revert (VarDef "x" (Numeral 1)) (Boolean True))
         , assertParseConstruct "(1)" $ Arithm (Numeral 1)
         , assertParseConstruct "x" $ Arithm (Variable "x")
         , assertParseConstruct "1 + 2" $ Arithm (Bin Add (Numeral 1) (Numeral 2))
@@ -100,6 +104,7 @@ evalTests =
         , assertEvalBexp initial (Not (Boolean True)) False
         ]
 
+--
 execTests :: TestTree
 execTests =
     testGroup
@@ -125,20 +130,20 @@ execTests =
             ([("x", 0), ("y", 5)], []) -- x is unchanged
         , assertExec
             initial
-            (NonDet (VarDef "x" (Numeral 1)) (VarDef "x" (Numeral 2)))
-            ([("x", 1), ("x", 2)], [])
-        , assertExec
-            initial
             (Par (VarDef "x" (Numeral 1)) (VarDef "y" (Numeral 2)))
             ([("x", 1), ("y", 2)], [])
+        , assertExec
+            initial
+            (NonDet (VarDef "x" (Numeral 1)) (VarDef "x" (Numeral 2)))
+            ([("x", 1), ("x", 2)], [])
         , let
             body = VarDef "x" (Bin Add (Variable "x") (Numeral 1))
             stm =
                 Seq
-                    (ProcDef "inc" (["x"], ["x"]) body)
+                    (ProcDef $ Proc "inc" (["x"], ["x"]) body)
                     (ProcInvoc "inc" ([Numeral 10], ["y"]))
           in
-            assertExec initial stm ([("y", 11)], [("inc", Proc (["x"], ["x"]) body)])
+            assertExec initial stm ([("y", 11)], [(Proc "inc" (["x"], ["x"]) body)])
         , let stm =
                 VarDef "x" $
                     Time $
@@ -151,6 +156,18 @@ execTests =
                     (VarDef "x" (Numeral 1))
                     (While (Not (Boolean True)) (VarDef "x" (Numeral 1)))
           in assertExec initial stm ([("x", 1)], [])
+        , assertExec initial (Revert ((VarDef "x") (Numeral 1)) (Boolean True)) ([("x", 0)], [])
+        ]
+
+precedenceTests :: TestTree
+precedenceTests =
+    testGroup
+        "Operator Precedence"
+        [ assertParseStm "x := 1 + 2 * 3" (VarDef "x" (Bin Add (Numeral 1) (Bin Mul (Numeral 2) (Numeral 3))))
+        , assertParseStm "x := (1 + 2) * 3" (VarDef "x" (Bin Mul (Bin Add (Numeral 1) (Numeral 2)) (Numeral 3)))
+        , assertParseStm
+            "x := 1 || y := 2 par z := 3"
+            (Par (NonDet (VarDef "x" (Numeral 1)) (VarDef "y" (Numeral 2))) (VarDef "z" (Numeral 3)))
         ]
 
 assertParseStm :: String -> Stm -> TestTree
@@ -169,23 +186,27 @@ assertEvalAexp state e val = testCase (pretty e) $ evalAexp state e @?= val
 assertEvalBexp :: State -> Bexp -> Bool -> TestTree
 assertEvalBexp state b bool = testCase (pretty b) $ evalBexp state b @?= bool
 
-assertExec :: State -> Stm -> ([(Ident, Val)], [(Ident, Proc)]) -> TestTree
+assertExec :: State -> Stm -> ([(Ident, Val)], [Proc]) -> TestTree
 assertExec state stm (vars, procs) = testCase (pretty stm) $ do
     state' <- execStm state stm
     case stm of
         NonDet _ _ -> do
-            forM_ vars $ \(k, _) -> do
-                let
-                    expected = [v | (k', v) <- vars, k' == k]
-                    actual = getVar state' k
-                actual `elem` expected @? "NonDet: unexpected value for variable " ++ show k
-            forM_ procs $ \(k, _) -> do
-                let
-                    expected = [p | (k', p) <- procs, k' == k]
-                    actual = getProc state' k
-                actual `elem` map Just expected @? "NonDet: unexpected procedure " ++ show k
+            let varChecks =
+                    [ actual `elem` expected @? "NonDet: unexpected value for variable " ++ show k
+                    | (k, _) <- vars
+                    , let expected = [v' | (k', v') <- vars, k' == k]
+                    , let actual = getVar state' k
+                    ]
+            sequence_ varChecks
+            let procChecks =
+                    [ actual `elem` map Just expected @? "NonDet: unexpected procedure " ++ show (procname p)
+                    | p <- procs
+                    , let expected = [p' | p' <- procs, procname p' == procname p]
+                    , let actual = getProc state' (procname p)
+                    ]
+            sequence_ procChecks
         _ -> do
-            forM_ vars $ \(k, v) ->
-                getVar state' k @?= v
-            forM_ procs $ \(k, p) ->
-                getProc state' k @?= Just p
+            let varChecks = [getVar state' k @?= v | (k, v) <- vars]
+            sequence_ varChecks
+            let procChecks = [getProc state' (procname proc) @?= Just proc | proc <- procs]
+            sequence_ procChecks
