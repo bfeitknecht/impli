@@ -7,10 +7,12 @@ import System.Console.Haskeline
 import qualified Data.Map as Map
 import qualified System.Console.ANSI as ANSI
 
-import IMP.Parser
-import IMP.Pretty
-import IMP.Semantics
-import IMP.Syntax
+import IMP.Parser.Parses
+import IMP.Semantics.Expression
+import IMP.Semantics.State
+import IMP.Semantics.Statement
+import IMP.Syntax.Pretty
+import IMP.Syntax.Types
 
 type Trace = [Stm]
 type Env = (State, Trace)
@@ -30,7 +32,7 @@ loop env = do
     case line of
         Nothing -> outputStrLn "Goodbye!" -- ctrl-d
         Just (':' : meta) -> handleMeta meta env
-        Just input -> case parseInput "interactive" input of
+        Just input -> case parseConstruct "interactive" input of
             Left err -> do
                 outputStrLn $ "*** ERROR: parse failure in: " ++ input
                 outputStrLn $ show err
@@ -64,7 +66,7 @@ helpMessage =
     , ":state               Show state (defined variables and procedures)"
     , ":load FILE           Interpret file and load resulting state"
     , ":write FILE          Write trace to file (relative to CWD)"
-    , ":ast INPUT | #n      Parse and display AST of input or n-th executed statement"
+    , ":ast (INPUT | #n)    Parse and display AST of input or n-th statement in trace"
     ]
 
 handleMeta :: String -> Env -> InputT IO ()
@@ -126,7 +128,7 @@ dispatch env@(state, trace) construct = liftIO $ case construct of
     Whitespace -> return env
 
 printAST :: String -> IO Bool
-printAST input = case parseInput "ast" input of
+printAST input = case parseConstruct "ast" input of
     Left err -> do
         putStrLn $ "*** ERROR: parse failure in: " ++ input
         putStrLn $ show err
@@ -149,7 +151,7 @@ readIMP state path = do
             putStrLn $ "*** ERROR: IO failure reading from file: " ++ path
             putStrLn $ show err
             return Nothing
-        Right content -> case parseProgram path content of
+        Right content -> case parseStm path content of
             Left err -> do
                 putStrLn $ "*** ERROR: parse failure in: " ++ path
                 putStrLn $ show err

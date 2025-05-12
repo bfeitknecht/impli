@@ -1,6 +1,8 @@
 cradle:
     cabal:
         - path: "./test"
-          component: "impli:test:impli-test"
+          component: "test:impli-test"
         - path: "./src"
           component: "lib:impli"
+        - path: "./exe"
+          component: "exe:impli"

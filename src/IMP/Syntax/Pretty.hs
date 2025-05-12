@@ -1,8 +1,8 @@
-module IMP.Pretty where
+module IMP.Syntax.Pretty where
 
 import Data.List (intercalate)
 
-import IMP.Syntax
+import IMP.Syntax.Types
 
 class Pretty a where
     pretty :: a -> String
@@ -16,10 +16,17 @@ instance Pretty Proc where
             ++ "): " --  why the long face?
             ++ pretty body -- when you look like that?
 
+instance Pretty Dop where
+    pretty f = case f of
+        Id -> " := "
+        Inc -> "+="
+        Dec -> "-="
+        Prod -> "+="
+
 instance Pretty Stm where
     pretty stm = case stm of
         Skip -> "skip"
-        VarDef x e -> x ++ " := " ++ pretty e
+        VarDef x f e -> x ++ pretty f ++ pretty e
         Seq s1 s2 -> pretty s1 ++ "; " ++ pretty s2
         If b s1 s2 ->
             "if "
@@ -69,6 +76,34 @@ instance Pretty Stm where
                 ++ pretty s
                 ++ " if "
                 ++ pretty b
+        Match e ms d ->
+            "case "
+                ++ pretty e
+                ++ " of "
+                ++ concatMap (\(v, s) -> show v ++ ": " ++ pretty s ++ ", ") ms
+                ++ "default: "
+                ++ pretty d
+                ++ " end"
+        Havoc x -> "havoc " ++ x
+        Assert b -> "assert " ++ pretty b
+        Flip i s1 s2 ->
+            "flip"
+                ++ "("
+                ++ show i
+                ++ ")"
+                ++ pretty s1
+                ++ " flop "
+                ++ pretty s2
+                ++ " end"
+        Raise e -> "raise " ++ pretty e
+        Try s1 x s2 ->
+            "try"
+                ++ pretty s1
+                ++ " catch "
+                ++ x
+                ++ " with "
+                ++ pretty s2
+                ++ " end"
 
 instance Pretty Aexp where
     pretty e = case e of

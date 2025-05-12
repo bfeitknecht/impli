@@ -1,13 +1,14 @@
-module IMP.CLI where
+module CLI where
 
-import Control.Monad (void)
+import Control.Exception (catch)
 import Data.Version (showVersion)
 import Options.Applicative
 import System.Exit (exitFailure)
 
-import IMP.Parser
+import IMP.Parser.Parses
 import IMP.REPL
-import IMP.Semantics
+import IMP.Semantics.State
+import IMP.Semantics.Statement
 
 import qualified Paths_impli as Paths
 
@@ -40,29 +41,38 @@ actionInfo = info parser description
                 <> header "impli - The IMP language interpreter"
 
 runCommand :: String -> IO ()
-runCommand input = case parseProgram "command" input of
+runCommand input = handleUncaught $ case parseStm "command" input of
     Left err -> do
         putStrLn $ "*** ERROR: parse failure in: " ++ input
         putStrLn $ show err
         exitFailure
-    Right stm -> void $ execStm initial stm
+    Right stm -> execStm initial stm
 
 runFile :: FilePath -> IO ()
 runFile "-" = runSTDIN
-runFile path = void $ readIMP initial path
+runFile path = handleUncaught $ readIMP initial path
 
 runREPL :: IO ()
-runREPL = putStrLn "Welcome to the IMP REPL! Type :quit to exit" >> repl initial
+runREPL = handleUncaught (putStrLn "Welcome to the IMP REPL! Type :quit to exit" >> repl initial)
 
 runSTDIN :: IO ()
 runSTDIN = do
     input <- getContents
-    case parseProgram "stdin" input of
+    handleUncaught $ case parseStm "stdin" input of
         Left err -> do
             putStrLn $ "*** ERROR: parse failure"
             putStrLn $ show err
             exitFailure
-        Right parsed -> void $ execStm initial parsed
+        Right parsed -> execStm initial parsed
 
 version :: String
 version = "impli " ++ showVersion Paths.version
+
+handleUncaught :: IO a -> IO ()
+handleUncaught execution = do
+    _ <- catch execution handle
+    return ()
+    where
+        handle (Throw v) = do
+            putStrLn $ "*** ERROR: uncaught exception with value: " ++ show v
+            exitFailure

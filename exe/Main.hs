@@ -4,7 +4,7 @@ import Options.Applicative
 import System.Exit (exitFailure, exitSuccess)
 import System.IO (hIsTerminalDevice, stdin)
 
-import IMP.CLI
+import CLI
 import IMP.REPL
 
 main :: IO ()

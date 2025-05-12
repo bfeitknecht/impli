@@ -1,6 +1,6 @@
 cabal-version:       3.0
 name:                impli
-version:             1.1.1.0
+version:             2.0.0.0
 build-type:          Simple
 license:             MIT
 license-file:        LICENSE.md
@@ -12,8 +12,8 @@ description:
     Minimal imperative language interpreter built for educational purposes.
 
 source-repository head
-    type:     git
-    location: https://github.com/bfeitknecht/impli.git
+    type:                git
+    location:            https://github.com/bfeitknecht/impli.git
 
 common shared-settings
     default-language:       Haskell2010
@@ -26,45 +26,37 @@ common shared-settings
         optparse-applicative >=0.15 && <0.19,
         random >=1.1 && <1.3,
         async >=2.2 && <2.3,
-        ansi-terminal >=0.11 && <1.1
-
-common shared-modules
-    other-modules:
-        IMP.Syntax
-        IMP.Semantics
-        IMP.Parser
-        IMP.REPL
-        IMP.Pretty
+        ansi-terminal >=0.11 && <1.1,
+        transformers >= 0.5 && < 0.7,
 
 library
-    import:
-        shared-settings,
+    import:                 shared-settings
+    hs-source-dirs:         src
     exposed-modules:
-        IMP.Syntax
-        IMP.Semantics
-        IMP.Parser
+        IMP.Syntax.Types
+        IMP.Semantics.Expression
+        IMP.Semantics.State
+        IMP.Semantics.Statement
+        IMP.Parser.Parses
+        IMP.Parser.Util
         IMP.REPL
-        IMP.Pretty
-    hs-source-dirs:
-        src
+        IMP.Syntax.Pretty
+        IMP.Errors
 
 executable impli
-    import:
-        shared-settings,
-        shared-modules,
+    import:                 shared-settings
     main-is:                Main.hs
-    hs-source-dirs:         src
-    autogen-modules:
-        Paths_impli
+    hs-source-dirs:         exe
     build-depends:
         impli,
     other-modules:
-        IMP.CLI
+        CLI
+        Paths_impli
+    autogen-modules:
         Paths_impli
 
 test-suite impli-test
-    import:
-        shared-settings,
+    import:                 shared-settings
     type:                   exitcode-stdio-1.0
     main-is:                Spec.hs
     hs-source-dirs:         test

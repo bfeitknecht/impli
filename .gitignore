@@ -1,6 +1,6 @@
 **/.DS_Store
 dist-newstyle
-TODO.md
 bin/
 cabal.project.local
-test.imp
+.ghci
+dev

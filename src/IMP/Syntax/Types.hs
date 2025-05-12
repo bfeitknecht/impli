@@ -1,18 +1,19 @@
-module IMP.Syntax where
-
-type Ident = String -- identifier
-type Val = Integer -- unbounded numerals
+module IMP.Syntax.Types where
 
 -- arithmetic expression
 data Aexp
     = Bin Aop Aexp Aexp
-    | Variable Ident
-    | Numeral Val
+    | Variable String
+    | Numeral Integer
     | Time Stm
     deriving (Eq, Show)
 
 -- arithmetic operation
-data Aop = Add | Sub | Mul deriving (Eq, Show)
+data Aop
+    = Add
+    | Sub
+    | Mul
+    deriving (Eq, Show)
 
 -- boolean expression
 data Bexp
@@ -33,36 +34,42 @@ data Rop
     | Geq -- >=
     deriving (Eq, Show)
 
+data Dop
+    = Id -- :=
+    | Inc -- +=
+    | Dec -- -=
+    | Prod
+    -- \*=
+    deriving (Eq, Show)
+
 -- statement
 data Stm
     = Skip -- skip
-    | VarDef Ident Aexp -- x := e
+    | VarDef String Dop Aexp -- x f e, where f in {:=, +=, -+, *=}
     | Seq Stm Stm -- s1; s2
     | If Bexp Stm Stm -- if b then s1 else s2 end
     | While Bexp Stm -- while b do s end
     | Print Aexp -- print e
-    | Read Ident -- read x
-    | Local Ident Aexp Stm -- var x := e in s end
+    | Read String -- read x
+    | Local String Aexp Stm -- var x := e in s end
     | Par Stm Stm -- s1 par s2
     | NonDet Stm Stm -- s1 || s2
     | ProcDef Proc -- procedure p(params; rets) begin s end
-    | ProcInvoc Ident ([Aexp], [Ident]) -- p(args; rets)
+    | ProcInvoc String ([Aexp], [String]) -- p(args; rets)
     | Break -- break
     | Revert Stm Bexp -- revert s if b
+    | Match Aexp [(Integer, Stm)] Stm -- match e on {v: s,} default: s
+    | Havoc String -- havoc x
+    | Assert Bexp -- assert b
+    | Flip Integer Stm Stm -- flip(i) s1 flop s2 end
+    | Raise Aexp -- raise e
+    | Try Stm String Stm -- try s1 catch x with s2 end
     deriving (Eq, Show)
 
-inc :: Ident -> Stm
-inc x = VarDef x (Bin Add (Variable x) (Numeral 1))
+data Proc = Proc String ([String], [String]) Stm deriving (Eq, Show)
 
-dec :: Ident -> Stm
-dec x = VarDef x (Bin Sub (Variable x) (Numeral 1))
-
-data Proc = Proc
-    { procname :: Ident
-    , procsign :: ([Ident], [Ident])
-    , procbody :: Stm
-    }
-    deriving (Eq, Show)
+procname :: Proc -> String
+procname (Proc p _ _) = p
 
 data Construct
     = Statement Stm
