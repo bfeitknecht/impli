@@ -1,38 +1,51 @@
 {-# LANGUAGE FunctionalDependencies #-}
 
+{- |
+Module      : IMP.Semantics.Expression
+Description : Evaluation of arithmetic and boolean expressions in the IMP language
+Copyright   : (c) Basil Feitknecht, 2025
+License     : MIT
+Maintainer  : bfeitknecht@ethz.ch
+Stability   : stable
+Portability : portable
+
+This module defines the evaluation semantics for arithmetic and boolean expressions.
+-}
 module IMP.Semantics.Expression where
 
 import IMP.Semantics.State
-import IMP.Syntax.Types
+import IMP.Syntax
 
-class Evaluates a b | a -> b where
-    evaluates :: State -> a -> b
+class Evaluate a b | a -> b where
+    evaluate :: State -> a -> b
 
-instance Evaluates Aexp Integer where
-    evaluates state aexp = case aexp of
+instance Evaluate Aexp Integer where
+    evaluate state aexp = case aexp of
         Numeral n -> n
         Variable x -> getVar state x
-        Bin op e1 e2 ->
+        Bin aop e1 e2 ->
             let
-                v1 = evaluates state e1
-                v2 = evaluates state e2
+                v1 = evaluate state e1
+                v2 = evaluate state e2
             in
-                case op of
+                case aop of
                     Add -> v1 + v2
                     Sub -> v1 - v2
                     Mul -> v1 * v2
-        Time s -> toInteger $ evaluates state s
+                    Div -> v1 // v2
+                    Mod -> v1 %% v2
+        Time s -> evaluate state s
 
-instance Evaluates Bexp Bool where
-    evaluates state bexp = case bexp of
+instance Evaluate Bexp Bool where
+    evaluate state bexp = case bexp of
         Boolean b -> b
-        Or b1 b2 -> evalBexp state b1 || evalBexp state b2
-        And b1 b2 -> evalBexp state b1 && evalBexp state b2
-        Not b -> not (evalBexp state b)
+        Or b1 b2 -> evaluate state b1 || evaluate state b2
+        And b1 b2 -> evaluate state b1 && evaluate state b2
+        Not b -> not (evaluate state b)
         Rel rop e1 e2 ->
             let
-                v1 = evalAexp state e1
-                v2 = evalAexp state e2
+                v1 = evaluate state e1
+                v2 = evaluate state e2
             in
                 case rop of
                     Eq -> v1 == v2
@@ -42,118 +55,51 @@ instance Evaluates Bexp Bool where
                     Gt -> v1 > v2
                     Geq -> v1 >= v2
 
-instance Evaluates Stm Int where
-    evaluates state stm = case stm of
+instance Evaluate Stm Integer where
+    evaluate state stm = case stm of
         Skip -> 0
         VarDef _ _ _ -> 1
-        Seq s1 s2 -> evaluates state s1 + evaluates state s2
+        Seq s1 s2 -> evaluate state s1 + evaluate state s2
         If b s1 s2 ->
-            if evalBexp state b
-                then evaluates state s1
-                else evaluates state s2
+            if evaluate state b
+                then evaluate state s1
+                else evaluate state s2
         While b s ->
-            if evalBexp state b
-                then evaluates state s
+            if evaluate state b
+                then evaluate state s + evaluate state stm
                 else 0
         Print _ -> 0
         Read _ -> 1
-        Local _ _ s -> evaluates state s + 1
-        NonDet s1 s2 -> max (evaluates state s1) (evaluates state s2)
-        Par s1 s2 -> evaluates state s1 + evaluates state s2
+        Local _ _ s -> evaluate state s + 1
+        NonDet s1 s2 -> max (evaluate state s1) (evaluate state s2)
+        Par s1 s2 -> evaluate state s1 + evaluate state s2
         ProcDef _ -> 0
         ProcInvoc name (args, _) -> case getProc state name of
-            Just (Proc _ _ body) -> evaluates state body + length args
+            Just (Proc _ _ body) -> evaluate state body + (toInteger . length) args
             Nothing -> 0
         Break -> 0
-        Revert s b ->
-            if evalBexp state b -- NOTE: should evaluate in state after executes s
-                then evaluates state s
-                else 0
+        Revert s _ -> evaluate state s
         Match e ms d -> do
-            let v = evalAexp state e
+            let v = evaluate state e
             case lookup v ms of
-                Just s -> evaluates state s
-                Nothing -> evaluates state d
+                Just s -> evaluate state s
+                Nothing -> evaluate state d
         Havoc _ -> 1
         Assert _ -> 0
         Flip i s1 s2 ->
-            if getVar state ("_" ++ show i) == 0
-                then evaluates state s1
-                else evaluates state s2
+            if getFlip state i
+                then evaluate state s1
+                else evaluate state s2
         Raise _ -> 0
-        Try s1 _ s2 -> max (evaluates state s1) (evaluates state s2 + 1)
+        Try s1 _ s2 -> max (evaluate state s1) (evaluate state s2 + 1)
+        Swap _ _ -> 2
 
-evalAexp :: State -> Aexp -> Integer
-evalAexp state aexp = case aexp of
-    Numeral n -> n
-    Variable x -> getVar state x
-    Bin op e1 e2 ->
-        let
-            v1 = evalAexp state e1
-            v2 = evalAexp state e2
-        in
-            case op of
-                Add -> v1 + v2
-                Sub -> v1 - v2
-                Mul -> v1 * v2
-    Time s -> countVarDefs state s
+(//) :: Integer -> Integer -> Integer
+(//) v1 v2 = case v2 of
+    0 -> 0
+    _ -> div v1 v2
 
-evalBexp :: State -> Bexp -> Bool
-evalBexp state bexp = case bexp of
-    Boolean b -> b
-    Or b1 b2 -> evalBexp state b1 || evalBexp state b2
-    And b1 b2 -> evalBexp state b1 && evalBexp state b2
-    Not b -> not (evalBexp state b)
-    Rel rop e1 e2 ->
-        let
-            v1 = evalAexp state e1
-            v2 = evalAexp state e2
-        in
-            case rop of
-                Eq -> v1 == v2
-                Neq -> v1 /= v2
-                Lt -> v1 < v2
-                Leq -> v1 <= v2
-                Gt -> v1 > v2
-                Geq -> v1 >= v2
-
-countVarDefs :: State -> Stm -> Integer
-countVarDefs state stm = case stm of
-    Skip -> 0
-    VarDef _ _ _ -> 1
-    Seq s1 s2 -> countVarDefs state s1 + countVarDefs state s2
-    If b s1 s2 ->
-        if evalBexp state b
-            then countVarDefs state s1
-            else countVarDefs state s2
-    While b s ->
-        if evalBexp state b
-            then countVarDefs state s
-            else 0
-    Print _ -> 0
-    Read _ -> 1
-    Local _ _ s -> countVarDefs state s + 1
-    NonDet s1 s2 -> max (countVarDefs state s1) (countVarDefs state s2)
-    Par s1 s2 -> countVarDefs state s1 + countVarDefs state s2
-    ProcDef _ -> 0
-    ProcInvoc name (args, _) -> case getProc state name of
-        Just (Proc _ _ body) -> countVarDefs state body + toInteger (length args)
-        Nothing -> 0
-    Break -> 0
-    Revert s b ->
-        if evalBexp state b -- NOTE: deviation from semantic definition
-            then countVarDefs state s
-            else 0
-    Match e ms d -> do
-        let v = evalAexp state e
-        case lookup v ms of
-            Just s -> countVarDefs state s
-            Nothing -> countVarDefs state d
-    Havoc _ -> 1
-    Assert _ -> 0
-    Flip i s1 s2 ->
-        if getVar state ("_" ++ show i) == 0
-            then countVarDefs state s1
-            else countVarDefs state s2
-    Raise _ -> 0
-    Try s1 _ s2 -> max (countVarDefs state s1) (countVarDefs state s2 + 1)
+(%%) :: Integer -> Integer -> Integer
+(%%) v1 v2 = case v2 of
+    0 -> v1
+    _ -> mod v1 v2

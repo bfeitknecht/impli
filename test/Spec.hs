@@ -1,14 +1,17 @@
 module Main (main) where
 
+import Control.Monad.Trans.Except (runExceptT)
+import System.Console.Haskeline (defaultSettings, runInputT)
 import Test.Tasty
 import Test.Tasty.HUnit
 
-import IMP.Parser.Parses
+import IMP.Parser
+import IMP.Pretty
+import IMP.Result
 import IMP.Semantics.Expression
 import IMP.Semantics.State
 import IMP.Semantics.Statement
-import IMP.Syntax.Pretty
-import IMP.Syntax.Types
+import IMP.Syntax
 
 main :: IO ()
 main = defaultMain tests
@@ -54,10 +57,10 @@ parseTests =
             "x := 1 par y := 2"
             (Par (VarDef "x" Id (Numeral 1)) (VarDef "y" Id (Numeral 2)))
         , assertParseStm
-            "x := 1 || y := 2"
+            "x := 1 [] y := 2"
             (NonDet (VarDef "x" Id (Numeral 1)) (VarDef "y" Id (Numeral 2)))
         , assertParseStm
-            "skip par skip; skip || skip"
+            "skip par skip; skip [] skip"
             (Seq (Par Skip Skip) (NonDet Skip Skip))
         , assertParseStm
             "x := time (a := 1; b := 2)"
@@ -177,47 +180,53 @@ precedenceTests =
         [ assertParseStm "x := 1 + 2 * 3" (VarDef "x" Id (Bin Add (Numeral 1) (Bin Mul (Numeral 2) (Numeral 3))))
         , assertParseStm "x := (1 + 2) * 3" (VarDef "x" Id (Bin Mul (Bin Add (Numeral 1) (Numeral 2)) (Numeral 3)))
         , assertParseStm
-            "x := 1 || y := 2 par z := 3"
+            "x := 1 [] y := 2 par z := 3"
             (Par (NonDet (VarDef "x" Id (Numeral 1)) (VarDef "y" Id (Numeral 2))) (VarDef "z" Id (Numeral 3)))
         ]
 
 assertParseStm :: String -> Stm -> TestTree
 assertParseStm input expected =
     testCase input $
-        parseStm "test" input @?= Right expected
+        parser "test" input @?= Right expected
 
 assertParseConstruct :: String -> Construct -> TestTree
 assertParseConstruct input expected =
     testCase input $
-        parseConstruct "test" input @?= Right expected
+        parser "test" input @?= Right expected
 
 assertEvalAexp :: State -> Aexp -> Integer -> TestTree
-assertEvalAexp state e val = testCase (pretty e) $ evalAexp state e @?= val
+assertEvalAexp state e val = testCase (stringify e) $ evaluate state e @?= val
 
 assertEvalBexp :: State -> Bexp -> Bool -> TestTree
-assertEvalBexp state b bool = testCase (pretty b) $ evalBexp state b @?= bool
+assertEvalBexp state b bool = testCase (stringify b) $ evaluate state b @?= bool
 
 assertExec :: State -> Stm -> ([(String, Integer)], [Proc]) -> TestTree
-assertExec state stm (vars, procs) = testCase (pretty stm) $ do
-    state' <- execStm state stm
-    case stm of
-        NonDet _ _ -> do
-            let varChecks =
-                    [ actual `elem` expected @? "NonDet: unexpected value for variable " ++ show k
-                    | (k, _) <- vars
-                    , let expected = [v' | (k', v') <- vars, k' == k]
-                    , let actual = getVar state' k
-                    ]
-            sequence_ varChecks
-            let procChecks =
-                    [ actual `elem` map Just expected @? "NonDet: unexpected procedure " ++ show (procname p)
-                    | p <- procs
-                    , let expected = [p' | p' <- procs, procname p' == procname p]
-                    , let actual = getProc state' (procname p)
-                    ]
-            sequence_ procChecks
-        _ -> do
-            let varChecks = [getVar state' k @?= v | (k, v) <- vars]
-            sequence_ varChecks
-            let procChecks = [getProc state' (procname proc) @?= Just proc | proc <- procs]
-            sequence_ procChecks
+assertExec state stm (vars, procs) = testCase (stringify stm) $ do
+    result <- run $ execute state stm
+    case result of
+        Left err -> assertFailure $ "Execution failed with error: " ++ show err
+        Right state' -> do
+            case stm of
+                NonDet _ _ -> do
+                    let varChecks =
+                            [ actual `elem` expected @? "NonDet: unexpected value for variable " ++ show k
+                            | (k, _) <- vars
+                            , let expected = [v' | (k', v') <- vars, k' == k]
+                            , let actual = getVar state' k
+                            ]
+                    sequence_ varChecks
+                    let procChecks =
+                            [ actual `elem` map Just expected @? "NonDet: unexpected procedure " ++ show (procname p)
+                            | p <- procs
+                            , let expected = [p' | p' <- procs, procname p' == procname p]
+                            , let actual = getProc state' (procname p)
+                            ]
+                    sequence_ procChecks
+                _ -> do
+                    let varChecks = [getVar state' k @?= v | (k, v) <- vars]
+                    sequence_ varChecks
+                    let procChecks = [getProc state' (procname proc) @?= Just proc | proc <- procs]
+                    sequence_ procChecks
+
+run :: REPL a -> IO (Either Result a)
+run repl = runInputT defaultSettings (runExceptT repl)

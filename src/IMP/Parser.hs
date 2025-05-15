@@ -1,11 +1,23 @@
-module IMP.Parser.Parses where
+{- |
+Module      : IMP.Parser
+Description : Parsing functionality for the IMP language
+Copyright   : (c) Basil Feitknecht, 2025
+License     : MIT
+Maintainer  : bfeitknecht@ethz.ch
+Stability   : stable
+Portability : portable
+
+This module provides parsers for the constructs of IMP,
+namely arithmetic and boolean expressions and statements.
+-}
+module IMP.Parser where
 
 import Text.Parsec
 import Text.Parsec.Expr
 import Text.Parsec.String (Parser)
 
-import IMP.Parser.Util
-import IMP.Syntax.Types
+import IMP.Syntax
+import IMP.Util
 
 class Parses a where
     parses :: Parser a
@@ -14,7 +26,11 @@ instance Parses Aexp where
     parses = buildExpressionParser table term
         where
             table =
-                [ [Infix (Bin Mul <$ operator "*") AssocLeft]
+                [
+                    [ Infix (Bin Mul <$ operator "*") AssocLeft
+                    , Infix (Bin Div <$ operator "/") AssocLeft
+                    , Infix (Bin Mod <$ operator "%") AssocLeft
+                    ]
                 ,
                     [ Infix (Bin Add <$ operator "+") AssocLeft
                     , Infix (Bin Sub <$ operator "-") AssocLeft
@@ -55,20 +71,11 @@ instance Parses Rop where
             , Gt <$ operator ">"
             ]
 
-instance Parses Dop where
-    parses =
-        choice
-            [ Id <$ operator ":="
-            , Inc <$ operator "+="
-            , Dec <$ operator "-="
-            , Prod <$ operator "*="
-            ]
-
 instance Parses Stm where
     parses = buildExpressionParser table term
         where
             table =
-                [ [Infix (NonDet <$ reserved "||") AssocLeft]
+                [ [Infix (NonDet <$ reserved "[]") AssocLeft]
                 , [Infix (Par <$ reserved "par") AssocLeft]
                 , [Infix (Seq <$ semi) AssocLeft]
                 ]
@@ -128,7 +135,7 @@ instance Parses Stm where
                         <* reserved "do"
                         <*> parses
                         <* reserved "end"
-                    , forto "_do-times" (Numeral 0) -- unassignable counter variable prevents modification from body
+                    , forto "times" (Numeral 0) -- unassignable counter variable prevents modification from body
                         <$ reserved "do"
                         <*> parses
                         <* reserved "times"
@@ -166,7 +173,22 @@ instance Parses Stm where
                         <* reserved "with"
                         <*> parses
                         <* reserved "end"
+                    , Swap
+                        <$ reserved "swap"
+                        <*> identifier
+                        <*> identifier
                     ]
+
+instance Parses Dop where
+    parses =
+        choice
+            [ Id <$ operator ":="
+            , Inc <$ operator "+="
+            , Dec <$ operator "-="
+            , Prod <$ operator "*="
+            , Quot <$ operator "/="
+            , Rem <$ operator "%="
+            ]
 
 instance Parses Construct where
     parses =
@@ -212,8 +234,5 @@ branch =
 wrap :: String -> String
 wrap = ('<' :) . (++ ">") -- this is why haskell is awesome
 
-parseConstruct :: String -> String -> Either ParseError Construct
-parseConstruct channel = parse (whitespace *> parses <* eof) $ wrap channel
-
-parseStm :: String -> String -> Either ParseError Stm
-parseStm channel = parse (whitespace *> parses <* eof) $ wrap channel
+parser :: (Parses a) => String -> String -> Either ParseError a
+parser channel = parse (whitespace *> parses <* eof) $ wrap channel

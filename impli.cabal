@@ -28,20 +28,22 @@ common shared-settings
         async >=2.2 && <2.3,
         ansi-terminal >=0.11 && <1.1,
         transformers >= 0.5 && < 0.7,
+        mtl >= 2.2 && < 3,
+        prettyprinter >=1.7 && <2,
 
 library
     import:                 shared-settings
     hs-source-dirs:         src
     exposed-modules:
-        IMP.Syntax.Types
-        IMP.Semantics.Expression
+        IMP.Pretty
+        IMP.Syntax
         IMP.Semantics.State
+        IMP.Semantics.Expression
         IMP.Semantics.Statement
-        IMP.Parser.Parses
-        IMP.Parser.Util
+        IMP.Parser
+        IMP.Util
         IMP.REPL
-        IMP.Syntax.Pretty
-        IMP.Errors
+        IMP.Result
 
 executable impli
     import:                 shared-settings

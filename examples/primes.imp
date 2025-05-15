@@ -1,43 +1,22 @@
-// compute the quotient and remainder of d divided by v
-procedure divmod(d, v; q, r) begin
-    q := 0;
-    r := d;
-    if not v = 0 then
-        while r >= v do
-            tmpv := v;
-            tmpq := 1;
-            while r >= tmpv + tmpv do
-                tmpv := tmpv + tmpv;
-                tmpq := tmpq + tmpq
-            end;
-            r := r - tmpv;
-            q := q + tmpq
-        end
-    end
-end;
-
-
-// compute the floored square root
-procedure sqrtfloor(n; r) begin
-    r := 0;
-    temp := 0;
-    done := 0;
-    while done = 0 do
-        r := r + 1;
-        temp := r * r;
-        if temp > n then
-            r := r - 1;
-            done := 1
-        end
-    end
-end;
-
 // compute the n-th prime number
 procedure prime(n; p) begin
+    // compute the floored square root
+    procedure sqrtfloor(n; r) begin
+        r := 1;
+        temp := 1;
+        while temp <= n do
+            r *= 2;
+            temp := r * r
+        end;
+        while temp > n do
+            r -= 1;
+            temp := r * r
+        end
+    end;
     candidate := 1;
     count := 0;
     while count < n do
-        candidate := candidate + 1;
+        candidate += 1;
         if candidate = 2 or candidate = 3 then
             prime := 1
         else
@@ -45,19 +24,20 @@ procedure prime(n; p) begin
             prime := 1;
             sqrtfloor(candidate; sqrt);
             while i <= sqrt and prime = 1 do
-                divmod(candidate, i; q, r);
+                q := candidate / i;
+                r := candidate % i;
                 if r = 0 then
                     prime := 0
                 end;
                 if i = 2 then
                     i := 3
                 else
-                    i := i + 2
+                    i += 2
                 end
             end
         end;
         if prime = 1 then
-            count := count + 1
+            count += 1
         end
     end;
     p := candidate

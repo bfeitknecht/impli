@@ -1,0 +1,17 @@
+// compute the quotient and remainder of d divided by v
+procedure divmod(d, v; q, r) begin
+    q := 0;
+    r := d;
+    if not v = 0 then
+        while r >= v do
+            tmpv := v;
+            tmpq := 1;
+            while r >= tmpv + tmpv do
+                tmpv := tmpv + tmpv;
+                tmpq := tmpq + tmpq
+            end;
+            r := r - tmpv;
+            q := q + tmpq
+        end
+    end
+end;

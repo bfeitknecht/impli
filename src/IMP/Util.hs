@@ -1,4 +1,17 @@
-module IMP.Parser.Util where
+{- |
+Module      : IMP.Util
+Description : Utility functions for the IMP language parser
+Copyright   : (c) Basil Feitknecht, 2025
+License     : MIT
+Maintainer  : bfeitknecht@ethz.ch
+Stability   : stable
+Portability : portable
+
+This module provides utility functions and definitions used in the
+IMP parser. It includes token parsers, reserved keywords, operators,
+and helper functions for parsing identifiers, symbols, and whitespace.
+-}
+module IMP.Util where
 
 import Text.Parsec
 import Text.Parsec.Language (emptyDef)
@@ -13,6 +26,8 @@ lexer = Tok.makeTokenParser style
             [ "+"
             , "-"
             , "*"
+            , "/"
+            , "%"
             , "="
             , "#"
             , "<"
@@ -26,6 +41,10 @@ lexer = Tok.makeTokenParser style
             , "+="
             , "-="
             , "*="
+            , "/="
+            , "%="
+            , "par"
+            , "[]"
             ]
         keywords =
             [ "skip"
@@ -43,8 +62,6 @@ lexer = Tok.makeTokenParser style
             , "in"
             , "procedure"
             , "begin"
-            , "par"
-            , "||"
             , "break"
             , "for"
             , "to"
@@ -62,6 +79,7 @@ lexer = Tok.makeTokenParser style
             , "try"
             , "catch"
             , "with"
+            , "swap"
             ]
         style =
             emptyDef

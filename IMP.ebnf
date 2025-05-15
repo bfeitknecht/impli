@@ -5,7 +5,7 @@ Var = Ident | '_'
 Numeral = [ '-' ] ( Digit | Numeral Digit )
 Bool = 'true' | 'false'
 
-Aop = '+' | '-' | '*'                                                               (* arithmetic operation *)
+Aop = '+' | '-' | '*' | '/' | '%'                                                   (* arithmetic operation *)
 Aexp = Aterm { Aop Term }                                                           (* arithmetic expression *)
 Aterm
     = Ident                                                                         (* variable *)
@@ -22,7 +22,7 @@ Bterm
     | Aexp Rop Aexp                                                                 (* relation *)
     | '(' Bexp ')'                                                                  (* parenthesized expression *)
 
-Dop = ':=' | '+=' | '-=' | '*='                                                     (* definition operator *)
+Dop = ':=' | '+=' | '-=' | '*=' | '/=' | '%='                                       (* definition operator *)
 Stm
     = 'skip'                                                                        (* no-op *)
     | Var Dop Aexp                                                                  (* variable definition *)
@@ -33,12 +33,17 @@ Stm
     | 'read' Var                                                                    (* read input into variable *)
     | 'var' Var Dop Aexp 'in' Stm 'end'                                             (* local variable definition *)
     | Stm 'par' Stm                                                                 (* parallelization *)
-    | Stm '||' Stm                                                                  (* non-determinism *)
+    | Stm '[]' Stm                                                                  (* non-determinism *)
     | 'procedure' Ident '(' Params ';' Rets ')' 'begin' Stm 'end'                   (* procedure definition *)
     | Ident '(' Args ';' Rets ')'                                                   (* procedure invocation *)
     | 'break'                                                                       (* break flag *)
     | 'revert' Stm 'if' Bexp                                                        (* conditional revert *)
-    | 'match' Aexp 'on' { Val ':' Stm ',' } 'default:' Stm                          (* pattern match *)
+    | 'match' Aexp 'on' { Numeral ':' Stm ',' } 'default:' Stm                      (* pattern match *)
+    | 'havoc' x                                                                     (* random variable definition *)
+    | 'assert' Bexp                                                                 (* assertion *)
+    | 'flip' '(' Numeral ')' Stm 'flop' Stm 'end'                                   (* alternating branching *)
+    | 'raise' Aexp                                                                  (* raise exception *)
+    | 'try' Stm 'catch' Ident 'with' Stm 'end'                                      (* try catch block *)
     | '(' Stm ')'                                                                   (* parenthesized statement *)
 
 Args = [ Aexp { ',' Aexp } ]                                                        (* zero or more comma separated Aexp *)

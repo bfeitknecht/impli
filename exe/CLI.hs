@@ -1,78 +1,109 @@
+{- |
+Module      : CLI
+Description : Command-line interface for the IMP language interpreter
+Copyright   : (c) Basil Feitknecht, 2025
+License     : MIT
+Maintainer  : bfeitknecht@ethz.ch
+Stability   : stable
+Portability : portable
+
+This module provides the command-line interface for the IMP language interpreter.
+It supports various modes of operation, including running the REPL, interpreting
+source files, executing commands directly, and printing the abstract syntax tree (AST)
+of a given construct. The CLI also includes options for reading input from standard
+input and displaying the version.
+-}
 module CLI where
 
-import Control.Exception (catch)
+import Control.Exception (IOException, try)
+import Control.Monad.IO.Class (liftIO)
+import Control.Monad.Trans.Except (runExceptT)
 import Data.Version (showVersion)
 import Options.Applicative
-import System.Exit (exitFailure)
+import System.Console.Haskeline
+import System.Exit (exitFailure, exitSuccess)
 
-import IMP.Parser.Parses
+import IMP.Parser
 import IMP.REPL
+import IMP.Result
 import IMP.Semantics.State
 import IMP.Semantics.Statement
 
 import qualified Paths_impli as Paths
 
-data Action
-    = Command String
+data Mode
+    = REPL
     | File FilePath
-    | STDIN
-    | REPL
+    | Command String
     | AST String
+    | STDIN
     | Version
 
-actionParser :: Parser Action
-actionParser =
+modus :: Parser Mode
+modus =
     asum
-        [ Command <$> strOption (long "command" <> short 'c' <> metavar "COMMAND" <> help "Interpret command")
-        , AST <$> strOption (long "ast" <> short 'a' <> metavar "CONSTRUCT" <> help "Print AST")
+        [ pure REPL
         , File <$> strArgument (metavar "FILE" <> help "Interpret source file")
+        , Command <$> strOption (long "command" <> short 'c' <> metavar "COMMAND" <> help "Interpret command")
+        , AST <$> strOption (long "ast" <> short 'a' <> metavar "CONSTRUCT" <> help "Print AST")
         , flag' STDIN (long "stdin" <> help "Interpret from standard input")
         , flag' Version (long "version" <> short 'v' <> help "Print version")
-        , pure REPL
         ]
 
-actionInfo :: ParserInfo Action
-actionInfo = info parser description
+cli :: ParserInfo Mode
+cli = info modi description
     where
-        parser = actionParser <**> helper
+        modi = modus <**> helper
         description =
             fullDesc
                 <> progDesc "An interpreter and REPL for the imperative toy language IMP"
                 <> header "impli - The IMP language interpreter"
 
-runCommand :: String -> IO ()
-runCommand input = handleUncaught $ case parseStm "command" input of
-    Left err -> do
-        putStrLn $ "*** ERROR: parse failure in: " ++ input
-        putStrLn $ show err
-        exitFailure
-    Right stm -> execStm initial stm
+runREPL :: IO ()
+runREPL = putStrLn "Welcome to the IMP REPL! Type :quit to exit" >> repl start
 
 runFile :: FilePath -> IO ()
 runFile "-" = runSTDIN
-runFile path = handleUncaught $ readIMP initial path
+runFile path = do
+    result <- try (readFile path) :: IO (Either IOException String)
+    case result of
+        Left err -> do
+            print $ IOFail $ "read from: " ++ path
+            print err
+            exitFailure
+        Right content -> runProgram path content
 
-runREPL :: IO ()
-runREPL = handleUncaught (putStrLn "Welcome to the IMP REPL! Type :quit to exit" >> repl initial)
+runCommand :: String -> IO ()
+runCommand input = runProgram "command" input
 
 runSTDIN :: IO ()
 runSTDIN = do
     input <- getContents
-    handleUncaught $ case parseStm "stdin" input of
+    runProgram "stdin" input
+
+runAST :: String -> IO ()
+runAST input = runInputT defaultSettings $ do
+    result <- runExceptT $ printAST input
+    liftIO $ case result of
         Left err -> do
-            putStrLn $ "*** ERROR: parse failure"
-            putStrLn $ show err
+            print err
             exitFailure
-        Right parsed -> execStm initial parsed
+        Right _ -> exitSuccess
 
-version :: String
-version = "impli " ++ showVersion Paths.version
+runVersion :: IO ()
+runVersion = putStrLn $ "impli " ++ showVersion Paths.version
 
-handleUncaught :: IO a -> IO ()
-handleUncaught execution = do
-    _ <- catch execution handle
-    return ()
-    where
-        handle (Throw v) = do
-            putStrLn $ "*** ERROR: uncaught exception with value: " ++ show v
+runProgram :: String -> String -> IO ()
+runProgram channel input = runInputT defaultSettings $
+    case parser channel input of
+        Left err -> liftIO $ do
+            print $ ParseFail input
+            print err
             exitFailure
+        Right stm -> do
+            result <- runExceptT $ execute initial stm
+            liftIO $ case result of
+                Left err -> do
+                    print err
+                    exitFailure
+                Right _ -> return ()

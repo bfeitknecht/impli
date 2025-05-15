@@ -1,30 +1,40 @@
-module IMP.Syntax.Types where
+{- |
+Module      : IMP.Syntax
+Description : Defines the syntax of the IMP language, including expressions, statements, and procedures.
+Copyright   : (c) Basil Feitknecht, 2025
+License     : MIT
+Maintainer  : bfeitknecht@ethz.ch
+Stability   : stable
+Portability : portable
 
--- arithmetic expression
+This module provides the syntax definitions for IMP. It includes data types for
+arithmetic expressions, boolean expressions, statements, and procedures.
+-}
+module IMP.Syntax where
+
 data Aexp
-    = Bin Aop Aexp Aexp
-    | Variable String
-    | Numeral Integer
-    | Time Stm
+    = Bin Aop Aexp Aexp -- e1 aop e2
+    | Variable String -- x
+    | Numeral Integer -- n
+    | Time Stm -- time s
     deriving (Eq, Show)
 
--- arithmetic operation
 data Aop
-    = Add
-    | Sub
-    | Mul
+    = Add -- +
+    | Sub -- -
+    | Mul -- \*
+    | Div -- /
+    | Mod -- %
     deriving (Eq, Show)
 
--- boolean expression
 data Bexp
     = Or Bexp Bexp -- b1 or b2
     | And Bexp Bexp -- b1 and b2
     | Not Bexp -- not b
-    | Rel Rop Aexp Aexp -- e1 r e2, where r in {=, #, <, <=, >, >=}
-    | Boolean Bool
+    | Rel Rop Aexp Aexp -- e1 rop e2
+    | Boolean Bool -- b in {true, false}
     deriving (Eq, Show)
 
--- relation operation
 data Rop
     = Eq -- =
     | Neq -- #
@@ -38,14 +48,14 @@ data Dop
     = Id -- :=
     | Inc -- +=
     | Dec -- -=
-    | Prod
-    -- \*=
+    | Prod -- \*=
+    | Quot -- /=
+    | Rem -- %=
     deriving (Eq, Show)
 
--- statement
 data Stm
     = Skip -- skip
-    | VarDef String Dop Aexp -- x f e, where f in {:=, +=, -+, *=}
+    | VarDef String Dop Aexp -- x dop e
     | Seq Stm Stm -- s1; s2
     | If Bexp Stm Stm -- if b then s1 else s2 end
     | While Bexp Stm -- while b do s end
@@ -53,7 +63,7 @@ data Stm
     | Read String -- read x
     | Local String Aexp Stm -- var x := e in s end
     | Par Stm Stm -- s1 par s2
-    | NonDet Stm Stm -- s1 || s2
+    | NonDet Stm Stm -- s1 [] s2
     | ProcDef Proc -- procedure p(params; rets) begin s end
     | ProcInvoc String ([Aexp], [String]) -- p(args; rets)
     | Break -- break
@@ -64,6 +74,7 @@ data Stm
     | Flip Integer Stm Stm -- flip(i) s1 flop s2 end
     | Raise Aexp -- raise e
     | Try Stm String Stm -- try s1 catch x with s2 end
+    | Swap String String
     deriving (Eq, Show)
 
 data Proc = Proc String ([String], [String]) Stm deriving (Eq, Show)

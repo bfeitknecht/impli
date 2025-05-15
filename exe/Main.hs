@@ -1,27 +1,29 @@
+{- |
+Module      : Main
+Description : Entrypoint of the `impli` executable
+Copyright   : (c) Basil Feitknecht, 2025
+License     : MIT
+Maintainer  : bfeitknecht@ethz.ch
+Stability   : stable
+Portability : portable
+
+This module serves as the main entry point for the `impli` executable. It parses
+command-line arguments to determine the mode of operation and then delegates
+execution to the appropriate API.
+-}
 module Main where
 
 import Options.Applicative
-import System.Exit (exitFailure, exitSuccess)
-import System.IO (hIsTerminalDevice, stdin)
 
 import CLI
-import IMP.REPL
 
 main :: IO ()
 main = do
-    tty <- hIsTerminalDevice stdin
-    invoc <- execParser actionInfo
-    case invoc of
-        STDIN -> runSTDIN
+    mode <- execParser cli
+    case mode of
+        REPL -> runREPL
         File path -> runFile path
         Command input -> runCommand input
-        Version -> putStrLn version
-        AST input -> do
-            success <- printAST input
-            if success
-                then exitSuccess
-                else exitFailure
-        REPL ->
-            if tty
-                then runREPL
-                else runSTDIN
+        AST input -> runAST input
+        STDIN -> runSTDIN
+        Version -> runVersion
