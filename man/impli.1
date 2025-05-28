@@ -1,0 +1,104 @@
+.TH IMPLI 1 "May 2025" "impli 2.0" "User Commands"
+.SH NAME
+impli \- Interpreter and REPL for the imperative toy language IMP
+.SH SYNOPSIS
+.B impli
+[\fIFILE\fR]
+.br
+.B impli
+[\fB-c\fR \fICOMMAND\fR]
+.br
+.B impli
+[\fB-a\fR \fICONSTRUCT\fR]
+.br
+.B impli
+[\fB--stdin\fR]
+.br
+.B impli
+[\fB-v\fR|\fB--version\fR]
+.SH DESCRIPTION
+.B impli
+is an interpreter and interactive REPL for the imperative toy language IMP. It supports evaluating IMP source files, executing commands, printing abstract syntax trees, and more.
+
+.SH MODES OF OPERATION
+.TP
+.B No arguments
+Start the interactive REPL.
+.TP
+.B FILE
+Interpret the specified IMP source file.
+.TP
+.BR -c ", " --command " " COMMAND
+Interpret the given IMP command string.
+.TP
+.BR -a ", " --ast " " CONSTRUCT
+Parse and print the abstract syntax tree (AST) of the given construct.
+.TP
+.B --stdin
+Interpret IMP program from standard input.
+.TP
+.BR -v ", " --version
+Print the version of the impli interpreter.
+
+.SH REPL META COMMANDS
+Within the REPL, the following meta commands are available (all can be abbreviated by their first letter):
+.TP
+.B :help , :?
+Show help for meta commands.
+.TP
+.B :quit
+Exit the REPL.
+.TP
+.B :clear
+Clear the screen.
+.TP
+.B :reset [ELEMENT]
+Reset the environment or a specific element (vars, procs, break, trace).
+.TP
+.B :trace
+Show the trace of executed statements.
+.TP
+.B :state
+Show the current state (variables, procedures, break flag).
+.TP
+.B :load FILE
+Interpret and load a source file into the current state.
+.TP
+.B :write FILE
+Write the current trace to a file.
+.TP
+.B :ast (INPUT | #n)
+Parse and display the AST of the given input or the n-th statement in the trace.
+
+.SH EXIT STATUS
+Returns 0 on success, non-zero on error.
+
+.SH FILES
+.TP
+.B .imp_history
+Command history file for the REPL.
+
+.SH EXAMPLES
+.TP
+Start the REPL:
+.B impli
+.TP
+Interpret a file:
+.B impli example.imp
+.TP
+Interpret a command:
+.B impli -c \(dqx := 42\(dq
+.TP
+Print the AST of a construct:
+.B impli -a \(dqif true then skip else skip end\(dq
+.TP
+Interpret from standard input:
+.B impli --stdin
+
+
+.SH AUTHOR
+Basil Feitknecht <bfeitknecht@ethz.ch>
+
+.SH SEE ALSO
+.BR ghci (1),
+.BR man (1)

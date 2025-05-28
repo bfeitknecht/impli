@@ -8,7 +8,7 @@ Stability   : stable
 Portability : portable
 
 This module defines the execution semantics for statements in IMP.
-It provides the `execute` function, which interprets statements within a given
+It provides the 'execute' function, which interprets statements within a given
 state and environment. The module supports a variety of imperative constructs,
 including variable definitions, loops, conditionals, and procedure calls.
 -}
@@ -30,6 +30,7 @@ import IMP.Semantics.Expression
 import IMP.Semantics.State
 import IMP.Syntax
 
+-- | Execute statement in state, returning new state in the REPL monad.
 execute :: State -> Stm -> REPL State
 execute state stm = case stm of
     Skip -> return state
@@ -37,7 +38,7 @@ execute state stm = case stm of
         let v = getVar state x
         let v' = evaluate state e
         return $ case f of
-            Id -> setVar state x v'
+            Def -> setVar state x v'
             Inc -> setVar state x (v + v')
             Dec -> setVar state x (v - v')
             Prod -> setVar state x (v * v')
@@ -77,12 +78,12 @@ execute state stm = case stm of
         return $ setVar state' x old
     Par s1 s2 -> do
         -- {-# WARNING not actually parallel execution #-}
-        (vs1, ps1, flag') <- execute state s1
-        (vs2, ps2, _) <- execute state s2
-        -- {-# WARNING union is left-biased: on conflict *1 overrides *2 #-}
-        let vars' = Map.union vs1 vs2
-        let procs' = List.union ps1 ps2
-        return (vars', procs', flag')
+        state1 <- execute state s1
+        state2 <- execute state s2
+        -- union is left-biased: on conflict s1 dominates s2
+        let vars' = Map.union (vrs state1) (vrs state2)
+        let procs' = List.union (prs state1) (prs state2)
+        return (vars', procs', brk state1)
     NonDet s1 s2 -> do
         left <- randomIO :: REPL Bool
         if left
@@ -127,17 +128,69 @@ execute state stm = case stm of
                 return $ setFlip state' i
     Raise e -> throwError $ Raised $ evaluate state e
     Try s1 x s2 -> do
-        state' <- catchError (execute state s1) handleRaised
+        state' <- catchError (execute state s1) $ \err -> case err of
+            Raised v -> execute (setVar state x v) s2 -- catch in x, continue with s2
+            _ -> throwError err -- can't catch, propagate
         return state'
-        where
-            handleRaised err = case err of
-                Raised v -> execute (setVar state x v) s2
-                _ -> throwError err
     Swap x y -> do
-        let vx = getVar state x
-        let vy = getVar state y
-        return $ setVar (setVar state x vy) y vx
+        let v = getVar state x
+        let w = getVar state y
+        return $ setVar (setVar state x w) y v
 
+-- | Execute first step in configuration, returning resulting configuration.
+step :: State -> Stm -> REPL Conf
+step state stm = case stm of
+    Skip -> return (state, Nothing)
+    VarDef _ _ _ -> do
+        state' <- execute state stm
+        return (state', Nothing)
+    Seq s1 s2 -> do
+        (state', rest) <- step state s1
+        _ <- return $ case rest of
+            Nothing -> (state', Nothing)
+            Just s1' -> (state', Just $ Seq s1' s2)
+        return (state, Just stm)
+    If b s1 s2 ->
+        if evaluate state b
+            then return (state, Just s1)
+            else return (state, Just s2)
+    While b s ->
+        if evaluate state b
+            then return (state, Just $ Seq s stm)
+            else return (state, Nothing)
+    Print _ -> execute state stm >> return (state, Nothing)
+    Read _ -> do
+        state' <- execute state stm
+        return (state', Nothing)
+    Local _ _ _ -> undefined
+    Par _ _ -> undefined
+    NonDet _ _ -> undefined
+    ProcDef _ -> do
+        state' <- execute state stm
+        return (state', Nothing)
+    ProcInvoc _ _ -> undefined
+    Break -> undefined
+    Revert _ _ -> undefined
+    Match e ms d -> do
+        let v = evaluate state e
+        case lookup v ms of
+            Just s -> return $ (state, Just s)
+            Nothing -> return $ (state, Just d)
+    Havoc _ -> do
+        state' <- execute state stm
+        return (state', Nothing)
+    Assert _ -> undefined
+    Flip i s1 s2 ->
+        if getFlip state i
+            then return (setFlop state i, Just s1)
+            else return (setFlip state i, Just s2)
+    Raise _ -> undefined
+    Try _ _ _ -> undefined
+    Swap _ _ -> do
+        state' <- execute state stm
+        return (state', Nothing)
+
+-- | Read line of input from the user with prompt, handling EOF.
 inget :: String -> REPL String
 inget prompt = do
     result <- liftIO $ do
@@ -154,11 +207,14 @@ inget prompt = do
         handleEOF :: IOError -> IO (Maybe String)
         handleEOF _ = return Nothing
 
+-- | Output string to the user, followed by a newline and flush.
 output :: String -> REPL ()
 output msg = liftIO $ putStrLn msg >> flush
 
+-- | Output value using its Show instance.
 display :: (Show a) => a -> REPL ()
 display = output . show
 
+-- | Flush stdout.
 flush :: IO ()
 flush = hFlush stdout

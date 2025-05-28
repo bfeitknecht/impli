@@ -10,7 +10,12 @@ To start the REPL, just run `impli` with no arguments. Pass the relative path of
 
 ## Installation
 
-Work in progress. Build artifacts for macOS, Linux and Windows are available under the GitHub releases page. On macOS, users may need to modify execution privileges and remove the quarantine.
+Build artifacts for macOS, Linux and Windows are available under the [GitHub releases page](https://github.com/bfeitknecht/impli/releases). You can download the latest release directly using `curl`.
+```bash
+curl -LO https://github.com/bfeitknecht/impli/releases/download/<TAG>/<BIN>
+```
+
+Replace `<TAG>` with the latest release tag and `<BIN>` with the OS appropriate binary name. On macOS, you may need to modify execution privileges and remove the quarantine attribute.
 ```bash
 chmod +x impli-*
 xattr -d com.apple.quarantine impli-*

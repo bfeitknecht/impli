@@ -1,15 +1,27 @@
 cabal-version:       3.0
 name:                impli
-version:             2.0.0.0
+version:             2.0.1.0
 build-type:          Simple
 license:             MIT
 license-file:        LICENSE.md
 author:              Basil Feitknecht
 maintainer:          bfeitknecht@ethz.ch
+homepage:            https://github.com/bfeitknecht/impli
+bug-reports:         https://github.com/bfeitknecht/impli/issues
 category:            Language
 synopsis:            Interpreter for an imperative toy language
 description:
     Minimal imperative language interpreter built for educational purposes.
+
+extra-doc-files:
+    README.md
+    CHANGELOG.md
+    IMP.ebnf
+
+extra-source-files:
+    IMP.ebnf
+    examples/*.imp
+    man/impli.1
 
 source-repository head
     type:                git
@@ -44,6 +56,7 @@ library
         IMP.Util
         IMP.REPL
         IMP.Result
+        IMP.Config
 
 executable impli
     import:                 shared-settings
