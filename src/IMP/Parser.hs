@@ -1,3 +1,5 @@
+{-# LANGUAGE TypeApplications #-}
+
 {- |
 Module      : IMP.Parser
 Description : Parsing functionality for the IMP language
@@ -12,18 +14,23 @@ namely arithmetic and boolean expressions and statements.
 -}
 module IMP.Parser where
 
-import Text.Parsec
+import Text.Parsec hiding (parse)
 import Text.Parsec.Expr
 import Text.Parsec.String (Parser)
+
+import qualified Text.Parsec.Prim as Parsec
 
 import IMP.Syntax
 import IMP.Util
 
-class Parses a where
-    parses :: Parser a
+-- | Typeclass for types that can be parsed from source code.
+class Parse a where
+    -- | The parser for the type.
+    parse :: Parser a
 
-instance Parses Aexp where
-    parses = buildExpressionParser table term
+-- | Parser for arithmetic expressions.
+instance Parse Aexp where
+    parse = (buildExpressionParser table term) <?> "arithmetic expression"
         where
             table =
                 [
@@ -36,32 +43,37 @@ instance Parses Aexp where
                     , Infix (Bin Sub <$ operator "-") AssocLeft
                     ]
                 ]
+            parenths = parens $ parse @Aexp
             term =
                 choice
-                    [ parens parses
+                    [ parenths <?> "parenthesized arithmetic expression"
                     , Numeral <$> integer
                     , Variable <$> identifier
-                    , Time <$ reserved "time" <*> parses
+                    , Time <$ keyword "time" <*> parse @Stm
                     ]
 
-instance Parses Bexp where
-    parses = buildExpressionParser table term
+-- | Parser for boolean expressions.
+instance Parse Bexp where
+    parse = (buildExpressionParser table term) <?> "boolean expression"
         where
             table =
                 [ [Prefix (Not <$ operator "not")]
                 , [Infix (And <$ operator "and") AssocLeft]
                 , [Infix (Or <$ operator "or") AssocLeft]
                 ]
+            parenths = parens $ parse @Bexp
+            relation = flip Rel <$> parse @Aexp <*> parse @Rop <*> parse @Aexp
             term =
                 choice
-                    [ parens parses
-                    , flip Rel <$> parses <*> parses <*> parses
-                    , Boolean True <$ reserved "true"
-                    , Boolean False <$ reserved "false"
+                    [ parenths <?> "parenthesized boolean expression"
+                    , relation <?> "relation"
+                    , Boolean True <$ keyword "true"
+                    , Boolean False <$ keyword "false"
                     ]
 
-instance Parses Rop where
-    parses =
+-- | Parser for relational operators.
+instance Parse Rop where
+    parse =
         choice
             [ Eq <$ operator "="
             , Neq <$ operator "#"
@@ -71,118 +83,121 @@ instance Parses Rop where
             , Gt <$ operator ">"
             ]
 
-instance Parses Stm where
-    parses = buildExpressionParser table term
+-- | Parser for statements.
+instance Parse Stm where
+    parse = (buildExpressionParser table term) <?> "statement"
         where
             table =
-                [ [Infix (NonDet <$ reserved "[]") AssocLeft]
-                , [Infix (Par <$ reserved "par") AssocLeft]
-                , [Infix (Seq <$ semi) AssocLeft]
+                [ [Infix (NonDet <$ keyword "[]") AssocLeft]
+                , [Infix (Par <$ keyword "par") AssocLeft]
+                , [Infix (Seq <$ symbol ";") AssocLeft]
                 ]
+            parenths = parens $ parse @Stm
             term =
                 choice . map try $
-                    [ parens parses
-                    , Skip <$ reserved "skip"
-                    , VarDef <$> variable <*> parses <*> parses
+                    [ parenths <?> "parenthesized statement"
+                    , Skip <$ keyword "skip"
+                    , VarDef <$> variable <*> parse @Dop <*> parse @Aexp
                     , If
-                        <$ reserved "if"
-                        <*> parses
-                        <* reserved "then"
-                        <*> parses
-                        <*> option Skip (reserved "else" *> parses)
-                        <* reserved "end"
+                        <$ keyword "if"
+                        <*> parse @Bexp
+                        <* keyword "then"
+                        <*> parse @Stm
+                        <*> option Skip (keyword "else" *> parse @Stm)
+                        <* keyword "end"
                     , While
-                        <$ reserved "while"
-                        <*> parses
-                        <* reserved "do"
-                        <*> parses
-                        <* reserved "end"
-                    , Print <$ reserved "print" <*> parses
+                        <$ keyword "while"
+                        <*> parse @Bexp
+                        <* keyword "do"
+                        <*> parse @Stm
+                        <* keyword "end"
+                    , Print <$ keyword "print" <*> parse @Aexp
                     , Read
-                        <$ reserved "read"
+                        <$ keyword "read"
                         <*> identifier
                     , Local
-                        <$ reserved "var"
-                        <*> variable
+                        <$ keyword "var"
+                        <*> identifier
                         <* operator ":="
-                        <*> parses
-                        <* reserved "in"
-                        <*> parses
-                        <* reserved "end"
+                        <*> parse @Aexp
+                        <* keyword "in"
+                        <*> parse @Stm
+                        <* keyword "end"
                     , fmap ProcDef $
                         Proc
-                            <$ reserved "procedure"
+                            <$ keyword "procedure"
                             <*> identifier
                             <*> paramret
-                            <* reserved "begin"
-                            <*> parses
-                            <* reserved "end"
+                            <* keyword "begin"
+                            <*> parse @Stm
+                            <* keyword "end"
                     , ProcInvoc
                         <$> identifier
                         <*> argret
                     , (\s b -> Seq s $ While (Not b) s)
-                        <$ reserved "repeat"
-                        <*> parses
-                        <* reserved "until"
-                        <*> parses
+                        <$ keyword "repeat"
+                        <*> parse @Stm
+                        <* keyword "until"
+                        <*> parse @Bexp
                     , forto
-                        <$ reserved "for"
+                        <$ keyword "for"
                         <*> identifier
                         <* operator ":="
-                        <*> parses
-                        <* reserved "to"
-                        <*> parses
-                        <* reserved "do"
-                        <*> parses
-                        <* reserved "end"
+                        <*> parse @Aexp
+                        <* keyword "to"
+                        <*> parse @Aexp
+                        <* keyword "do"
+                        <*> parse @Stm
+                        <* keyword "end"
                     , forto "times" (Numeral 0) -- unassignable counter variable prevents modification from body
-                        <$ reserved "do"
-                        <*> parses
-                        <* reserved "times"
-                        <*> parses
+                        <$ keyword "do"
+                        <*> parse @Aexp
+                        <* keyword "times"
+                        <*> parse @Stm
                     , Revert
-                        <$ reserved "revert"
-                        <*> parses
-                        <* reserved "if"
-                        <*> parses
-                    , Break <$ reserved "break" -- also parses outside while
+                        <$ keyword "revert"
+                        <*> parse @Stm
+                        <* keyword "if"
+                        <*> parse @Bexp
+                    , Break <$ keyword "break" -- also parse outside while
                     , Match
-                        <$ reserved "match"
-                        <*> parses
-                        <* reserved "on"
+                        <$ keyword "match"
+                        <*> parse @Aexp
+                        <* keyword "on"
                         <*> many branch
-                        <* reserved "default"
+                        <* keyword "default"
                         <* symbol ":"
-                        <*> parses
-                        <* reserved "end"
-                    , Havoc <$ reserved "havoc" <*> identifier
-                    , Assert <$ reserved "assert" <*> parses
+                        <*> parse @Stm
+                        <* keyword "end"
+                    , Havoc <$ keyword "havoc" <*> identifier
+                    , Assert <$ keyword "assert" <*> parse @Bexp
                     , Flip
-                        <$ reserved "flip"
+                        <$ keyword "flip"
                         <*> parens integer
-                        <*> parses
-                        <* reserved "flop"
-                        <*> parses
-                        <* reserved "end"
-                    , Raise <$ reserved "raise" <*> parses
+                        <*> parse @Stm
+                        <* keyword "flop"
+                        <*> parse @Stm
+                        <* keyword "end"
+                    , Raise <$ keyword "raise" <*> parse @Aexp
                     , Try
-                        <$ reserved "try"
-                        <*> parses
-                        <* reserved "catch"
+                        <$ keyword "try"
+                        <*> parse @Stm
+                        <* keyword "catch"
                         <*> identifier
-                        <* reserved "with"
-                        <*> parses
-                        <* reserved "end"
+                        <* keyword "with"
+                        <*> parse @Stm
+                        <* keyword "end"
                     , Swap
-                        <$ reserved "swap"
+                        <$ keyword "swap"
                         <*> identifier
                         <*> identifier
                     ]
 
-instance Parses Dop where
-    parses =
+-- | Parser for variable definition operators.
+instance Parse Dop where
+    parse =
         choice
-            [ Id <$ operator ":="
+            [ Def <$ operator ":="
             , Inc <$ operator "+="
             , Dec <$ operator "-="
             , Prod <$ operator "*="
@@ -190,15 +205,17 @@ instance Parses Dop where
             , Rem <$ operator "%="
             ]
 
-instance Parses Construct where
-    parses =
+-- | Parser for IMP constructs.
+instance Parse Construct where
+    parse =
         choice . map try $
-            [ Statement <$> parses
-            , Bool <$> parses
-            , Arithm <$> parses
+            [ Statement <$> parse @Stm
+            , Bool <$> parse @Bexp
+            , Arithm <$> parse @Aexp
             , Whitespace <$ whitespace
             ]
 
+-- | Constructor for bounded loop.
 forto :: String -> Aexp -> Aexp -> Stm -> Stm
 forto x e1 e2 s =
     Local x e1 $
@@ -207,32 +224,37 @@ forto x e1 e2 s =
             (Rel Lt (Variable x) e2)
             (Seq s $ VarDef x Inc (Numeral 1))
 
+-- | Parser for procedure parameter and return variable lists.
 paramret :: Parser ([String], [String])
 paramret =
     parens $
         (,)
             <$> sepBy identifier (symbol ",")
-            <* semi
+            <* symbol ";"
             <*> sepBy identifier (symbol ",")
 
+-- | Parser for procedure argument and return variable lists.
 argret :: Parser ([Aexp], [String])
 argret =
     parens $
         (,)
-            <$> sepBy parses (symbol ",")
-            <* semi
+            <$> sepBy (parse @Aexp) (symbol ",")
+            <* symbol ";"
             <*> sepBy variable (symbol ",") -- allow placeholders in returns
 
+-- | Parser for single pattern match branch.
 branch :: Parser (Integer, Stm)
 branch =
     (,)
         <$> integer
         <* symbol ":"
-        <*> parses
+        <*> parse @Stm
         <* symbol ","
 
+-- | Wrap string in angle brackets.
 wrap :: String -> String
 wrap = ('<' :) . (++ ">") -- this is why haskell is awesome
 
-parser :: (Parses a) => String -> String -> Either ParseError a
-parser channel = parse (whitespace *> parses <* eof) $ wrap channel
+-- | Top-level parser for any type that implements 'Parse'.
+parser :: (Parse a) => String -> String -> Either ParseError a
+parser channel = Parsec.parse (whitespace *> parse <* eof) $ wrap channel

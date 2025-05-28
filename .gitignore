@@ -3,4 +3,5 @@ dist-newstyle
 bin/
 cabal.project.local
 .ghci
-dev
+devlog
+.imp_history

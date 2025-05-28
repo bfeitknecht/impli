@@ -25,6 +25,7 @@ import System.Exit (exitFailure)
 import qualified Data.Map as Map
 import qualified System.Console.ANSI as ANSI
 
+import IMP.Config
 import IMP.Parser
 import IMP.Pretty
 import IMP.Result
@@ -33,21 +34,26 @@ import IMP.Semantics.State
 import IMP.Semantics.Statement
 import IMP.Syntax
 
+-- | Start IMP REPL with given environment.
 repl :: Env -> IO ()
-repl env =
-    runInputT defaultSettings $ do
+repl env = do
+    putStrLn welcome
+    runInputT settings $ do
         result <- runExceptT (loop env)
         case result of
-            Left Ok -> return ()
-            Left err -> liftIO $ print err >> exitFailure
+            Left err
+                | err == Ok -> return ()
+                | otherwise -> liftIO $ print err >> exitFailure
             Right _ -> return ()
 
+-- | Read input, parse, dispatch, and handle meta commands.
 loop :: Env -> REPL ()
 loop env = do
-    line <- lift $ getInputLine "IMP> "
+    line <- lift $ getInputLine prompt
     flip catchError handleThrow $
         case line of
-            Nothing -> output $ "Goodbye!" -- ctrl-d
+            Nothing -> output $ goodbye -- ctrl-d
+            Just "" -> loop env -- empty line, just loop
             Just (':' : meta) -> handleMeta meta env
             Just input -> case parser "interactive" input of
                 Left err -> throwError $ ParseFail $ input ++ "\n" ++ show err
@@ -61,8 +67,9 @@ loop env = do
             Raised _ -> throwError err
             _ -> display err >> loop env
 
+-- | Dispatch parsed construct in environment.
 dispatch :: Env -> Construct -> REPL Env
-dispatch env@(state, trace) construct = case construct of
+dispatch env@(state, trace) construct = {- handleInterrupt (throwError SigInt) $ -} case construct of
     Statement s -> do
         state' <- catchError (execute state s) throwError
         return (state', trace ++ [s])
@@ -74,6 +81,7 @@ dispatch env@(state, trace) construct = case construct of
         return env
     Whitespace -> return env
 
+-- | Handle meta command (starting with @:@).
 handleMeta :: String -> Env -> REPL ()
 handleMeta meta env = case normalizeMeta (words meta) of
     [")"] -> do
@@ -92,14 +100,14 @@ handleMeta meta env = case normalizeMeta (words meta) of
         | elem rest ["p", "procs"] -> output "+++ INFO: procedures reset " >> loop noprocs
         | elem rest ["b", "break"] -> output "+++ INFO: break flag reset " >> loop nobreak
         | elem rest ["t", "trace"] -> output "+++ INFO: trace reset " >> loop notrace
-        | otherwise -> throwError $ Error $ "*** ERROR: unrecognized subcommand: " ++ rest
-            where
-                (vs, ps, fl) = st env
-                trace = tr env
-                novars = ((Map.empty, ps, fl), trace)
-                noprocs = ((vs, [], fl), trace)
-                nobreak = ((vs, ps, False), trace)
-                notrace = ((vs, ps, fl), [])
+        | otherwise -> throwError $ Error $ "unrecognized subcommand: " ++ rest
+        where
+            (vs, ps, fl) = st env
+            trace = tr env
+            novars = ((Map.empty, ps, fl), trace)
+            noprocs = ((vs, [], fl), trace)
+            nobreak = ((vs, ps, False), trace)
+            notrace = ((vs, ps, fl), [])
     ["trace"] -> do
         outputSection
             "Trace:"
@@ -120,13 +128,11 @@ handleMeta meta env = case normalizeMeta (words meta) of
     ["load", path]
         | null path -> throwError $ Info "no filepath provided"
         | otherwise -> do
-            result <- loadIMP (st env) path
-            case result of
-                Nothing -> throwError $ IOFail $ "load file: " ++ path
-                Just state -> loop (state, tr env)
+            state <- readIMP (st env) path -- handle interrupt
+            loop (state, tr env)
     ["write", path]
         | null path -> throwError $ Info "no filepath provided"
-        | otherwise -> (writeIMP (tr env) path) >> loop env
+        | otherwise -> writeIMP (tr env) path >> loop env
     ["ast", input]
         | null input -> throwError $ Info "nothing to parse"
         | "#" <- input -> throwError $ Info "no index provided"
@@ -138,7 +144,7 @@ handleMeta meta env = case normalizeMeta (words meta) of
                     else do
                         output (show $ tr env !! (i - 1))
                         loop env
-        | otherwise -> (printAST input) >> loop env
+        | otherwise -> printAST input >> loop env
     _ ->
         throwError $
             Error $
@@ -147,6 +153,7 @@ handleMeta meta env = case normalizeMeta (words meta) of
                     , indent 4 "to list available options enter :help"
                     ]
 
+-- | Normalize meta command alias to full form.
 normalizeMeta :: [String] -> [String]
 normalizeMeta ws = case ws of
     ["?"] -> ["help"]
@@ -165,6 +172,7 @@ normalizeMeta ws = case ws of
             rest = unwords xs
     _ -> ws
 
+-- | Help message for meta commands.
 helpMessage :: [String]
 helpMessage =
     [ ""
@@ -179,35 +187,33 @@ helpMessage =
     , ":ast (INPUT | #n)    Parse and display AST of input or n-th statement in trace"
     ]
 
+-- | Parse and display AST of given input string.
 printAST :: String -> REPL ()
 printAST input = case parser "ast" input of
     Left err -> throwError $ ParseFail $ input ++ "\n" ++ show err
     Right (parsed :: Construct) -> display parsed
 
+-- | Prettyprint list of statements as a trace.
 prettyTrace :: [Stm] -> String
 prettyTrace [] = "skip\n"
 prettyTrace stms = unlines $ map (++ ";") (init strs) ++ [last strs]
     where
         strs = map prettify stms
 
-loadIMP :: State -> FilePath -> REPL (Maybe State)
-loadIMP state path = do
+-- | Interpret IMP source file, updating state.
+readIMP :: State -> FilePath -> REPL State
+readIMP state path = do
     result <- liftIO $ try (readFile path) :: REPL (Either IOException String)
     case result of
-        Left err -> do
-            output $ "*** ERROR: IO failure while reading from: " ++ path
-            display err
-            return Nothing
+        Left err -> throwError $ IOFail $ "read from: " ++ path ++ "\n" ++ show err
         Right content -> case parser path content of
-            Left err -> do
-                output $ "*** ERROR: parse failure in: " ++ path
-                display err
-                return Nothing
+            Left err -> throwError $ IOFail $ "load file: " ++ path ++ "\n" ++ show err
             Right stm -> do
                 state' <- execute state stm
                 output $ "+++ INFO: interpreted file: " ++ path
-                return $ Just state'
+                return state'
 
+-- | Write trace to a file as valid IMP program.
 writeIMP :: [Stm] -> FilePath -> REPL ()
 writeIMP stms path = liftIO $ do
     let content = prettyTrace stms
@@ -219,17 +225,21 @@ writeIMP stms path = liftIO $ do
         Right () -> do
             print $ Info $ "wrote trace to: " ++ path
 
+-- | Parse string as positive integer index.
 parseIndex :: String -> Maybe Int
 parseIndex ds
     | all (`elem` ['0' .. '9']) ds = Just (read ds)
     | otherwise = Nothing
 
+-- | Produce string of n spaces.
 space :: Int -> String
 space n = replicate n ' '
 
+-- | Indent each line of a string by n spaces.
 indent :: Int -> String -> String
 indent n = (init . unlines) . map (space n ++) . lines
 
+-- | Output a titled section with optional indented content.
 outputSection :: String -> [String] -> REPL ()
 outputSection title section =
     output $

@@ -16,9 +16,12 @@ module IMP.Semantics.Expression where
 import IMP.Semantics.State
 import IMP.Syntax
 
+-- | Typeclass for evaluating expressions or statements in a state.
 class Evaluate a b | a -> b where
+    -- | Evaluate a value of type @a@ in the given state, producing a result of type @b@.
     evaluate :: State -> a -> b
 
+-- | Evaluate an arithmetic expression to an integer.
 instance Evaluate Aexp Integer where
     evaluate state aexp = case aexp of
         Numeral n -> n
@@ -36,6 +39,7 @@ instance Evaluate Aexp Integer where
                     Mod -> v1 %% v2
         Time s -> evaluate state s
 
+-- | Evaluate a boolean expression to a boolean value.
 instance Evaluate Bexp Bool where
     evaluate state bexp = case bexp of
         Boolean b -> b
@@ -55,6 +59,7 @@ instance Evaluate Bexp Bool where
                     Gt -> v1 > v2
                     Geq -> v1 >= v2
 
+-- | Evaluate a statement to an integer (number of variable definitions).
 instance Evaluate Stm Integer where
     evaluate state stm = case stm of
         Skip -> 0
@@ -93,12 +98,15 @@ instance Evaluate Stm Integer where
         Raise _ -> 0
         Try s1 _ s2 -> max (evaluate state s1) (evaluate state s2 + 1)
         Swap _ _ -> 2
+        _ -> undefined
 
+-- | Safe integer division: returns zero if divisor is zero.
 (//) :: Integer -> Integer -> Integer
 (//) v1 v2 = case v2 of
     0 -> 0
     _ -> div v1 v2
 
+-- | Safe integer modulo: returns the dividend if divisor is zero.
 (%%) :: Integer -> Integer -> Integer
 (%%) v1 v2 = case v2 of
     0 -> v1
