@@ -14,13 +14,13 @@ module IMP.Result where
 {- FOURMOLU_DISABLE -}
 -- | Result type for variation over different possible outcomes.
 data Result
-    = ParseFail String  -- ^ Parse failure with error message.
-    | AssFail String    -- ^ Assertion failure with an error message.
-    | IOFail String     -- ^ IO failure with an error message.
-    | Raised Integer    -- ^ Uncaught exception with the raised value.
+    = ParseFail String  -- ^ Parse failure with message.
+    | AssFail String    -- ^ Assertion failure with message.
+    | IOFail String     -- ^ IO failure with message.
+    | Raised Integer    -- ^ Exception with the raised value.
     | Error String      -- ^ Generic error with message.
     | SigInt            -- ^ Interrupt signal.
-    | Info String       -- ^ Informational message.
+    | Info String       -- ^ Generic information with message.
     | Ok                -- ^ Successful completion.
     deriving (Eq)
 {- FOURMOLU_ENABLE -}

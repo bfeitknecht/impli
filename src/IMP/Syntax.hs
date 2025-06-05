@@ -13,6 +13,7 @@ arithmetic expressions, boolean expressions, statements, and procedures.
 -}
 module IMP.Syntax where
 
+
 -- | Arithmetic expressions.
 data Aexp
     = Bin Aop Aexp Aexp -- ^ Binary operation: @e1 aop e2@
@@ -20,6 +21,15 @@ data Aexp
     | Numeral Integer   -- ^ Integer literal: @n@
     | Time Stm          -- ^ Number of variable definitions: @time s@
     deriving (Eq, Show)
+
+-- | Instance of `Num` for `Aexp` (partial)
+instance Num Aexp where
+    (+) = Bin Add
+    (-) = Bin Sub
+    (*) = Bin Mul
+    fromInteger = Numeral
+    abs = error "abs not supported for Aexp"
+    signum = error "signum not supported for Aexp"
 
 -- | Arithmetic operators.
 data Aop
@@ -85,6 +95,7 @@ data Stm
     | Raise Aexp                            -- ^ Raise exception: @raise e@
     | Try Stm String Stm                    -- ^ Exception handling: @try s1 catch x with s2 end@
     | Swap String String                    -- ^ Swap variables: @swap x y@
+    | Timeout Stm Aexp                      -- ^ Execution with timeout: @timeout s after e end@
     deriving (Eq, Show)
 
 -- | Procedure encapsulation.

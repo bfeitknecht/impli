@@ -75,9 +75,10 @@ tr = snd
 getVar :: State -> String -> Integer
 getVar (vars, _, _) x = Map.findWithDefault 0 x vars
 
--- | Set value of variable in state. The placeholder '_' is ignored.
+-- | Set value of variable in state. The placeholder @_@ is ignored.
 setVar :: State -> String -> Integer -> State
 setVar state "_" _ = state -- placeholder write-only variable
+setVar _ "" _ = error "variable name can't be empty string"
 setVar (vars, procs, flag) x v = (Map.insert x v vars, procs, flag)
 
 -- | Set multiple variables in state.
@@ -102,7 +103,7 @@ resetBreak (vars, procs, _) = (vars, procs, False)
 
 -- | Generate variable name for flip index.
 flipvar :: Integer -> String
-flipvar i = "_" ++ show i
+flipvar i = "_flip" ++ show i
 
 -- | Get value of flip variable (flip if zero, otherwise flop).
 getFlip :: State -> Integer -> Bool
@@ -116,5 +117,5 @@ setFlip state i = setVar state (flipvar i) 0
 setFlop :: State -> Integer -> State
 setFlop state i = setVar state (flipvar i) 1
 
--- | Program configuration of state and remaining execution steps of statement.
+-- | Program configuration with stack of states and remaining steps of statement.
 type Conf = ([State], Maybe Stm)

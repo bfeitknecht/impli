@@ -1,6 +1,6 @@
 cabal-version:       3.0
 name:                impli
-version:             2.0.1.0
+version:             2.0.2.0
 build-type:          Simple
 license:             MIT
 license-file:        LICENSE.md
@@ -20,8 +20,8 @@ extra-doc-files:
 
 extra-source-files:
     IMP.ebnf
-    examples/*.imp
-    man/impli.1
+    doc/examples/*.imp
+    doc/man/impli.1
 
 source-repository head
     type:                git

@@ -127,6 +127,13 @@ instance Pretty Stm where
                 , pretty "end"
                 ]
         Swap x y -> pretty "swap" <+> pretty x <+> pretty y
+        Timeout s e ->
+            vsep
+                [ pretty "timeout"
+                , indent 4 (pretty s)
+                , pretty "after" <+> pretty e
+                , pretty "end"
+                ]
         _ -> undefined
 
 -- | Prettyprint instance for procedures.

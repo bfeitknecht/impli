@@ -29,7 +29,7 @@ historyfile = Just ".imp_history"
 goodbye :: String
 goodbye = "Goodbye!"
 
--- Automatically save the REPL history .
+-- | Automatically save the REPL history .
 autohistory :: Bool
 autohistory = True
 

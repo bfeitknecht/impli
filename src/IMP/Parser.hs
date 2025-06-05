@@ -43,10 +43,9 @@ instance Parse Aexp where
                     , Infix (Bin Sub <$ operator "-") AssocLeft
                     ]
                 ]
-            parenths = parens $ parse @Aexp
             term =
                 choice
-                    [ parenths <?> "parenthesized arithmetic expression"
+                    [ (parens $ parse @Aexp) <?> "parenthesized arithmetic expression"
                     , Numeral <$> integer
                     , Variable <$> identifier
                     , Time <$ keyword "time" <*> parse @Stm
@@ -61,11 +60,10 @@ instance Parse Bexp where
                 , [Infix (And <$ operator "and") AssocLeft]
                 , [Infix (Or <$ operator "or") AssocLeft]
                 ]
-            parenths = parens $ parse @Bexp
             relation = flip Rel <$> parse @Aexp <*> parse @Rop <*> parse @Aexp
             term =
                 choice
-                    [ parenths <?> "parenthesized boolean expression"
+                    [ (parens $ parse @Bexp) <?> "parenthesized boolean expression"
                     , relation <?> "relation"
                     , Boolean True <$ keyword "true"
                     , Boolean False <$ keyword "false"
@@ -92,10 +90,9 @@ instance Parse Stm where
                 , [Infix (Par <$ keyword "par") AssocLeft]
                 , [Infix (Seq <$ symbol ";") AssocLeft]
                 ]
-            parenths = parens $ parse @Stm
             term =
                 choice . map try $
-                    [ parenths <?> "parenthesized statement"
+                    [ (parens $ parse @Stm) <?> "parenthesized statement"
                     , Skip <$ keyword "skip"
                     , VarDef <$> variable <*> parse @Dop <*> parse @Aexp
                     , If
@@ -149,7 +146,7 @@ instance Parse Stm where
                         <* keyword "do"
                         <*> parse @Stm
                         <* keyword "end"
-                    , forto "times" (Numeral 0) -- unassignable counter variable prevents modification from body
+                    , forto "_times" (Numeral 0) -- unassignable counter variable prevents modification from body
                         <$ keyword "do"
                         <*> parse @Aexp
                         <* keyword "times"
@@ -191,6 +188,12 @@ instance Parse Stm where
                         <$ keyword "swap"
                         <*> identifier
                         <*> identifier
+                    , Timeout
+                        <$ keyword "timeout"
+                        <*> parse @Stm
+                        <* keyword "after"
+                        <*> parse @Aexp
+                        <* keyword "end"
                     ]
 
 -- | Parser for variable definition operators.

@@ -57,6 +57,8 @@ keywords =
     , "catch"
     , "with"
     , "swap"
+    , "timeout"
+    , "after"
     ]
 
 -- | Reserved operators.
@@ -84,7 +86,7 @@ operators =
     , "%="
     ]
 
--- | Reserved metta-commands.
+-- | Reserved meta-commands.
 metacommands :: [String]
 metacommands =
     [ ":help"
@@ -119,7 +121,7 @@ lexer = Tok.makeTokenParser style
 identifier :: Parser String
 identifier = (Tok.identifier lexer) <?> "identifier"
 
--- | Parses a variable name or the placeholder '_'.
+-- | Parses a variable name or the placeholder @_@.
 variable :: Parser String
 variable = (identifier <|> symbol "_") <?> "variable"
 
