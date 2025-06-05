@@ -98,16 +98,16 @@ instance Evaluate Stm Integer where
         Raise _ -> 0
         Try s1 _ s2 -> max (evaluate state s1) (evaluate state s2 + 1)
         Swap _ _ -> 2
+        Timeout s e -> if n > k then k else n
+            where
+                n = evaluate state s
+                k = evaluate state e
         _ -> undefined
 
 -- | Safe integer division: returns zero if divisor is zero.
 (//) :: Integer -> Integer -> Integer
-(//) v1 v2 = case v2 of
-    0 -> 0
-    _ -> div v1 v2
+(//) v1 v2 = if v2 == 0 then 0 else div v1 v2
 
 -- | Safe integer modulo: returns the dividend if divisor is zero.
 (%%) :: Integer -> Integer -> Integer
-(%%) v1 v2 = case v2 of
-    0 -> v1
-    _ -> mod v1 v2
+(%%) v1 v2 = if v2 == 0 then v1 else mod v1 v2

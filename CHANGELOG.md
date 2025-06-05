@@ -4,8 +4,20 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2.0.2] - 2025-06-05
+
+- Implement statement type `Timeout Stm Aexp`.
+- Remove internal variables from output of `:state` in REPL.
+- Fulfill invariant that variable names are not the empty string.
+- Make `Aexp` partial instance of `Num` to support arithmetic of abstract syntax.
+- Move `examples/` and `man/` into `docs/`.
+
+---
+
 ## [2.0.1] - 2025-05-16
 
+- Introduce configuration module.
+- Implement small step semantics.
 - Improve Haddock documentation coverage across modules.
 - Add `extra-doc-files` and `extra-source-files` in `.cabal` file.
 

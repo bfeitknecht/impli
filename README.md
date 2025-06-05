@@ -5,7 +5,7 @@ This is an interpreter for the imperative toy language `IMP` from the course *Fo
 
 ## Usage
 
-To start the REPL, just run `impli` with no arguments. Pass the relative path of an `IMP` source file as argument to interpret it. Directly execute a statement with the `--command` option or print its AST with `--ast`. All variables are initialized to zero. Find some sample programs in `examples/`.
+To start the REPL, just run `impli` with no arguments. Pass the relative path of an `IMP` source file as argument to interpret it. Directly execute a statement with the `--command` option or print its AST with `--ast`. All variables are initialized to zero. Find some sample programs in `docs/examples/`.
 
 
 ## Installation
@@ -24,15 +24,18 @@ xattr -d com.apple.quarantine impli-*
 
 ## Specification
 
-The most apparent deviations from the specifications are that parentheses are not strictly required for arithmetic operations and relations in expressions. The same applies to sequencing. Additionally, the write-only placeholder variable `_` allows discarding of values. It can only be used on the lefthandside of variable definitions. Furthermore, chained `if` statements may share one single final `end`.
+The most apparent deviations from the specifications are that parentheses are not strictly required for arithmetic operations and relations in expressions. The same applies to sequencing. Additionally, the write-only placeholder variable `_` allows discarding of values. It can only be used on the lefthandside of variable definitions.
 
 
 ## Roadmap
 
 There are some crucial points of further improvement. These include the following.
-- cleanly handle interrupt in the REPL (ctrl+c)
-- cleanly separate big-step and small-step semantics
-- package for and distribute on major collections (homebrew, AUR, nixpkgs, ..)
+- improve the REPL
+    - cleanly handle interrupt (ctrl+c)
+    - support tab-autocompletion
+    - handle multi line input
+- ability to load source modules for interpretation
+- distribute package (homebrew, AUR, nixpkgs, hackage ..)
 - improve documentation with examples
-- support autocompletion in the REPL
-- start the REPL with loaded modules
+- write standard library
+- extend test suite

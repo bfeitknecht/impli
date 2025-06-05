@@ -76,7 +76,7 @@ parseTests =
             (Local "i" (Numeral 0) (While (Rel Lt (Variable "i") (Numeral 3)) (Seq Skip (VarDef "i" Inc (Numeral 1)))))
         , assertParseStm
             "do 4 times skip"
-            (Local "times" (Numeral 0) (While (Rel Lt (Variable "times") (Numeral 4)) (Seq Skip (VarDef "times" Inc (Numeral 1)))))
+            (Local "_times" (Numeral 0) (While (Rel Lt (Variable "_times") (Numeral 4)) (Seq Skip (VarDef "_times" Inc (Numeral 1)))))
         , assertParseStm
             "revert x := 1 if true"
             (Revert (VarDef "x" Def (Numeral 1)) (Boolean True))

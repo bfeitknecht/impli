@@ -13,6 +13,7 @@ arithmetic expressions, boolean expressions, statements, and procedures.
 -}
 module IMP.Syntax where
 
+
 -- | Arithmetic expressions.
 data Aexp
     = Bin Aop Aexp Aexp -- ^ Binary operation: @e1 aop e2@
@@ -20,6 +21,35 @@ data Aexp
     | Numeral Integer   -- ^ Integer literal: @n@
     | Time Stm          -- ^ Number of variable definitions: @time s@
     deriving (Eq, Show)
+
+-- | Partial implementation of `Num Aexp`.
+instance Num Aexp where
+    (+) = Bin Add
+    (-) = Bin Sub
+    (*) = Bin Mul
+    fromInteger = Numeral
+    abs = error "abs not supported for abstract syntax"
+    signum = error "signum not supported for abstract syntax"
+
+-- | Partial implementation of `Ord Aexp`.
+instance Ord Aexp where
+    e1 <= e2 = e1 == e2 || error "(<=) not supported for abstract syntax"
+
+-- | Partial implementation of `Enum Aexp`.
+instance Enum Aexp where
+    toEnum = Numeral . toEnum
+    fromEnum _ = error "fromEnum not supported for abstract syntax"
+
+-- | Partial implementation of `Real Aexp`.
+instance Real Aexp where
+    toRational _ = error "toRational not supported for abstract syntax"
+
+-- | Partial implementation of `Integral Aexp`.
+instance Integral Aexp where
+    div = Bin Div
+    mod = Bin Mod
+    quotRem e1 e2 = (div e1 e2, mod e1 e2)
+    toInteger _ = error "toInteger not supported for abstract syntax"
 
 -- | Arithmetic operators.
 data Aop
@@ -85,6 +115,7 @@ data Stm
     | Raise Aexp                            -- ^ Raise exception: @raise e@
     | Try Stm String Stm                    -- ^ Exception handling: @try s1 catch x with s2 end@
     | Swap String String                    -- ^ Swap variables: @swap x y@
+    | Timeout Stm Aexp                      -- ^ Execution with timeout: @timeout s after e end@
     deriving (Eq, Show)
 
 -- | Procedure encapsulation.

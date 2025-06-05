@@ -1,4 +1,5 @@
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# OPTIONS_GHC -Wno-x-partial #-}
 
 {- |
 Module      : IMP.REPL
@@ -69,7 +70,7 @@ loop env = do
 
 -- | Dispatch parsed construct in environment.
 dispatch :: Env -> Construct -> REPL Env
-dispatch env@(state, trace) construct = {- handleInterrupt (throwError SigInt) $ -} case construct of
+dispatch env@(state, trace) construct = case construct of
     Statement s -> do
         state' <- catchError (execute state s) throwError
         return (state', trace ++ [s])
@@ -91,9 +92,7 @@ handleMeta meta env = case normalizeMeta (words meta) of
         outputSection "All meta commands can be abbreviated by their first letter." helpMessage
         loop env
     ["quit"] -> output $ "Goodbye!"
-    ["clear"] -> do
-        liftIO (ANSI.clearScreen >> ANSI.setCursorPosition 0 0)
-        loop env
+    ["clear"] -> liftIO (ANSI.clearScreen >> ANSI.setCursorPosition 0 0) >> loop env
     ["reset", rest]
         | null rest -> output "+++ INFO: state reset" >> loop start
         | elem rest ["v", "vars"] -> output "+++ INFO: variables reset " >> loop novars
@@ -113,15 +112,16 @@ handleMeta meta env = case normalizeMeta (words meta) of
             "Trace:"
             [ (init . unlines) $ zipWith (++) (idx : buf) ls
             | (i, s) <- zip [1 :: Int ..] (tr env)
-            , let len = length (show i) + 3
-            , let idx = "#" ++ show i ++ space 2
-            , let buf = repeat $ space len
-            , let ls = lines $ prettify s
+            , let
+                len = length (show i) + 3
+                idx = "#" ++ show i ++ space 2
+                buf = repeat $ space len
+                ls = lines $ prettify s
             ]
         loop env
     ["state"] -> do
         let (vars, procs, flag) = st env
-        outputSection "Variables:" [k ++ " = " ++ show v | (k, v) <- Map.toList vars]
+        outputSection "Variables:" [k ++ " = " ++ show v | (k, v) <- Map.toList vars, head k /= '_']
         outputSection "Procedures:" [prettify p | p <- procs]
         output $ "Break: " ++ show flag
         loop env
@@ -141,9 +141,7 @@ handleMeta meta env = case normalizeMeta (words meta) of
             Just i ->
                 if i <= 0 || i > length (tr env)
                     then throwError $ Error $ "index out of bounds: " ++ show i
-                    else do
-                        output (show $ tr env !! (i - 1))
-                        loop env
+                    else output (show $ tr env !! (i - 1)) >> loop env
         | otherwise -> printAST input >> loop env
     _ ->
         throwError $
@@ -153,7 +151,7 @@ handleMeta meta env = case normalizeMeta (words meta) of
                     , indent 4 "to list available options enter :help"
                     ]
 
--- | Normalize meta command alias to full form.
+-- | Normalize meta command from alias to full form.
 normalizeMeta :: [String] -> [String]
 normalizeMeta ws = case ws of
     ["?"] -> ["help"]
@@ -164,10 +162,10 @@ normalizeMeta ws = case ws of
     ["t"] -> ["trace"]
     ["s"] -> ["state"]
     (x : xs)
-        | x == "l" || x == "load" -> ["load", rest]
-        | x == "w" || x == "write" -> ["write", rest]
-        | x == "a" || x == "ast" -> ["ast", rest]
-        | x == "r" || x == "reset" -> ["reset", rest]
+        | elem x ["l", "load"] -> ["load", rest]
+        | elem x ["w", "write"] -> ["write", rest]
+        | elem x ["a", "ast"] -> ["ast", rest]
+        | elem x ["r", "reset"] -> ["reset", rest]
         where
             rest = unwords xs
     _ -> ws

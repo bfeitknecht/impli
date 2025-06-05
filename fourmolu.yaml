@@ -6,7 +6,7 @@ comma-style: leading
 import-export-style: diff-friendly
 import-grouping: by-scope-then-qualified
 indent-wheres: true
-record-brace-space: false
+record-brace-space: true
 newlines-between-decls: 1
 haddock-style: multi-line
 haddock-style-module: null
@@ -18,5 +18,5 @@ sort-constraints: true
 sort-derived-classes: true
 sort-deriving-clauses: true
 trailing-section-operators: true
-unicode: never
+unicode: detect
 respectful: true
