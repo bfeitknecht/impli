@@ -11,6 +11,8 @@ Portability : portable
 
 This module provides parsers for the constructs of IMP,
 namely arithmetic and boolean expressions and statements.
+It includes parser implementations for all language elements,
+and utilizes the Parsec library for expression parsing.
 -}
 module IMP.Parser where
 
@@ -23,7 +25,7 @@ import qualified Text.Parsec.Prim as Parsec
 import IMP.Syntax
 import IMP.Util
 
--- | Typeclass for types that can be parsed from source code.
+-- | Typeclass for types that can be parsed from source code string.
 class Parse a where
     -- | The parser for the type.
     parse :: Parser a
@@ -88,6 +90,7 @@ instance Parse Stm where
             table =
                 [ [Infix (NonDet <$ keyword "[]") AssocLeft]
                 , [Infix (Par <$ keyword "par") AssocLeft]
+                , [Infix (Alternate <$ keyword "alternate") AssocLeft]
                 , [Infix (Seq <$ symbol ";") AssocLeft]
                 ]
             term =

@@ -8,7 +8,7 @@ Stability   : stable
 Portability : portable
 
 This module defines the execution semantics for statements in IMP.
-It provides the 'execute' function, which interprets statements within a given
+It provides the @interpret@ function, which interprets statements within a given
 state and environment. The module supports a variety of imperative constructs,
 including variable definitions, loops, conditionals, and procedure calls.
 -}
@@ -23,15 +23,23 @@ import Text.Read (readMaybe)
 
 import qualified Data.Map as Map
 
+import IMP.Config
 import IMP.Pretty
 import IMP.Result
 import IMP.Semantics.Expression
 import IMP.Semantics.State
 import IMP.Syntax
 
--- | Execute statement in state, returning resulting state in REPL monad.
-execute :: State -> Stm -> REPL State
-execute state stm = case stm of
+-- | Interpret statement in state, returning resulting state in REPL monad.
+interpret :: State -> Stm -> REPL State
+interpret state stm =
+    if small
+        then steps [state] stm
+        else run state stm
+
+-- | Run statement in state, returning resulting state in REPL monad.
+run :: State -> Stm -> REPL State
+run state stm = case stm of
     Skip -> return state
     VarDef x f e -> do
         let
@@ -45,17 +53,17 @@ execute state stm = case stm of
             Quot -> v // v'
             Rem -> v %% v'
     Seq s1 s2 -> do
-        state' <- execute state s1
-        execute state' s2
+        state' <- run state s1
+        run state' s2
     If b s1 s2 ->
         if evaluate state b
-            then execute state s1
-            else execute state s2
+            then run state s1
+            else run state s2
     While b s ->
         if evaluate state b
             then
                 if not $ brk state
-                    then execute state $ Seq s $ While b s
+                    then run state $ Seq s $ While b s
                     else return $ resetBreak state
             else return state
     Print e -> do
@@ -67,43 +75,46 @@ execute state stm = case stm of
             Just v -> return $ setVar state x v
             Nothing -> do
                 display $ Info "invalid input, please enter an integer"
-                execute state (Read x) -- retry reading input
+                run state (Read x) -- retry reading input
     Local x e s -> do
         let
             old = getVar state x
             new = evaluate state e
             local = setVar state x new
-        state' <- execute local s
+        state' <- run local s
         return $ setVar state' x old
-    Par s1 s2 -> steps [state] $ Par s1 s2
+    Par _ _ -> throwError $ Error "parallel execution not supported in big-step semantics"
     NonDet s1 s2 -> do
         left <- randomIO :: REPL Bool
         if left
-            then execute state s1
-            else execute state s2
+            then run state s1
+            else run state s2
     ProcDef p -> return $ setProc state p
     ProcInvoc name (arguments, returns) ->
         case getProc state name of
             Nothing -> throwError $ Error $ "undefined procedure: " ++ name
-            Just (Proc _ (params, rets) body) -> do
-                let
-                    vals = map (evaluate state) arguments -- evaluate arguments
-                    local = (Map.fromList (zip params vals), prs state, brk state) -- into local state
-                state' <- execute local body -- execute body
-                let rets' = zip returns $ map (getVar state') rets -- extract returns
-                return $ setVars state rets' -- insert into callside
+            Just (Proc _ (params, rets) body)
+                | length arguments /= length params -> throwError $ Error $ "mismatched parameters"
+                | length returns /= length rets -> throwError $ Error $ "mismatched returns"
+                | otherwise -> do
+                    let
+                        vals = map (evaluate state) arguments -- evaluate arguments
+                        local = (Map.fromList (zip params vals), prs state, brk state) -- into local state
+                    state' <- run local body -- run body
+                    let rets' = zip returns $ map (getVar state') rets -- extract returns
+                    return $ setVars state rets' -- insert into callside
     Break -> return $ setBreak state
     Revert s b -> do
         let old = state
-        new <- execute state s
+        new <- run state s
         if evaluate new b
             then return old
             else return new
     Match e ms d -> do
         let v = evaluate state e
         case lookup v ms of
-            Just s -> execute state s
-            Nothing -> execute state d
+            Just s -> run state s
+            Nothing -> run state d
     Havoc x -> do
         v <- randomIO :: REPL Integer
         return $ setVar state x v
@@ -114,15 +125,15 @@ execute state stm = case stm of
     Flip i s1 s2 -> do
         if getFlip state i
             then do
-                state' <- execute state s1
+                state' <- run state s1
                 return $ setFlop state' i
             else do
-                state' <- execute state s2
+                state' <- run state s2
                 return $ setFlip state' i
     Raise e -> throwError $ Raised $ evaluate state e
     Try s1 x s2 -> do
-        state' <- catchError (execute state s1) $ \err -> case err of
-            Raised v -> execute (setVar state x v) s2 -- catch in x, continue with s2
+        state' <- catchError (run state s1) $ \err -> case err of
+            Raised v -> run (setVar state x v) s2 -- catch in x, continue with s2
             _ -> throwError err -- can't catch, propagate
         return state'
     Swap x y -> do
@@ -130,12 +141,13 @@ execute state stm = case stm of
             v = getVar state x
             w = getVar state y
         return $ setVars state [(x, w), (y, v)]
-    Timeout s e -> steps [state] $ Timeout s e
-    _ -> undefined
+    Timeout _ _ -> throwError $ Error "timeout statement not supported in big-step semantics"
+    Alternate _ _ -> throwError $ Error "alternate execution not supported in big-step semantics"
+    _ -> error $ "illegal statement for big-step semantics: " ++ show stm
 
--- | Execute first step in configuration, returning resulting configuration in REPL monad.
+-- | Step in configuration, returning resulting configuration in REPL monad.
 step :: [State] -> Stm -> REPL Conf
-step [] _ = error "invalid configuration in step due to empty state stack"
+step [] _ = error "invalid configuration for step: empty state stack"
 step stack@(state : states) stm = case stm of
     Skip -> return (stack, Nothing)
     VarDef x f e -> do
@@ -152,9 +164,9 @@ step stack@(state : states) stm = case stm of
         return (state' : states, Nothing)
     Seq s1 s2 -> do
         (stack', rest) <- step stack s1
-        return $ case rest of
-            Nothing -> (stack', Just s2)
-            Just s1' -> (stack', Just $ Seq s1' s2)
+        case rest of
+            Nothing -> return (stack', Just s2)
+            Just s1' -> return (stack', Just $ Seq s1' s2)
     If b s1 s2 ->
         if evaluate state b
             then return (stack, Just s1)
@@ -164,7 +176,7 @@ step stack@(state : states) stm = case stm of
             then
                 if not $ brk state
                     then return (stack, Just $ Seq s stm)
-                    else return $ (resetBreak state : states, Nothing)
+                    else return (resetBreak state : states, Nothing)
             else return (stack, Nothing)
     Print e -> do
         display (evaluate state e)
@@ -178,21 +190,21 @@ step stack@(state : states) stm = case stm of
                 step stack (Read x) -- retry reading input
     Local x e s -> do
         let
-            previous = ([(x, getVar state x)], prs state, brk state)
+            snapshot = ([(x, getVar state x)], prs state, brk state)
             local = setVar state x $ evaluate state e
-        return (local : states, Just $ Seq s $ Restore previous)
+        return (local : states, Just $ Seq s $ Restore snapshot)
     Par s1 s2 -> do
         left <- randomIO :: REPL Bool
         if left
             then do
                 (stack', rest1) <- step stack s1
                 case rest1 of
-                    Nothing -> step stack' s2
+                    Nothing -> return (stack', Just s2)
                     Just s1' -> return (stack', Just $ Par s1' s2)
             else do
                 (stack', rest2) <- step stack s2
                 case rest2 of
-                    Nothing -> step stack' s1
+                    Nothing -> return (stack', Just s1)
                     Just s2' -> return (stack', Just $ Par s1 s2')
     NonDet s1 s2 -> do
         left <- randomIO :: REPL Bool
@@ -203,30 +215,34 @@ step stack@(state : states) stm = case stm of
     ProcInvoc name (arguments, returns) -> do
         case getProc state name of
             Nothing -> throwError $ Error $ "undefined procedure: " ++ name
-            Just (Proc _ (params, _) body) -> do
-                let
-                    vals = map (evaluate state) arguments
-                    local = (Map.fromList (zip params vals), prs state, brk state)
-                return (local : stack, Just $ Seq body $ Return returns)
+            Just (Proc _ (params, rets) body)
+                | length arguments /= length params -> throwError $ Error $ "mismatched number of arguments"
+                | length returns /= length rets -> throwError $ Error $ "mismatched number of return values"
+                | otherwise -> do
+                    let
+                        vals = map (evaluate state) arguments -- evaluate arguments
+                        local = (Map.fromList (zip params vals), prs state, brk state) -- into local state
+                    return (local : stack, Just $ Seq body $ Return rets returns)
     Restore (xs, ps, b) -> do
         let state' = setVars (vrs state, ps, b) xs
         return (state' : states, Nothing)
-    Return rets -> case stack of
+    Return rets returns -> case stack of
         (callee : caller : rest) -> do
             let
                 vals = map (getVar callee) rets
-                caller' = setVars caller $ zip rets vals
+                caller' = setVars caller $ zip returns vals
             return (caller' : rest, Nothing)
         _ -> throwError $ Error $ "insufficient callstack!"
     Break -> return (setBreak state : states, Nothing)
     Revert s b -> do
+        -- uninitialized variables can't be restored!
         let snapshot = (Map.toList (vrs state), prs state, brk state)
         return (stack, Just $ Seq s $ If b (Restore snapshot) Skip)
     Match e ms d -> do
         let v = evaluate state e
         case lookup v ms of
-            Just s -> return $ (stack, Just s)
-            Nothing -> return $ (stack, Just d)
+            Just s -> return (stack, Just s)
+            Nothing -> return (stack, Just d)
     Havoc x -> do
         v <- randomIO :: REPL Integer
         return (setVar state x v : states, Nothing)
@@ -258,9 +274,14 @@ step stack@(state : states) stm = case stm of
             then return (stack, Nothing)
             else do
                 (stack', rest) <- step stack s
-                return $ case rest of
-                    Nothing -> (stack', Nothing)
-                    Just s' -> (stack', Just $ Timeout s' $ e - 1)
+                case rest of
+                    Nothing -> return (stack', Nothing)
+                    Just s' -> return (stack', Just $ Timeout s' $ e - 1)
+    Alternate s1 s2 -> do
+        (stack', rest) <- step [state] s1
+        case rest of
+            Just s1' -> return (stack', Just $ Alternate s2 s1')
+            Nothing -> return (stack', Just s2)
 
 -- | Transition until terminal configuration is reached.
 steps :: [State] -> Stm -> REPL State
@@ -272,26 +293,23 @@ steps stack stm = do
 
 -- | Read line of input from the user with prompt, handling EOF.
 inget :: String -> REPL String
-inget prompt = do
+inget p = do
     result <- liftIO $ do
-        putStr prompt
+        putStr p
         flush
         catch (Just <$> getLine) handleEOF
     case result of
         Just input -> return input
-        Nothing -> do
-            output ""
-            output "Goodbye!"
-            throwError Ok
+        Nothing -> output "" >> output goodbye >> throwError Ok
     where
         handleEOF :: IOError -> IO (Maybe String)
         handleEOF _ = return Nothing
 
--- | Output string to the user, followed by a newline and flush.
+-- | Output string to the user, followed by newline and flush.
 output :: String -> REPL ()
 output msg = liftIO $ putStrLn msg >> flush
 
--- | Output value using its Show instance.
+-- | Display argument using its Show instance.
 display :: (Show a) => a -> REPL ()
 display = output . show
 

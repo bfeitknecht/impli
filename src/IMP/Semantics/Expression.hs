@@ -102,6 +102,7 @@ instance Evaluate Stm Integer where
             where
                 n = evaluate state s
                 k = evaluate state e
+        Alternate s1 s2 -> evaluate state s1 + evaluate state s2
         _ -> undefined
 
 -- | Safe integer division: returns zero if divisor is zero.

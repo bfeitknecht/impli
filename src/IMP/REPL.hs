@@ -11,7 +11,7 @@ Stability   : stable
 Portability : portable
 
 This module provides an interactive REPL for IMP, allowing users to
-execute statements, evaluate expressions, display ASTs and inspect program state.
+interpret statements, evaluate expressions, display ASTs and inspect program state.
 -}
 module IMP.REPL where
 
@@ -57,7 +57,7 @@ loop env = do
             Just "" -> loop env -- empty line, just loop
             Just (':' : meta) -> handleMeta meta env
             Just input -> case parser "interactive" input of
-                Left err -> throwError $ ParseFail $ input ++ "\n" ++ show err
+                Left err -> throwError $ ParseFail $ unlines' [input, show err]
                 Right parsed -> do
                     env' <- dispatch env parsed
                     loop env'
@@ -72,7 +72,7 @@ loop env = do
 dispatch :: Env -> Construct -> REPL Env
 dispatch env@(state, trace) construct = case construct of
     Statement s -> do
-        state' <- catchError (execute state s) throwError
+        state' <- catchError (interpret state s) throwError
         return (state', trace ++ [s])
     Arithm e -> do
         display $ evaluate state e
@@ -91,15 +91,15 @@ handleMeta meta env = case normalizeMeta (words meta) of
     ["help"] -> do
         outputSection "All meta commands can be abbreviated by their first letter." helpMessage
         loop env
-    ["quit"] -> output $ "Goodbye!"
+    ["quit"] -> output goodbye
     ["clear"] -> liftIO (ANSI.clearScreen >> ANSI.setCursorPosition 0 0) >> loop env
     ["reset", rest]
-        | null rest -> output "+++ INFO: state reset" >> loop start
+        | null rest -> output "+++ INFO: environment reset" >> loop start
         | elem rest ["v", "vars"] -> output "+++ INFO: variables reset " >> loop novars
         | elem rest ["p", "procs"] -> output "+++ INFO: procedures reset " >> loop noprocs
         | elem rest ["b", "break"] -> output "+++ INFO: break flag reset " >> loop nobreak
         | elem rest ["t", "trace"] -> output "+++ INFO: trace reset " >> loop notrace
-        | otherwise -> throwError $ Error $ "unrecognized subcommand: " ++ rest
+        | otherwise -> throwError $ Error $ "unrecognized aspect to reset: " ++ rest
         where
             (vs, ps, fl) = st env
             trace = tr env
@@ -110,7 +110,7 @@ handleMeta meta env = case normalizeMeta (words meta) of
     ["trace"] -> do
         outputSection
             "Trace:"
-            [ (init . unlines) $ zipWith (++) (idx : buf) ls
+            [ unlines' $ zipWith (++) (idx : buf) ls
             | (i, s) <- zip [1 :: Int ..] (tr env)
             , let
                 len = length (show i) + 3
@@ -141,14 +141,16 @@ handleMeta meta env = case normalizeMeta (words meta) of
             Just i ->
                 if i <= 0 || i > length (tr env)
                     then throwError $ Error $ "index out of bounds: " ++ show i
-                    else output (show $ tr env !! (i - 1)) >> loop env
+                    else display element >> loop env
+                where
+                    element = tr env !! (i - 1)
         | otherwise -> printAST input >> loop env
     _ ->
         throwError $
             Error $
-                unlines
+                unlines'
                     [ "not a meta command: :" ++ meta
-                    , indent 4 "to list available options enter :help"
+                    , "Enter :help to list available metacommands and :quit to exit."
                     ]
 
 -- | Normalize meta command from alias to full form.
@@ -158,7 +160,6 @@ normalizeMeta ws = case ws of
     ["h"] -> ["help"]
     ["q"] -> ["quit"]
     ["c"] -> ["clear"]
-    ["r"] -> ["reset"]
     ["t"] -> ["trace"]
     ["s"] -> ["state"]
     (x : xs)
@@ -173,48 +174,47 @@ normalizeMeta ws = case ws of
 -- | Help message for meta commands.
 helpMessage :: [String]
 helpMessage =
-    [ ""
-    , ":help / :?           Show this help"
-    , ":quit                Quit REPL"
-    , ":clear               Clear screen"
-    , ":reset [ELEMENT]     Reset environment or element (vars, procs, break, trace)"
-    , ":trace               Show trace (executed statements)"
-    , ":state               Show state (defined variables and procedures)"
-    , ":load FILE           Interpret file and load resulting state"
-    , ":write FILE          Write trace to file (relative to CWD)"
-    , ":ast (INPUT | #n)    Parse and display AST of input or n-th statement in trace"
+    [ ":help / :?               Show this help message"
+    , ":quit                    Quit REPL"
+    , ":clear                   Clear screen"
+    , ":reset [ASPECT]          Reset environment or specific aspect (vars, procs, break, trace)"
+    , ":trace                   Show trace (executed statements)"
+    , ":state                   Show state (defined variables and procedures, break flag)"
+    , ":load FILE               Interpret file and load resulting state"
+    , ":write FILE              Write trace to file (relative to $PWD)"
+    , ":ast (INPUT | #n)        Parse and display AST of input or n-th statement in trace"
     ]
 
 -- | Parse and display AST of given input string.
 printAST :: String -> REPL ()
 printAST input = case parser "ast" input of
-    Left err -> throwError $ ParseFail $ input ++ "\n" ++ show err
+    Left err -> throwError $ ParseFail $ unlines' [input, show err]
     Right (parsed :: Construct) -> display parsed
 
--- | Prettyprint list of statements as a trace.
-prettyTrace :: [Stm] -> String
+-- | Convert Trace to IMP source code.
+prettyTrace :: Trace -> String
 prettyTrace [] = "skip\n"
-prettyTrace stms = unlines $ map (++ ";") (init strs) ++ [last strs]
-    where
-        strs = map prettify stms
+prettyTrace trace =
+    unlines $
+        map ((++ ";") . prettify) (init trace) ++ [prettify $ last trace]
 
 -- | Interpret IMP source file, updating state.
 readIMP :: State -> FilePath -> REPL State
 readIMP state path = do
     result <- liftIO $ try (readFile path) :: REPL (Either IOException String)
     case result of
-        Left err -> throwError $ IOFail $ "read from: " ++ path ++ "\n" ++ show err
+        Left err -> throwError $ IOFail $ unlines' ["read file: " ++ path, show err]
         Right content -> case parser path content of
-            Left err -> throwError $ IOFail $ "load file: " ++ path ++ "\n" ++ show err
+            Left err -> throwError $ IOFail $ unlines' ["interpret file: " ++ path, show err]
             Right stm -> do
-                state' <- execute state stm
+                state' <- interpret state stm
                 output $ "+++ INFO: interpreted file: " ++ path
                 return state'
 
 -- | Write trace to a file as valid IMP program.
-writeIMP :: [Stm] -> FilePath -> REPL ()
-writeIMP stms path = liftIO $ do
-    let content = prettyTrace stms
+writeIMP :: Trace -> FilePath -> REPL ()
+writeIMP trace path = liftIO $ do
+    let content = prettyTrace trace
     result <- try (writeFile path content) :: IO (Either IOException ())
     case result of
         Left err -> do
@@ -235,13 +235,16 @@ space n = replicate n ' '
 
 -- | Indent each line of a string by n spaces.
 indent :: Int -> String -> String
-indent n = (init . unlines) . map (space n ++) . lines
+indent n = unlines' . map (space n ++) . lines
 
 -- | Output a titled section with optional indented content.
 outputSection :: String -> [String] -> REPL ()
 outputSection title section =
     output $
         title
-            ++ if (not . null) section
+            ++ if section /= []
                 then "\n" ++ indent 4 (unlines section)
                 else ""
+
+unlines' :: [String] -> String
+unlines' = init . unlines

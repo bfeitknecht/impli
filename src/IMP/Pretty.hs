@@ -134,6 +134,12 @@ instance Pretty Stm where
                 , pretty "after" <+> pretty e
                 , pretty "end"
                 ]
+        Alternate s1 s2 ->
+            vsep
+                [ pretty s1
+                , indent 4 $ pretty "alternate"
+                , pretty s2
+                ]
         _ -> undefined
 
 -- | Prettyprint instance for procedures.

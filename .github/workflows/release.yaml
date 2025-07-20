@@ -36,7 +36,7 @@ jobs:
             - name: Build impli
               run: |
                   cabal update
-                  cabal build
+                  cabal build exe:impli
 
             - name: Upload executable to artifacts
               shell: bash

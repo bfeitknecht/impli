@@ -170,7 +170,7 @@ execTests =
                     (VarDef "x" Def (Numeral 1))
                     (While (Not (Boolean True)) (VarDef "x" Def (Numeral 1)))
           in assertExec initial stm ([("x", 1)], [])
-        , assertExec initial (Revert ((VarDef "x") Def (Numeral 1)) (Boolean True)) ([("x", 0)], [])
+        , assertExec (setVar initial "x" 0) (Revert ((VarDef "x") Def (Numeral 1)) (Boolean True)) ([("x", 0)], [])
         ]
 
 precedenceTests :: TestTree
@@ -202,7 +202,7 @@ assertEvalBexp state b bool = testCase (stringify b) $ evaluate state b @?= bool
 
 assertExec :: State -> Stm -> ([(String, Integer)], [Proc]) -> TestTree
 assertExec state stm (vars, procs) = testCase (stringify stm) $ do
-    result <- run $ execute state stm
+    result <- launch $ interpret state stm
     case result of
         Left err -> assertFailure $ "Execution failed with error: " ++ show err
         Right state' -> do
@@ -228,5 +228,5 @@ assertExec state stm (vars, procs) = testCase (stringify stm) $ do
                     let procChecks = [getProc state' (procname proc) @?= Just proc | proc <- procs]
                     sequence_ procChecks
 
-run :: REPL a -> IO (Either Result a)
-run repl = runInputT defaultSettings (runExceptT repl)
+launch :: REPL a -> IO (Either Result a)
+launch repl = runInputT defaultSettings (runExceptT repl)

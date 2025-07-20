@@ -15,7 +15,7 @@ import System.Console.Haskeline
 
 -- | The welcome message printed when the REPL is started.
 welcome :: String
-welcome = "Welcome to the IMP REPL! Type :quit to exit"
+welcome = "Welcome to the IMP REPL! Enter :help to list available metacommands and :quit to exit."
 
 -- | The REPL prompt.
 prompt :: String
@@ -25,7 +25,7 @@ prompt = "IMP> "
 historyfile :: Maybe FilePath
 historyfile = Just ".imp_history"
 
--- | The goodbye message when the REPL is quit.
+-- | The goodbye message displayed when the REPL is quit.
 goodbye :: String
 goodbye = "Goodbye!"
 
@@ -33,10 +33,14 @@ goodbye = "Goodbye!"
 autohistory :: Bool
 autohistory = True
 
--- | REPL Settings.
+-- | REPL Settings for Haskeline.
 settings :: Settings IO
 settings =
     (defaultSettings :: Settings IO)
         { historyFile = historyfile
         , autoAddHistory = autohistory
         }
+
+-- | Use small-step semantics for interpretation.
+small :: Bool
+small = True

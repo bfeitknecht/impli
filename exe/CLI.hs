@@ -94,8 +94,7 @@ runSTDIN = do
 -- | Print AST of a construct.
 runAST :: String -> IO ()
 runAST input = runInputT settings $ do
-    result <- -- handleInterrupt (return $ Left $ Sigint) $
-        runExceptT $ printAST input
+    result <- runExceptT $ printAST input
     liftIO $ case result of
         Left err -> do
             print err
@@ -115,8 +114,7 @@ runProgram channel input = runInputT settings $
             print err
             exitFailure
         Right stm -> do
-            result <- -- handleInterrupt (return $ Left $ Sigint) $
-                runExceptT $ execute initial stm
+            result <- runExceptT $ interpret initial stm
             liftIO $ case result of
                 Left err -> do
                     print err

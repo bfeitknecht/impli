@@ -59,6 +59,7 @@ keywords =
     , "swap"
     , "timeout"
     , "after"
+    , "alternate"
     ]
 
 -- | Reserved operators.

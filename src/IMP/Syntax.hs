@@ -28,28 +28,40 @@ instance Num Aexp where
     (-) = Bin Sub
     (*) = Bin Mul
     fromInteger = Numeral
-    abs = error "abs not supported for abstract syntax"
-    signum = error "signum not supported for abstract syntax"
+    abs e = case e of
+        Numeral v -> Numeral $ abs v
+        _ -> error "abs not supported for abstract syntax"
+    signum e = case e of
+        Numeral v -> Numeral $ signum v
+        _ -> error "signum not supported for abstract syntax"
 
--- | Partial implementation of `Ord Aexp`.
+-- | Partial implementation of Ord.
 instance Ord Aexp where
-    e1 <= e2 = e1 == e2 || error "(<=) not supported for abstract syntax"
+    e1 <= e2 = e1 == e2 || case (e1, e2) of
+        (Numeral v1, Numeral v2) -> v1 <= v2
+        _ -> error "operation not supported for abstract syntax"
 
--- | Partial implementation of `Enum Aexp`.
+-- | Partial implementation of Enum.
 instance Enum Aexp where
     toEnum = Numeral . toEnum
-    fromEnum _ = error "fromEnum not supported for abstract syntax"
+    fromEnum e = case e of
+        Numeral v -> fromEnum v
+        _ -> error "fromEnum not supported for abstract syntax"
 
--- | Partial implementation of `Real Aexp`.
+-- | Partial implementation of Real.
 instance Real Aexp where
-    toRational _ = error "toRational not supported for abstract syntax"
+    toRational e = case e of
+        Numeral v -> toRational v
+        _ -> error "toRational not supported for abstract syntax"
 
--- | Partial implementation of `Integral Aexp`.
+-- | Partial implementation of Integral.
 instance Integral Aexp where
     div = Bin Div
     mod = Bin Mod
     quotRem e1 e2 = (div e1 e2, mod e1 e2)
-    toInteger _ = error "toInteger not supported for abstract syntax"
+    toInteger e = case e of
+        Numeral v -> v
+        _ -> error "toInteger not supported for abstract syntax"
 
 -- | Arithmetic operators.
 data Aop
@@ -66,7 +78,7 @@ data Bexp
     | And Bexp Bexp        -- ^ Logical AND: @b1 and b2@
     | Not Bexp             -- ^ Logical NOT: @not b@
     | Rel Rop Aexp Aexp    -- ^ Relation: @e1 rop e2@
-    | Boolean Bool         -- ^ Boolean literal: @true@ or @false@
+    | Boolean Bool         -- ^ Boolean literal: @true@, @false@
     deriving (Eq, Show)
 
 -- | Relational operators.
@@ -105,7 +117,7 @@ data Stm
     | ProcInvoc String ([Aexp], [String])   -- ^ Procedure invocation: @p(args; rets)@
     | Restore                               -- ^ Restore variables, procedures and break flag.
         ([(String, Integer)], [Proc], Bool)
-    | Return [String]                       -- ^ Return variables to callside.
+    | Return [String] [String]              -- ^ Return variables to callside.
     | Break                                 -- ^ Break statement: @break@
     | Revert Stm Bexp                       -- ^ Transactional statement: @revert s if b@
     | Match Aexp [(Integer, Stm)] Stm       -- ^ Pattern match: @match e on {v: s,} default: s@
@@ -116,6 +128,7 @@ data Stm
     | Try Stm String Stm                    -- ^ Exception handling: @try s1 catch x with s2 end@
     | Swap String String                    -- ^ Swap variables: @swap x y@
     | Timeout Stm Aexp                      -- ^ Execution with timeout: @timeout s after e end@
+    | Alternate Stm Stm
     deriving (Eq, Show)
 
 -- | Procedure encapsulation.

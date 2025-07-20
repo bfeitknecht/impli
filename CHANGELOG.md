@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2.1.0] - 2025-07-16
+
+- Add `alternate` operator.
+- Fix procedure invocation not setting return values in `step`.
+- Check mismatch of procedure signatures.
+- Rename `execute` to `run` to align with movement metaphor.
+- Add `interpret` function as API for `steps` or `run`.
+- Fix bug of `:reset` without argument not being recognized.
+- Clean up `:ast` logic in `handleMeta`.
+- Use `unlines` to remove some `++ "\n"` shenanigans.
+- Extend partial implementation of typeclasses for `Aexp`.
+- Small changes to documentation and UX.
+
+---
+
 ## [2.0.2] - 2025-06-05
 
 - Implement statement type `Timeout Stm Aexp`.

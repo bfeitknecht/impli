@@ -1,7 +1,8 @@
 **/.DS_Store
-dist-newstyle
-bin/
-cabal.project.local
-.ghci
 devlog
+bin/
+dist-newstyle
+cabal.project.local
+cabal.project.wasm.local
+.ghci
 .imp_history
