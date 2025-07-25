@@ -65,6 +65,17 @@ cli = info modi description
                 <> progDesc "An interpreter and REPL for the imperative toy language IMP"
                 <> header "impli - The IMP language interpreter"
 
+-- | Entry point for the CLI application
+runCLI :: Mode -> IO ()
+runCLI mode =
+    case mode of
+        REPL -> runREPL
+        File path -> runFile path
+        Command cmd -> runCommand cmd
+        AST construct -> runAST construct
+        STDIN -> runSTDIN
+        Version -> runVersion
+
 -- | Run the interactive REPL.
 runREPL :: IO ()
 runREPL = repl settings start

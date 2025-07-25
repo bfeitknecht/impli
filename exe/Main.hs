@@ -19,12 +19,4 @@ import CLI
 
 -- | The main entry point for the @impli@ executable.
 main :: IO ()
-main = do
-    mode <- execParser cli
-    case mode of
-        REPL -> runREPL
-        File path -> runFile path
-        Command input -> runCommand input
-        AST input -> runAST input
-        STDIN -> runSTDIN
-        Version -> runVersion
+main = execParser cli >>= runCLI
