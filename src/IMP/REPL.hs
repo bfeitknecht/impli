@@ -36,10 +36,10 @@ import IMP.Semantics.Statement
 import IMP.Syntax
 
 -- | Start IMP REPL with given environment.
-repl :: Env -> IO ()
-repl env = do
+repl :: Settings IO -> Env -> IO ()
+repl setting env = do
     putStrLn welcome
-    runInputT settings $ do
+    runInputT setting $ do
         result <- runExceptT (loop env)
         case result of
             Left err
@@ -53,7 +53,7 @@ loop env = do
     line <- lift $ getInputLine prompt
     flip catchError handleThrow $
         case line of
-            Nothing -> output $ goodbye -- ctrl-d
+            Nothing -> output goodbye -- ctrl-d
             Just "" -> loop env -- empty line, just loop
             Just (':' : meta) -> handleMeta meta env
             Just input -> case parser "interactive" input of
@@ -84,9 +84,9 @@ dispatch env@(state, trace) construct = case construct of
 
 -- | Handle meta command (starting with @:@).
 handleMeta :: String -> Env -> REPL ()
-handleMeta meta env = case normalizeMeta (words meta) of
+handleMeta meta env@(state, trace) = case normalizeMeta (words meta) of
     [")"] -> do
-        output $ "You look good today!"
+        output "You look good today!"
         loop env
     ["help"] -> do
         outputSection "All meta commands can be abbreviated by their first letter." helpMessage
@@ -95,23 +95,16 @@ handleMeta meta env = case normalizeMeta (words meta) of
     ["clear"] -> liftIO (ANSI.clearScreen >> ANSI.setCursorPosition 0 0) >> loop env
     ["reset", rest]
         | null rest -> output "+++ INFO: environment reset" >> loop start
-        | elem rest ["v", "vars"] -> output "+++ INFO: variables reset " >> loop novars
-        | elem rest ["p", "procs"] -> output "+++ INFO: procedures reset " >> loop noprocs
-        | elem rest ["b", "break"] -> output "+++ INFO: break flag reset " >> loop nobreak
-        | elem rest ["t", "trace"] -> output "+++ INFO: trace reset " >> loop notrace
+        | elem rest ["v", "vars"] -> output "+++ INFO: variables reset " >> loop (novars state, trace)
+        | elem rest ["p", "procs"] -> output "+++ INFO: procedures reset " >> loop (noprocs state, trace)
+        | elem rest ["b", "break"] -> output "+++ INFO: break flag reset " >> loop (nobreak state, trace)
+        | elem rest ["t", "trace"] -> output "+++ INFO: trace reset " >> loop (state, [])
         | otherwise -> throwError $ Error $ "unrecognized aspect to reset: " ++ rest
-        where
-            (vs, ps, fl) = st env
-            trace = tr env
-            novars = ((Map.empty, ps, fl), trace)
-            noprocs = ((vs, [], fl), trace)
-            nobreak = ((vs, ps, False), trace)
-            notrace = ((vs, ps, fl), [])
     ["trace"] -> do
         outputSection
             "Trace:"
             [ unlines' $ zipWith (++) (idx : buf) ls
-            | (i, s) <- zip [1 :: Int ..] (tr env)
+            | (i, s) <- zip [1 :: Int ..] trace
             , let
                 len = length (show i) + 3
                 idx = "#" ++ show i ++ space 2
@@ -120,7 +113,7 @@ handleMeta meta env = case normalizeMeta (words meta) of
             ]
         loop env
     ["state"] -> do
-        let (vars, procs, flag) = st env
+        let (vars, procs, flag) = state
         outputSection "Variables:" [k ++ " = " ++ show v | (k, v) <- Map.toList vars, head k /= '_']
         outputSection "Procedures:" [prettify p | p <- procs]
         output $ "Break: " ++ show flag
@@ -128,22 +121,22 @@ handleMeta meta env = case normalizeMeta (words meta) of
     ["load", path]
         | null path -> throwError $ Info "no filepath provided"
         | otherwise -> do
-            state <- readIMP (st env) path -- handle interrupt
-            loop (state, tr env)
+            state' <- readIMP state path -- handle interrupt
+            loop (state', trace)
     ["write", path]
         | null path -> throwError $ Info "no filepath provided"
-        | otherwise -> writeIMP (tr env) path >> loop env
+        | otherwise -> writeIMP trace path >> loop env
     ["ast", input]
         | null input -> throwError $ Info "nothing to parse"
         | "#" <- input -> throwError $ Info "no index provided"
         | '#' : ds <- input -> case parseIndex ds of
             Nothing -> throwError $ ParseFail input
             Just i ->
-                if i <= 0 || i > length (tr env)
+                if i <= 0 || i > length trace
                     then throwError $ Error $ "index out of bounds: " ++ show i
                     else display element >> loop env
                 where
-                    element = tr env !! (i - 1)
+                    element = trace !! (i - 1)
         | otherwise -> printAST input >> loop env
     _ ->
         throwError $
@@ -246,5 +239,6 @@ outputSection title section =
                 then "\n" ++ indent 4 (unlines section)
                 else ""
 
+-- | Unlines without final newline.
 unlines' :: [String] -> String
 unlines' = init . unlines

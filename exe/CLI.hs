@@ -67,7 +67,7 @@ cli = info modi description
 
 -- | Run the interactive REPL.
 runREPL :: IO ()
-runREPL = repl start
+runREPL = repl settings start
 
 -- | Interpret a source file or standard input if path is @-@.
 runFile :: FilePath -> IO ()
@@ -83,7 +83,7 @@ runFile path = do
 
 -- | Interpret a command passed as a string.
 runCommand :: String -> IO ()
-runCommand input = runProgram "command" input
+runCommand = runProgram "command"
 
 -- | Interpret from standard input.
 runSTDIN :: IO ()
@@ -93,7 +93,7 @@ runSTDIN = do
 
 -- | Print AST of a construct.
 runAST :: String -> IO ()
-runAST input = runInputT settings $ do
+runAST input = runInputT settings {historyFile = Nothing} $ do
     result <- runExceptT $ printAST input
     liftIO $ case result of
         Left err -> do

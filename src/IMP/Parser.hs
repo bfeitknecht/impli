@@ -32,7 +32,7 @@ class Parse a where
 
 -- | Parser for arithmetic expressions.
 instance Parse Aexp where
-    parse = (buildExpressionParser table term) <?> "arithmetic expression"
+    parse = buildExpressionParser table term <?> "arithmetic expression"
         where
             table =
                 [
@@ -47,7 +47,7 @@ instance Parse Aexp where
                 ]
             term =
                 choice
-                    [ (parens $ parse @Aexp) <?> "parenthesized arithmetic expression"
+                    [ parens (parse @Aexp) <?> "parenthesized arithmetic expression"
                     , Numeral <$> integer
                     , Variable <$> identifier
                     , Time <$ keyword "time" <*> parse @Stm
@@ -55,7 +55,7 @@ instance Parse Aexp where
 
 -- | Parser for boolean expressions.
 instance Parse Bexp where
-    parse = (buildExpressionParser table term) <?> "boolean expression"
+    parse = buildExpressionParser table term <?> "boolean expression"
         where
             table =
                 [ [Prefix (Not <$ operator "not")]
@@ -65,7 +65,7 @@ instance Parse Bexp where
             relation = flip Rel <$> parse @Aexp <*> parse @Rop <*> parse @Aexp
             term =
                 choice
-                    [ (parens $ parse @Bexp) <?> "parenthesized boolean expression"
+                    [ parens (parse @Bexp) <?> "parenthesized boolean expression"
                     , relation <?> "relation"
                     , Boolean True <$ keyword "true"
                     , Boolean False <$ keyword "false"
@@ -85,7 +85,7 @@ instance Parse Rop where
 
 -- | Parser for statements.
 instance Parse Stm where
-    parse = (buildExpressionParser table term) <?> "statement"
+    parse = buildExpressionParser table term <?> "statement"
         where
             table =
                 [ [Infix (NonDet <$ keyword "[]") AssocLeft]
@@ -95,7 +95,7 @@ instance Parse Stm where
                 ]
             term =
                 choice . map try $
-                    [ (parens $ parse @Stm) <?> "parenthesized statement"
+                    [ parens (parse @Stm) <?> "parenthesized statement"
                     , Skip <$ keyword "skip"
                     , VarDef <$> variable <*> parse @Dop <*> parse @Aexp
                     , If

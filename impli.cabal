@@ -1,80 +1,86 @@
-cabal-version:       3.0
-name:                impli
-version:             2.1.0.0
-build-type:          Simple
-license:             MIT
-license-file:        LICENSE.md
-author:              Basil Feitknecht
-maintainer:          bfeitknecht@ethz.ch
-homepage:            https://github.com/bfeitknecht/impli
-bug-reports:         https://github.com/bfeitknecht/impli/issues
-category:            Language
-synopsis:            Interpreter for an imperative toy language
+cabal-version: 3.0
+name: impli
+version: 2.1.0.0
+build-type: Simple
+license: MIT
+license-file: LICENSE.md
+author: Basil Feitknecht
+maintainer: bfeitknecht@ethz.ch
+homepage: https://github.com/bfeitknecht/impli
+bug-reports: https://github.com/bfeitknecht/impli/issues
+category: Language
+synopsis: Interpreter for an imperative toy language
 description:
-    Minimal imperative language interpreter built for educational purposes.
+  Minimal imperative language interpreter built for educational purposes.
 
 extra-doc-files:
-    README.md
-    CHANGELOG.md
-    IMP.ebnf
+  CHANGELOG.md
+  IMP.ebnf
+  README.md
 
 extra-source-files:
-    IMP.ebnf
-    docs/examples/*.imp
-    docs/man/impli.1
+  IMP.ebnf
+  docs/examples/*.imp
+  docs/man/impli.1
 
 source-repository head
-    type:                git
-    location:            https://github.com/bfeitknecht/impli.git
+  type: git
+  location: https://github.com/bfeitknecht/impli.git
 
 common shared-settings
-    default-language:       Haskell2010
-    ghc-options:            -Wall -Wextra
-    build-depends:
-        base >=4.14 && <5,
-        parsec >=3.1 && <3.2,
-        containers >=0.6 && <0.7,
-        haskeline >=0.8 && <0.9,
-        optparse-applicative >=0.15 && <0.19,
-        random >=1.1 && <1.3,
-        ansi-terminal >=0.11 && <1.1,
-        transformers >= 0.5 && < 0.7,
-        mtl >= 2.2 && < 3,
-        prettyprinter >=1.7 && <2,
+  default-language: Haskell2010
+  ghc-options:
+    -Wall
+    -Wextra
+
+  build-depends:
+    ansi-terminal >=0.11 && <1.1,
+    base >=4.14 && <5,
+    containers >=0.6 && <0.7,
+    haskeline >=0.8 && <0.9,
+    mtl >=2.2 && <3,
+    optparse-applicative >=0.15 && <0.19,
+    parsec >=3.1 && <3.2,
+    prettyprinter >=1.7 && <2,
+    random >=1.1 && <1.3,
+    transformers >=0.5 && <0.7,
 
 library
-    import:                 shared-settings
-    hs-source-dirs:         src
-    exposed-modules:
-        IMP.Pretty
-        IMP.Syntax
-        IMP.Semantics.State
-        IMP.Semantics.Expression
-        IMP.Semantics.Statement
-        IMP.Parser
-        IMP.Util
-        IMP.REPL
-        IMP.Result
-        IMP.Config
+  import: shared-settings
+  hs-source-dirs: src
+  -- cabal-gild: discover src
+  exposed-modules:
+    IMP.Config
+    IMP.Parser
+    IMP.Pretty
+    IMP.REPL
+    IMP.Result
+    IMP.Semantics.Expression
+    IMP.Semantics.State
+    IMP.Semantics.Statement
+    IMP.Syntax
+    IMP.Util
 
 executable impli
-    import:                 shared-settings
-    main-is:                Main.hs
-    hs-source-dirs:         exe
-    build-depends:
-        impli,
-    other-modules:
-        CLI
-        Paths_impli
-    autogen-modules:
-        Paths_impli
+  import: shared-settings
+  main-is: Main.hs
+  hs-source-dirs: exe
+  build-depends:
+    impli
+
+  other-modules:
+    CLI
+    Paths_impli
+
+  autogen-modules:
+    Paths_impli
 
 test-suite impli-test
-    import:                 shared-settings
-    type:                   exitcode-stdio-1.0
-    main-is:                Spec.hs
-    hs-source-dirs:         test
-    build-depends:
-        impli,
-        tasty >=1.4 && <1.5,
-        tasty-hunit >=0.10 && <0.11
+  import: shared-settings
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  hs-source-dirs: test
+  build-depends:
+    impli,
+    tasty >=1.4 && <1.5,
+    tasty-hunit >=0.10 && <0.11,

@@ -87,7 +87,7 @@ parseTests =
         , assertParseConstruct "1 * 2" $ Arithm (Bin Mul (Numeral 1) (Numeral 2))
         , assertParseConstruct "(true)" $ Bool (Boolean True)
         , assertParseConstruct "x < 0" $ Bool (Rel Lt (Variable "x") (Numeral 0))
-        , assertParseConstruct "/**/" $ Whitespace
+        , assertParseConstruct "/**/" Whitespace
         ]
 
 evalTests :: TestTree
@@ -157,7 +157,7 @@ execTests =
                     (ProcDef $ Proc "inc" (["x"], ["x"]) body)
                     (ProcInvoc "inc" ([Numeral 10], ["y"]))
           in
-            assertExec initial stm ([("y", 11)], [(Proc "inc" (["x"], ["x"]) body)])
+            assertExec initial stm ([("y", 11)], [Proc "inc" (["x"], ["x"]) body])
         , let stm =
                 VarDef "x" Def $
                     Time $
@@ -170,7 +170,7 @@ execTests =
                     (VarDef "x" Def (Numeral 1))
                     (While (Not (Boolean True)) (VarDef "x" Def (Numeral 1)))
           in assertExec initial stm ([("x", 1)], [])
-        , assertExec (setVar initial "x" 0) (Revert ((VarDef "x") Def (Numeral 1)) (Boolean True)) ([("x", 0)], [])
+        , assertExec (setVar initial "x" 0) (Revert (VarDef "x" Def (Numeral 1)) (Boolean True)) ([("x", 0)], [])
         ]
 
 precedenceTests :: TestTree

@@ -98,10 +98,7 @@ instance Evaluate Stm Integer where
         Raise _ -> 0
         Try s1 _ s2 -> max (evaluate state s1) (evaluate state s2 + 1)
         Swap _ _ -> 2
-        Timeout s e -> if n > k then k else n
-            where
-                n = evaluate state s
-                k = evaluate state e
+        Timeout s e -> min (evaluate state s) (evaluate state e)
         Alternate s1 s2 -> evaluate state s1 + evaluate state s2
         _ -> undefined
 

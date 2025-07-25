@@ -120,11 +120,11 @@ lexer = Tok.makeTokenParser style
 
 -- | Parses an identifier (variable or procedure name).
 identifier :: Parser String
-identifier = (Tok.identifier lexer) <?> "identifier"
+identifier = Tok.identifier lexer <?> "identifier"
 
 -- | Parses a variable name or the placeholder @_@.
 variable :: Parser String
-variable = (identifier <|> symbol "_") <?> "variable"
+variable = identifier <|> symbol "_" <?> "variable"
 
 -- | Parses a keyword.
 reserved :: String -> Parser ()
@@ -148,12 +148,12 @@ parens = Tok.parens lexer
 
 -- | Parses an integer literal.
 integer :: Parser Integer
-integer = (Tok.integer lexer) <?> "integer"
+integer = Tok.integer lexer <?> "integer"
 
 -- | Parses whitespace.
 whitespace :: Parser ()
-whitespace = (Tok.whiteSpace lexer) <?> "whitespace"
+whitespace = Tok.whiteSpace lexer <?> "whitespace"
 
 -- | Parses a symbol with label.
 symbol :: String -> Parser String
-symbol x = (Tok.symbol lexer x) <?> x
+symbol x = Tok.symbol lexer x <?> x

@@ -94,8 +94,8 @@ run state stm = case stm of
         case getProc state name of
             Nothing -> throwError $ Error $ "undefined procedure: " ++ name
             Just (Proc _ (params, rets) body)
-                | length arguments /= length params -> throwError $ Error $ "mismatched parameters"
-                | length returns /= length rets -> throwError $ Error $ "mismatched returns"
+                | length arguments /= length params -> throwError $ Error "mismatched parameters"
+                | length returns /= length rets -> throwError $ Error "mismatched returns"
                 | otherwise -> do
                     let
                         vals = map (evaluate state) arguments -- evaluate arguments
@@ -131,11 +131,9 @@ run state stm = case stm of
                 state' <- run state s2
                 return $ setFlip state' i
     Raise e -> throwError $ Raised $ evaluate state e
-    Try s1 x s2 -> do
-        state' <- catchError (run state s1) $ \err -> case err of
-            Raised v -> run (setVar state x v) s2 -- catch in x, continue with s2
-            _ -> throwError err -- can't catch, propagate
-        return state'
+    Try s1 x s2 -> catchError (run state s1) $ \err -> case err of
+        Raised v -> run (setVar state x v) s2 -- catch in x, continue with s2
+        _ -> throwError err -- can't catch, propagate
     Swap x y -> do
         let
             v = getVar state x
@@ -216,15 +214,15 @@ step stack@(state : states) stm = case stm of
         case getProc state name of
             Nothing -> throwError $ Error $ "undefined procedure: " ++ name
             Just (Proc _ (params, rets) body)
-                | length arguments /= length params -> throwError $ Error $ "mismatched number of arguments"
-                | length returns /= length rets -> throwError $ Error $ "mismatched number of return values"
+                | length arguments /= length params -> throwError $ Error "mismatched number of arguments"
+                | length returns /= length rets -> throwError $ Error "mismatched number of return values"
                 | otherwise -> do
                     let
                         vals = map (evaluate state) arguments -- evaluate arguments
                         local = (Map.fromList (zip params vals), prs state, brk state) -- into local state
                     return (local : stack, Just $ Seq body $ Return rets returns)
-    Restore (xs, ps, b) -> do
-        let state' = setVars (vrs state, ps, b) xs
+    Restore (vars, procs, flag) -> do
+        let state' = setVars (vrs state, procs, flag) vars
         return (state' : states, Nothing)
     Return rets returns -> case stack of
         (callee : caller : rest) -> do
@@ -232,7 +230,7 @@ step stack@(state : states) stm = case stm of
                 vals = map (getVar callee) rets
                 caller' = setVars caller $ zip returns vals
             return (caller' : rest, Nothing)
-        _ -> throwError $ Error $ "insufficient callstack!"
+        _ -> throwError $ Error "insufficient callstack!"
     Break -> return (setBreak state : states, Nothing)
     Revert s b -> do
         -- uninitialized variables can't be restored!
@@ -259,7 +257,7 @@ step stack@(state : states) stm = case stm of
         (stack', rest) <- catchError (step stack s1) $ \err -> case err of
             Raised v -> do
                 let state' = setVar state x v
-                return ((state' : states), Just s2)
+                return (state' : states, Just s2)
             _ -> throwError err
         case rest of
             Nothing -> return (stack', Nothing)

@@ -63,13 +63,17 @@ type Env = (State, Trace)
 start :: Env
 start = (initial, [])
 
--- | Accessor for state.
-st :: Env -> State
-st = fst
+-- | Reset variables to empty map.
+novars :: State -> State
+novars (_, procs, flag) = (Map.empty, procs, flag)
 
--- | Accessor for trace.
-tr :: Env -> Trace
-tr = snd
+-- | Reset Procedure definitions to empty list.
+noprocs :: State -> State
+noprocs (vars, _, flag) = (vars, [], flag)
+
+-- | Reset break flag to False.
+nobreak :: State -> State
+nobreak (vars, procs, _) = (vars, procs, False)
 
 -- | Get value of variable from state (zero if undefined).
 getVar :: State -> String -> Integer
@@ -79,7 +83,7 @@ getVar (vars, _, _) x = Map.findWithDefault 0 x vars
 setVar :: State -> String -> Integer -> State
 setVar state "_" _ = state -- placeholder write-only variable
 setVar _ "" _ = error "variable name can't be empty string"
-setVar (vars, procs, flag) x v = (Map.insert x v vars, procs, flag)
+setVar (vars, procs, flag) var val = (Map.insert var val vars, procs, flag)
 
 -- | Set multiple variables in state.
 setVars :: State -> [(String, Integer)] -> State
@@ -91,7 +95,7 @@ getProc (_, procs, _) name = List.find ((name ==) . procname) procs
 
 -- | Set procedure in state.
 setProc :: State -> Proc -> State
-setProc (vars, procs, flag) p = (vars, p : procs, flag)
+setProc (vars, procs, flag) proc = (vars, proc : procs, flag)
 
 -- | Set break flag in state.
 setBreak :: State -> State
