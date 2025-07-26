@@ -14,4 +14,4 @@ procedure divmod(d, v; q, r) begin
             q := q + tmpq
         end
     end
-end;
+end

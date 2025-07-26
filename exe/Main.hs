@@ -13,10 +13,8 @@ execution to the appropriate API.
 -}
 module Main where
 
-import Options.Applicative
-
 import CLI
 
 -- | The main entry point for the @impli@ executable.
 main :: IO ()
-main = execParser cli >>= runCLI
+main = parseCLI >>= runCLI

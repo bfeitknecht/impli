@@ -9,12 +9,18 @@ Maintainer  : bfeitknecht@ethz.ch
 Stability   : stable
 Portability : portable
 
-This module provides parsers for the constructs of IMP,
-namely arithmetic and boolean expressions and statements.
+This module provides parsers for the constructs of the IMP language,
+namely arithmetic expressions, boolean expressions, and statements defined in "IMP.Syntax".
 It includes parser implementations for all language elements,
-and utilizes the Parsec library for expression parsing.
+and utilizes the Parsec library for parsing expressions and statements.
+The module exposes the "Parse" typeclass and "parse" function to allow parsing
+different IMP constructs from source code strings.
 -}
-module IMP.Parser where
+module IMP.Parser (
+    Parse,
+    parse,
+    parser,
+) where
 
 import Text.Parsec hiding (parse)
 import Text.Parsec.Expr
@@ -25,12 +31,14 @@ import qualified Text.Parsec.Prim as Parsec
 import IMP.Syntax
 import IMP.Util
 
--- | Typeclass for types that can be parsed from source code string.
+{- | Typeclass for types that can be parsed from source code string. Implemented by "IMP.Syntax"
+data types such as 'Aexp', 'Bexp', 'Stm', and 'Construct'.
+-}
 class Parse a where
     -- | The parser for the type.
     parse :: Parser a
 
--- | Parser for arithmetic expressions.
+-- | Parser for arithmetic expressions defined in "IMP.Syntax".
 instance Parse Aexp where
     parse = buildExpressionParser table term <?> "arithmetic expression"
         where
@@ -53,7 +61,7 @@ instance Parse Aexp where
                     , Time <$ keyword "time" <*> parse @Stm
                     ]
 
--- | Parser for boolean expressions.
+-- | Parser for boolean expressions defined in "IMP.Syntax".
 instance Parse Bexp where
     parse = buildExpressionParser table term <?> "boolean expression"
         where
@@ -71,7 +79,7 @@ instance Parse Bexp where
                     , Boolean False <$ keyword "false"
                     ]
 
--- | Parser for relational operators.
+-- | Parser for relational operators defined in "IMP.Syntax".
 instance Parse Rop where
     parse =
         choice
@@ -83,7 +91,7 @@ instance Parse Rop where
             , Gt <$ operator ">"
             ]
 
--- | Parser for statements.
+-- | Parser for statements defined in "IMP.Syntax".
 instance Parse Stm where
     parse = buildExpressionParser table term <?> "statement"
         where

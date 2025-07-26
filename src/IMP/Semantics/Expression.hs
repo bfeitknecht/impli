@@ -11,10 +11,14 @@ Portability : portable
 
 This module defines the evaluation semantics for arithmetic and boolean expressions.
 -}
-module IMP.Semantics.Expression where
+module IMP.Semantics.Expression (
+    Evaluate,
+    evaluate,
+) where
 
 import IMP.Semantics.State
 import IMP.Syntax
+import IMP.Util
 
 -- | Typeclass for evaluating expressions or statements in a state.
 class Evaluate a b | a -> b where
@@ -63,7 +67,7 @@ instance Evaluate Bexp Bool where
 instance Evaluate Stm Integer where
     evaluate state stm = case stm of
         Skip -> 0
-        VarDef _ _ _ -> 1
+        VarDef {} -> 1
         Seq s1 s2 -> evaluate state s1 + evaluate state s2
         If b s1 s2 ->
             if evaluate state b
@@ -101,11 +105,3 @@ instance Evaluate Stm Integer where
         Timeout s e -> min (evaluate state s) (evaluate state e)
         Alternate s1 s2 -> evaluate state s1 + evaluate state s2
         _ -> undefined
-
--- | Safe integer division: returns zero if divisor is zero.
-(//) :: Integer -> Integer -> Integer
-(//) v1 v2 = if v2 == 0 then 0 else div v1 v2
-
--- | Safe integer modulo: returns the dividend if divisor is zero.
-(%%) :: Integer -> Integer -> Integer
-(%%) v1 v2 = if v2 == 0 then v1 else mod v1 v2

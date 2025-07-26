@@ -11,7 +11,17 @@ Portability : portable
 This module provides the syntax definitions for IMP. It includes data types for
 arithmetic expressions, boolean expressions, statements, and procedures.
 -}
-module IMP.Syntax where
+module IMP.Syntax (
+    Aexp (..),
+    Aop (..),
+    Bexp (..),
+    Rop (..),
+    Stm (..),
+    Dop (..),
+    Proc (..),
+    Construct (..),
+)
+where
 
 
 -- | Arithmetic expressions.
@@ -37,7 +47,7 @@ instance Num Aexp where
 
 -- | Partial implementation of Ord.
 instance Ord Aexp where
-    e1 <= e2 = e1 == e2 || case (e1, e2) of
+    e1 <= e2 = case (e1, e2) of
         (Numeral v1, Numeral v2) -> v1 <= v2
         _ -> error "operation not supported for abstract syntax"
 
@@ -132,11 +142,12 @@ data Stm
     deriving (Eq, Show)
 
 -- | Procedure encapsulation.
-data Proc = Proc String ([String], [String]) Stm deriving (Eq, Show)
-
--- | Get the name of a procedure.
-procname :: Proc -> String
-procname (Proc p _ _) = p
+data Proc = Proc
+    { procname :: String
+    , procsign :: ([String], [String])
+    , procbody :: Stm
+    }
+    deriving (Eq, Show)
 
 -- | IMP constructs.
 data Construct

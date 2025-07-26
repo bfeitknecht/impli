@@ -11,7 +11,10 @@ Portability : portable
 
 This module provides pretty-printing functionality for IMP constructs.
 -}
-module IMP.Pretty where
+module IMP.Pretty (
+    prettify,
+    stringify,
+) where
 
 import Prettyprinter
 import Prettyprinter.Render.String (renderString)

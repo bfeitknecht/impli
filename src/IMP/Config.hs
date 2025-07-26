@@ -9,7 +9,14 @@ Portability : portable
 
 This module defines Haskeline settings for the IMP REPL.
 -}
-module IMP.Config where
+module IMP.Config (
+    welcome,
+    prompt,
+    goodbye,
+    small,
+    settings,
+    nohistory,
+) where
 
 import System.Console.Haskeline
 
@@ -21,13 +28,13 @@ welcome = "Welcome to the IMP REPL! Enter :help to list available metacommands a
 prompt :: String
 prompt = "IMP> "
 
--- | The file to save the REPL history to.
-historyfile :: Maybe FilePath
-historyfile = Just ".imp_history"
-
 -- | The goodbye message displayed when the REPL is quit.
 goodbye :: String
 goodbye = "Goodbye!"
+
+-- | The file to save the REPL history to.
+historyfile :: Maybe FilePath
+historyfile = Just ".imp_history"
 
 -- | Automatically save the REPL history .
 autohistory :: Bool
@@ -40,6 +47,10 @@ settings =
         { historyFile = historyfile
         , autoAddHistory = autohistory
         }
+
+-- | REPL Settings with no historyFile.AssFail
+nohistory :: Settings IO
+nohistory = settings {historyFile = Nothing}
 
 -- | Use small-step semantics for interpretation.
 small :: Bool

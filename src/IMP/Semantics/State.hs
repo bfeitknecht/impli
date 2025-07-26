@@ -16,6 +16,7 @@ for debugging and analysis.
 -}
 module IMP.Semantics.State where
 
+import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Except (ExceptT)
 import System.Console.Haskeline
 
@@ -24,6 +25,7 @@ import qualified Data.Map as Map
 
 import IMP.Result
 import IMP.Syntax
+import IMP.Util
 
 -- | The REPL monad transformer stack.
 type REPL = ExceptT Result (InputT IO)
@@ -123,3 +125,11 @@ setFlop state i = setVar state (flipvar i) 1
 
 -- | Program configuration with stack of states and remaining steps of statement.
 type Conf = ([State], Maybe Stm)
+
+-- | Output string to the user, followed by newline and flush.
+output :: String -> REPL ()
+output msg = liftIO $ putStrLn msg >> flush
+
+-- | Display argument using its Show instance.
+display :: (Show a) => a -> REPL ()
+display = output . show

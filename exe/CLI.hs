@@ -10,17 +10,20 @@ Portability : portable
 This module provides the command-line interface for the IMP language interpreter.
 It supports various modes of operation, including running the REPL, interpreting
 source files, executing commands directly, and printing the abstract syntax tree (AST)
-of a given construct. The CLI also includes options for reading input from standard
-input and displaying the version.
+of a given construct. The CLI also includes options for reading input from
+standard input and displaying the version.
 -}
-module CLI where
+module CLI (
+    parseCLI,
+    runCLI,
+) where
 
 import Control.Exception (IOException, try)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Except (runExceptT)
 import Data.Version (showVersion)
 import Options.Applicative
-import System.Console.Haskeline
+import System.Console.Haskeline (runInputT)
 import System.Exit (exitFailure)
 
 import IMP.Config
@@ -29,6 +32,7 @@ import IMP.REPL
 import IMP.Result
 import IMP.Semantics.State
 import IMP.Semantics.Statement
+import IMP.Util
 
 import qualified Paths_impli as Paths
 
@@ -38,32 +42,38 @@ data Mode
     = REPL              -- ^ Start the interactive REPL.
     | File FilePath     -- ^ Interpret IMP source file.
     | Command String    -- ^ Interpret IMP command passed as a string.
-    | AST String        -- ^ Print the AST of a construct.
+    | AST String        -- ^ Show the AST of a construct.
     | STDIN             -- ^ Interpret from standard input.
     | Version           -- ^ Print the version.
 {- FOURMOLU_ENABLE -}
 
 -- | Parser for the CLI mode.
-modus :: Parser Mode
-modus =
+parseMode :: Parser Mode
+parseMode =
     asum
         [ pure REPL
         , File <$> strArgument (metavar "FILE" <> help "Interpret source file")
         , Command <$> strOption (long "command" <> short 'c' <> metavar "COMMAND" <> help "Interpret command")
-        , AST <$> strOption (long "ast" <> short 'a' <> metavar "CONSTRUCT" <> help "Print AST")
+        , AST <$> strOption (long "ast" <> short 'a' <> metavar "CONSTRUCT" <> help "Show AST")
         , flag' STDIN (long "stdin" <> help "Interpret from standard input")
-        , flag' Version (long "version" <> short 'v' <> help "Print version")
+        , flag' Version (long "version" <> short 'v' <> help "Show version")
         ]
 
 -- | CLI parser information for optparse-applicative.
 cli :: ParserInfo Mode
-cli = info modi description
+cli = info modifier description
     where
-        modi = modus <**> helper
+        modifier =
+            parseMode
+                <**> helper
         description =
             fullDesc
+                <> header "impli - IMP language interpreter"
                 <> progDesc "An interpreter and REPL for the imperative toy language IMP"
-                <> header "impli - The IMP language interpreter"
+                <> footer "For more information visit https://github.com/bfeitknecht/impli"
+
+parseCLI :: IO Mode
+parseCLI = customExecParser defaultPrefs {prefColumns = 120} cli
 
 -- | Entry point for the CLI application
 runCLI :: Mode -> IO ()
@@ -86,31 +96,24 @@ runFile "-" = runSTDIN
 runFile path = do
     result <- try (readFile path) :: IO (Either IOException String)
     case result of
-        Left err -> do
-            print $ IOFail $ "read from: " ++ path
-            print err
-            exitFailure
+        Left err -> print (IOFail $ unlines' ["read from: " ++ path, show err]) >> exitFailure
         Right content -> runProgram path content
 
 -- | Interpret a command passed as a string.
 runCommand :: String -> IO ()
 runCommand = runProgram "command"
 
--- | Interpret from standard input.
-runSTDIN :: IO ()
-runSTDIN = do
-    input <- getContents
-    runProgram "stdin" input
-
 -- | Print AST of a construct.
 runAST :: String -> IO ()
-runAST input = runInputT settings {historyFile = Nothing} $ do
+runAST input = runInputT nohistory $ do
     result <- runExceptT $ printAST input
     liftIO $ case result of
-        Left err -> do
-            print err
-            exitFailure
+        Left err -> print err >> exitFailure
         Right _ -> return ()
+
+-- | Interpret from standard input.
+runSTDIN :: IO ()
+runSTDIN = getContents >>= runProgram "stdin"
 
 -- | Print the program version.
 runVersion :: IO ()
@@ -118,16 +121,11 @@ runVersion = putStrLn $ "impli " ++ showVersion Paths.version
 
 -- | Run program with parse channel and input string.
 runProgram :: String -> String -> IO ()
-runProgram channel input = runInputT settings $
+runProgram channel input = runInputT nohistory $
     case parser channel input of
-        Left err -> liftIO $ do
-            print $ ParseFail input
-            print err
-            exitFailure
+        Left err -> liftIO $ print (ParseFail $ unlines' [input, show err]) >> exitFailure
         Right stm -> do
             result <- runExceptT $ interpret initial stm
             liftIO $ case result of
-                Left err -> do
-                    print err
-                    exitFailure
+                Left err -> print err >> exitFailure
                 Right _ -> return ()

@@ -13,6 +13,7 @@ and helper functions for parsing identifiers, symbols, and whitespace.
 -}
 module IMP.Util where
 
+import System.IO (hFlush, stdout)
 import Text.Parsec
 import Text.Parsec.Language (emptyDef)
 import Text.Parsec.String (Parser)
@@ -157,3 +158,19 @@ whitespace = Tok.whiteSpace lexer <?> "whitespace"
 -- | Parses a symbol with label.
 symbol :: String -> Parser String
 symbol x = Tok.symbol lexer x <?> x
+
+-- | Unlines without final newline.
+unlines' :: [String] -> String
+unlines' = init . unlines
+
+-- | Safe integer division: returns zero if divisor is zero.
+(//) :: Integer -> Integer -> Integer
+(//) v1 v2 = if v2 == 0 then 0 else div v1 v2
+
+-- | Safe integer modulo: returns the dividend if divisor is zero.
+(%%) :: Integer -> Integer -> Integer
+(%%) v1 v2 = if v2 == 0 then v1 else mod v1 v2
+
+-- | Flush stdout.
+flush :: IO ()
+flush = hFlush stdout

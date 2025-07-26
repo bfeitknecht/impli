@@ -12,12 +12,13 @@ It provides the @interpret@ function, which interprets statements within a given
 state and environment. The module supports a variety of imperative constructs,
 including variable definitions, loops, conditionals, and procedure calls.
 -}
-module IMP.Semantics.Statement where
+module IMP.Semantics.Statement (
+    interpret,
+) where
 
 import Control.Exception (catch)
 import Control.Monad.Except (catchError, throwError)
 import Control.Monad.IO.Class (liftIO)
-import System.IO (hFlush, stdout)
 import System.Random (randomIO)
 import Text.Read (readMaybe)
 
@@ -29,6 +30,7 @@ import IMP.Result
 import IMP.Semantics.Expression
 import IMP.Semantics.State
 import IMP.Syntax
+import IMP.Util
 
 -- | Interpret statement in state, returning resulting state in REPL monad.
 interpret :: State -> Stm -> REPL State
@@ -103,6 +105,8 @@ run state stm = case stm of
                     state' <- run local body -- run body
                     let rets' = zip returns $ map (getVar state') rets -- extract returns
                     return $ setVars state rets' -- insert into callside
+    Restore _ -> error $ "illegal statement for big-step semantics: " ++ show stm
+    Return _ _ -> error $ "illegal statement for big-step semantics: " ++ show stm
     Break -> return $ setBreak state
     Revert s b -> do
         let old = state
@@ -141,7 +145,6 @@ run state stm = case stm of
         return $ setVars state [(x, w), (y, v)]
     Timeout _ _ -> throwError $ Error "timeout statement not supported in big-step semantics"
     Alternate _ _ -> throwError $ Error "alternate execution not supported in big-step semantics"
-    _ -> error $ "illegal statement for big-step semantics: " ++ show stm
 
 -- | Step in configuration, returning resulting configuration in REPL monad.
 step :: [State] -> Stm -> REPL Conf
@@ -302,15 +305,3 @@ inget p = do
     where
         handleEOF :: IOError -> IO (Maybe String)
         handleEOF _ = return Nothing
-
--- | Output string to the user, followed by newline and flush.
-output :: String -> REPL ()
-output msg = liftIO $ putStrLn msg >> flush
-
--- | Display argument using its Show instance.
-display :: (Show a) => a -> REPL ()
-display = output . show
-
--- | Flush stdout.
-flush :: IO ()
-flush = hFlush stdout

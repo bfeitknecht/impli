@@ -13,7 +13,10 @@ Portability : portable
 This module provides an interactive REPL for IMP, allowing users to
 interpret statements, evaluate expressions, display ASTs and inspect program state.
 -}
-module IMP.REPL where
+module IMP.REPL (
+    repl,
+    printAST,
+) where
 
 import Control.Exception (IOException, try)
 import Control.Monad.Except (catchError, throwError)
@@ -34,6 +37,7 @@ import IMP.Semantics.Expression
 import IMP.Semantics.State
 import IMP.Semantics.Statement
 import IMP.Syntax
+import IMP.Util
 
 -- | Start IMP REPL with given environment.
 repl :: Settings IO -> Env -> IO ()
@@ -74,12 +78,8 @@ dispatch env@(state, trace) construct = case construct of
     Statement s -> do
         state' <- catchError (interpret state s) throwError
         return (state', trace ++ [s])
-    Arithm e -> do
-        display $ evaluate state e
-        return env
-    Bool b -> do
-        output $ if evaluate state b then "true" else "false"
-        return env
+    Arithm e -> display (evaluate state e) >> return env
+    Bool b -> output (if evaluate state b then "true" else "false") >> return env
     Whitespace -> return env
 
 -- | Handle meta command (starting with @:@).
@@ -210,11 +210,8 @@ writeIMP trace path = liftIO $ do
     let content = prettyTrace trace
     result <- try (writeFile path content) :: IO (Either IOException ())
     case result of
-        Left err -> do
-            print $ IOFail $ "write trace to: " ++ path
-            print err
-        Right () -> do
-            print $ Info $ "wrote trace to: " ++ path
+        Left err -> print (IOFail $ unlines' ["write trace to: " ++ path, show err])
+        Right () -> print (Info $ unlines' ["wrote trace to: " ++ path])
 
 -- | Parse string as positive integer index.
 parseIndex :: String -> Maybe Int
@@ -238,7 +235,3 @@ outputSection title section =
             ++ if section /= []
                 then "\n" ++ indent 4 (unlines section)
                 else ""
-
--- | Unlines without final newline.
-unlines' :: [String] -> String
-unlines' = init . unlines

@@ -9,7 +9,9 @@ Portability : portable
 
 This module defines the result type used throughout the IMP interpreter.
 -}
-module IMP.Result where
+module IMP.Result (
+    Result (..),
+) where
 
 {- FOURMOLU_DISABLE -}
 -- | Result type for variation over different possible outcomes.
