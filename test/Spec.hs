@@ -31,62 +31,62 @@ parseTests =
     testGroup
         "Parse"
         [ assertParseStm "skip" Skip
-        , assertParseStm "x := 1" (VarDef "x" Def (Numeral 1))
+        , assertParseStm "x := 1" (VarDef "x" Def (Val 1))
         , assertParseStm "(skip; skip)" (Seq Skip Skip)
-        , assertParseStm "if true then skip end" (If (Boolean True) Skip Skip)
-        , assertParseStm "if true then skip else skip end" (If (Boolean True) Skip Skip)
+        , assertParseStm "if true then skip end" (If (Lit True) Skip Skip)
+        , assertParseStm "if true then skip else skip end" (If (Lit True) Skip Skip)
         , assertParseStm
             "if true then skip else if true then skip end end"
-            (If (Boolean True) Skip (If (Boolean True) Skip Skip))
+            (If (Lit True) Skip (If (Lit True) Skip Skip))
         , assertParseStm
             "while false do if true then skip else if true then skip end end end"
-            (While (Boolean False) (If (Boolean True) Skip (If (Boolean True) Skip Skip)))
+            (While (Lit False) (If (Lit True) Skip (If (Lit True) Skip Skip)))
         , {-
           , assertParseStm
               "if true then skip else if true then skip end"
-              (If (Boolean True) Skip (If (Boolean True) Skip Skip))
+              (If (Lit True) Skip (If (Lit True) Skip Skip))
           , assertParseStm
               "while false do if true then skip else if true then skip end end"
-              (While (Boolean False) (If (Boolean True) Skip (If (Boolean True) Skip Skip)))
+              (While (Lit False) (If (Lit True) Skip (If (Lit True) Skip Skip)))
           -}
-          assertParseStm "while true do skip end" (While (Boolean True) Skip)
-        , assertParseStm "print 1" (Print (Numeral 1))
+          assertParseStm "while true do skip end" (While (Lit True) Skip)
+        , assertParseStm "print 1" (Print (Val 1))
         , assertParseStm "read x" (Read "x")
-        , assertParseStm "var x := 1 in skip end" (Local "x" (Numeral 1) Skip)
+        , assertParseStm "var x := 1 in skip end" (Local "x" (Val 1) Skip)
         , assertParseStm
             "x := 1 par y := 2"
-            (Par (VarDef "x" Def (Numeral 1)) (VarDef "y" Def (Numeral 2)))
+            (Par (VarDef "x" Def (Val 1)) (VarDef "y" Def (Val 2)))
         , assertParseStm
             "x := 1 [] y := 2"
-            (NonDet (VarDef "x" Def (Numeral 1)) (VarDef "y" Def (Numeral 2)))
+            (NonDet (VarDef "x" Def (Val 1)) (VarDef "y" Def (Val 2)))
         , assertParseStm
             "skip par skip; skip [] skip"
             (Seq (Par Skip Skip) (NonDet Skip Skip))
         , assertParseStm
             "x := time (a := 1; b := 2)"
-            (VarDef "x" Def (Time (Seq (VarDef "a" Def (Numeral 1)) (VarDef "b" Def (Numeral 2)))))
+            (VarDef "x" Def (Time (Seq (VarDef "a" Def (Val 1)) (VarDef "b" Def (Val 2)))))
         , assertParseStm
             "procedure foo(;) begin skip end; foo(;)"
-            (Seq (ProcDef $ Proc "foo" ([], []) Skip) (ProcInvoc "foo" ([], [])))
+            (Seq (ProcDef $ Procedure "foo" ([], []) Skip) (ProcInvoc "foo" ([], [])))
         , assertParseStm
             "repeat x := 1 until true"
-            (Seq (VarDef "x" Def (Numeral 1)) (While (Not (Boolean True)) (VarDef "x" Def (Numeral 1))))
+            (Seq (VarDef "x" Def (Val 1)) (While (Not (Lit True)) (VarDef "x" Def (Val 1))))
         , assertParseStm
             "for i := 0 to 3 do skip end"
-            (Local "i" (Numeral 0) (While (Rel Lt (Variable "i") (Numeral 3)) (Seq Skip (VarDef "i" Inc (Numeral 1)))))
+            (Local "i" (Val 0) (While (Rel Lt (Var "i") (Val 3)) (Seq Skip (VarDef "i" Inc (Val 1)))))
         , assertParseStm
             "do 4 times skip"
-            (Local "_times" (Numeral 0) (While (Rel Lt (Variable "_times") (Numeral 4)) (Seq Skip (VarDef "_times" Inc (Numeral 1)))))
+            (Local "_times" (Val 0) (While (Rel Lt (Var "_times") (Val 4)) (Seq Skip (VarDef "_times" Inc (Val 1)))))
         , assertParseStm
             "revert x := 1 if true"
-            (Revert (VarDef "x" Def (Numeral 1)) (Boolean True))
-        , assertParseConstruct "(1)" $ Arithm (Numeral 1)
-        , assertParseConstruct "x" $ Arithm (Variable "x")
-        , assertParseConstruct "1 + 2" $ Arithm (Bin Add (Numeral 1) (Numeral 2))
-        , assertParseConstruct "1 - 2" $ Arithm (Bin Sub (Numeral 1) (Numeral 2))
-        , assertParseConstruct "1 * 2" $ Arithm (Bin Mul (Numeral 1) (Numeral 2))
-        , assertParseConstruct "(true)" $ Bool (Boolean True)
-        , assertParseConstruct "x < 0" $ Bool (Rel Lt (Variable "x") (Numeral 0))
+            (Revert (VarDef "x" Def (Val 1)) (Lit True))
+        , assertParseConstruct "(1)" $ Arithmetic (Val 1)
+        , assertParseConstruct "x" $ Arithmetic (Var "x")
+        , assertParseConstruct "1 + 2" $ Arithmetic (Bin Add (Val 1) (Val 2))
+        , assertParseConstruct "1 - 2" $ Arithmetic (Bin Sub (Val 1) (Val 2))
+        , assertParseConstruct "1 * 2" $ Arithmetic (Bin Mul (Val 1) (Val 2))
+        , assertParseConstruct "(true)" $ Boolean (Lit True)
+        , assertParseConstruct "x < 0" $ Boolean (Rel Lt (Var "x") (Val 0))
         , assertParseConstruct "/**/" Whitespace
         ]
 
@@ -94,28 +94,28 @@ evalTests :: TestTree
 evalTests =
     testGroup
         "Expression Evaluation"
-        [ assertEvalAexp initial (Numeral 1) 1
-        , assertEvalAexp initial (Variable "x") 0
-        , assertEvalAexp initial (Bin Add (Numeral 1) (Numeral 2)) 3
-        , assertEvalAexp initial (Bin Sub (Numeral 2) (Numeral 3)) (-1)
-        , assertEvalAexp initial (Bin Mul (Numeral 3) (Numeral 4)) 12
+        [ assertEvalAexp initial (Val 1) 1
+        , assertEvalAexp initial (Var "x") 0
+        , assertEvalAexp initial (Bin Add (Val 1) (Val 2)) 3
+        , assertEvalAexp initial (Bin Sub (Val 2) (Val 3)) (-1)
+        , assertEvalAexp initial (Bin Mul (Val 3) (Val 4)) 12
         , let stm =
                 Time $
                     Seq
-                        (Seq (VarDef "a" Def (Numeral 1)) (VarDef "a" Def (Numeral 2)))
-                        (If (Boolean True) (VarDef "c" Def (Numeral 3)) Skip)
+                        (Seq (VarDef "a" Def (Val 1)) (VarDef "a" Def (Val 2)))
+                        (If (Lit True) (VarDef "c" Def (Val 3)) Skip)
           in assertEvalAexp initial stm 3
-        , assertEvalBexp initial (Rel Eq (Numeral 1) (Numeral 1)) True
-        , assertEvalBexp initial (Rel Neq (Numeral 1) (Numeral 2)) True
-        , assertEvalBexp initial (Rel Lt (Numeral 1) (Numeral 2)) True
-        , assertEvalBexp initial (Rel Leq (Numeral 1) (Numeral 2)) True
-        , assertEvalBexp initial (Rel Gt (Numeral 2) (Numeral 1)) True
-        , assertEvalBexp initial (Rel Geq (Numeral 2) (Numeral 1)) True
-        , assertEvalBexp initial (Boolean True) True
-        , assertEvalBexp initial (Boolean False) False
-        , assertEvalBexp initial (And (Boolean True) (Boolean False)) False
-        , assertEvalBexp initial (Or (Boolean False) (Boolean True)) True
-        , assertEvalBexp initial (Not (Boolean True)) False
+        , assertEvalBexp initial (Rel Eq (Val 1) (Val 1)) True
+        , assertEvalBexp initial (Rel Neq (Val 1) (Val 2)) True
+        , assertEvalBexp initial (Rel Lt (Val 1) (Val 2)) True
+        , assertEvalBexp initial (Rel Leq (Val 1) (Val 2)) True
+        , assertEvalBexp initial (Rel Gt (Val 2) (Val 1)) True
+        , assertEvalBexp initial (Rel Geq (Val 2) (Val 1)) True
+        , assertEvalBexp initial (Lit True) True
+        , assertEvalBexp initial (Lit False) False
+        , assertEvalBexp initial (And (Lit True) (Lit False)) False
+        , assertEvalBexp initial (Or (Lit False) (Lit True)) True
+        , assertEvalBexp initial (Not (Lit True)) False
         ]
 
 --
@@ -124,64 +124,64 @@ execTests =
     testGroup
         "Statement Execution"
         [ assertExec initial Skip ([], [])
-        , assertExec initial (VarDef "x" Def (Numeral 10)) ([("x", 10)], [])
+        , assertExec initial (VarDef "x" Def (Val 10)) ([("x", 10)], [])
         , assertExec
             initial
-            (If (Boolean True) (VarDef "x" Def (Numeral 1)) Skip)
+            (If (Lit True) (VarDef "x" Def (Val 1)) Skip)
             ([("x", 1)], [])
         , assertExec
             initial
-            (If (Boolean False) Skip (VarDef "x" Def (Numeral 2)))
+            (If (Lit False) Skip (VarDef "x" Def (Val 2)))
             ([("x", 2)], [])
         , let stm =
                 While
-                    (Rel Gt (Variable "x") (Numeral 0))
-                    (VarDef "x" Def (Bin Sub (Variable "x") (Numeral 1)))
+                    (Rel Gt (Var "x") (Val 0))
+                    (VarDef "x" Def (Bin Sub (Var "x") (Val 1)))
           in assertExec (setVar initial "x" 3) stm ([("x", 0)], [])
         , assertExec
             initial
-            (Local "x" (Numeral 5) (VarDef "y" Def (Variable "x")))
+            (Local "x" (Val 5) (VarDef "y" Def (Var "x")))
             ([("x", 0), ("y", 5)], []) -- x is unchanged
         , assertExec
             initial
-            (Par (VarDef "x" Def (Numeral 1)) (VarDef "y" Def (Numeral 2)))
+            (Par (VarDef "x" Def (Val 1)) (VarDef "y" Def (Val 2)))
             ([("x", 1), ("y", 2)], [])
         , assertExec
             initial
-            (NonDet (VarDef "x" Def (Numeral 1)) (VarDef "x" Def (Numeral 2)))
+            (NonDet (VarDef "x" Def (Val 1)) (VarDef "x" Def (Val 2)))
             ([("x", 1), ("x", 2)], [])
         , let
-            body = VarDef "x" Def (Bin Add (Variable "x") (Numeral 1))
+            body = VarDef "x" Def (Bin Add (Var "x") (Val 1))
             stm =
                 Seq
-                    (ProcDef $ Proc "inc" (["x"], ["x"]) body)
-                    (ProcInvoc "inc" ([Numeral 10], ["y"]))
+                    (ProcDef $ Procedure "inc" (["x"], ["x"]) body)
+                    (ProcInvoc "inc" ([Val 10], ["y"]))
           in
-            assertExec initial stm ([("y", 11)], [Proc "inc" (["x"], ["x"]) body])
+            assertExec initial stm ([("y", 11)], [Procedure "inc" (["x"], ["x"]) body])
         , let stm =
                 VarDef "x" Def $
                     Time $
                         Seq
-                            (Seq (VarDef "a" Def (Numeral 1)) (VarDef "a" Def (Numeral 2)))
-                            (If (Boolean True) (VarDef "c" Def (Numeral 3)) Skip)
+                            (Seq (VarDef "a" Def (Val 1)) (VarDef "a" Def (Val 2)))
+                            (If (Lit True) (VarDef "c" Def (Val 3)) Skip)
           in assertExec initial stm ([("x", 3)], [])
         , let stm =
                 Seq
-                    (VarDef "x" Def (Numeral 1))
-                    (While (Not (Boolean True)) (VarDef "x" Def (Numeral 1)))
+                    (VarDef "x" Def (Val 1))
+                    (While (Not (Lit True)) (VarDef "x" Def (Val 1)))
           in assertExec initial stm ([("x", 1)], [])
-        , assertExec (setVar initial "x" 0) (Revert (VarDef "x" Def (Numeral 1)) (Boolean True)) ([("x", 0)], [])
+        , assertExec (setVar initial "x" 0) (Revert (VarDef "x" Def (Val 1)) (Lit True)) ([("x", 0)], [])
         ]
 
 precedenceTests :: TestTree
 precedenceTests =
     testGroup
         "Operator Precedence"
-        [ assertParseStm "x := 1 + 2 * 3" (VarDef "x" Def (Bin Add (Numeral 1) (Bin Mul (Numeral 2) (Numeral 3))))
-        , assertParseStm "x := (1 + 2) * 3" (VarDef "x" Def (Bin Mul (Bin Add (Numeral 1) (Numeral 2)) (Numeral 3)))
+        [ assertParseStm "x := 1 + 2 * 3" (VarDef "x" Def (Bin Add (Val 1) (Bin Mul (Val 2) (Val 3))))
+        , assertParseStm "x := (1 + 2) * 3" (VarDef "x" Def (Bin Mul (Bin Add (Val 1) (Val 2)) (Val 3)))
         , assertParseStm
             "x := 1 [] y := 2 par z := 3"
-            (Par (NonDet (VarDef "x" Def (Numeral 1)) (VarDef "y" Def (Numeral 2))) (VarDef "z" Def (Numeral 3)))
+            (Par (NonDet (VarDef "x" Def (Val 1)) (VarDef "y" Def (Val 2))) (VarDef "z" Def (Val 3)))
         ]
 
 assertParseStm :: String -> Stm -> TestTree
