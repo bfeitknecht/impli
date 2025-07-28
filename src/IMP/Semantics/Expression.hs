@@ -10,6 +10,9 @@ Stability   : stable
 Portability : portable
 
 This module defines the evaluation semantics for arithmetic and boolean expressions.
+It provides the 'Evaluate' typeclass, which is used by "IMP.Semantics.Statement" to
+evaluate expressions within a program state. The module implements evaluation rules
+for all expression types defined in "IMP.Syntax".
 -}
 module IMP.Semantics.Expression (
     Evaluate,
@@ -23,13 +26,15 @@ import IMP.Util
 -- | Typeclass for evaluating expressions or statements in a state.
 class Evaluate a b | a -> b where
     -- | Evaluate a value of type @a@ in the given state, producing a result of type @b@.
+    --        For 'Aexp' it produces an 'Integer', for 'Bexp' it produces a 'GHC.Types.Bool',
+    --        and for 'Stm' it produces an 'Integer' counting variable definitions.
     evaluate :: State -> a -> b
 
 -- | Evaluate an arithmetic expression to an integer.
 instance Evaluate Aexp Integer where
     evaluate state aexp = case aexp of
-        Numeral n -> n
-        Variable x -> getVar state x
+        Val n -> n
+        Var x -> getVar state x
         Bin aop e1 e2 ->
             let
                 v1 = evaluate state e1
@@ -46,7 +51,7 @@ instance Evaluate Aexp Integer where
 -- | Evaluate a boolean expression to a boolean value.
 instance Evaluate Bexp Bool where
     evaluate state bexp = case bexp of
-        Boolean b -> b
+        Lit b -> b
         Or b1 b2 -> evaluate state b1 || evaluate state b2
         And b1 b2 -> evaluate state b1 && evaluate state b2
         Not b -> not (evaluate state b)
@@ -84,8 +89,10 @@ instance Evaluate Stm Integer where
         Par s1 s2 -> evaluate state s1 + evaluate state s2
         ProcDef _ -> 0
         ProcInvoc name (args, _) -> case getProc state name of
-            Just (Proc _ _ body) -> evaluate state body + (toInteger . length) args
+            Just p -> evaluate state (procbody p) + (toInteger . length) args
             Nothing -> 0
+        Restore _ -> error $ "illegal statement for evaluation: " ++ show stm
+        Return _ _ -> error $ "illegal statement for evaluation: " ++ show stm
         Break -> 0
         Revert s _ -> evaluate state s
         Match e ms d -> do
@@ -104,4 +111,3 @@ instance Evaluate Stm Integer where
         Swap _ _ -> 2
         Timeout s e -> min (evaluate state s) (evaluate state e)
         Alternate s1 s2 -> evaluate state s1 + evaluate state s2
-        _ -> undefined

@@ -9,7 +9,7 @@ Portability : portable
 
 This module serves as the main entry point for the @impli@ executable. It parses
 command-line arguments to determine the mode of operation and then delegates
-execution to the appropriate API.
+execution to the appropriate API in "CLI".
 -}
 module Main where
 

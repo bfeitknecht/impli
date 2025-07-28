@@ -9,12 +9,9 @@ Maintainer  : bfeitknecht@ethz.ch
 Stability   : stable
 Portability : portable
 
-This module provides parsers for the constructs of the IMP language,
-namely arithmetic expressions, boolean expressions, and statements defined in "IMP.Syntax".
-It includes parser implementations for all language elements,
-and utilizes the Parsec library for parsing expressions and statements.
-The module exposes the "Parse" typeclass and "parse" function to allow parsing
-different IMP constructs from source code strings.
+This module provides parsers for the constructs defined in "IMP.Syntax".
+For this it utilizes the "Text.Parsec" library and exposes the 'Parse' typeclass and 'parse' function.
+Additionally, the 'parser' function serves as top level abstraction used in "IMP.REPL" and "IMP.CLI".
 -}
 module IMP.Parser (
     Parse,
@@ -31,14 +28,13 @@ import qualified Text.Parsec.Prim as Parsec
 import IMP.Syntax
 import IMP.Util
 
-{- | Typeclass for types that can be parsed from source code string. Implemented by "IMP.Syntax"
-data types such as 'Aexp', 'Bexp', 'Stm', and 'Construct'.
--}
+-- | Typeclass for "IMP.Syntax" data types that can be parsed from source code string
 class Parse a where
     -- | The parser for the type.
     parse :: Parser a
 
--- | Parser for arithmetic expressions defined in "IMP.Syntax".
+-- | Parser for arithmetic expressions, 'Aexp'.
+-- Supports numerals, variables, arithmetic operations, and the @time@ operation.
 instance Parse Aexp where
     parse = buildExpressionParser table term <?> "arithmetic expression"
         where
@@ -56,12 +52,13 @@ instance Parse Aexp where
             term =
                 choice
                     [ parens (parse @Aexp) <?> "parenthesized arithmetic expression"
-                    , Numeral <$> integer
-                    , Variable <$> identifier
+                    , Val <$> integer
+                    , Var <$> identifier
                     , Time <$ keyword "time" <*> parse @Stm
                     ]
 
--- | Parser for boolean expressions defined in "IMP.Syntax".
+-- | Parser for boolean expressions, 'Bexp'.
+-- Supports boolean literals, boolean operations, and relational expressions.
 instance Parse Bexp where
     parse = buildExpressionParser table term <?> "boolean expression"
         where
@@ -75,11 +72,12 @@ instance Parse Bexp where
                 choice
                     [ parens (parse @Bexp) <?> "parenthesized boolean expression"
                     , relation <?> "relation"
-                    , Boolean True <$ keyword "true"
-                    , Boolean False <$ keyword "false"
+                    , Lit True <$ keyword "true"
+                    , Lit False <$ keyword "false"
                     ]
 
--- | Parser for relational operators defined in "IMP.Syntax".
+-- | Parser for relational operators, 'Rop'.
+-- Supports equality, inequality, and comparison operators.
 instance Parse Rop where
     parse =
         choice
@@ -91,7 +89,7 @@ instance Parse Rop where
             , Gt <$ operator ">"
             ]
 
--- | Parser for statements defined in "IMP.Syntax".
+-- | Parser for statements, 'Stm'. Supports all IMP language statements.
 instance Parse Stm where
     parse = buildExpressionParser table term <?> "statement"
         where
@@ -132,7 +130,7 @@ instance Parse Stm where
                         <*> parse @Stm
                         <* keyword "end"
                     , fmap ProcDef $
-                        Proc
+                        Procedure
                             <$ keyword "procedure"
                             <*> identifier
                             <*> paramret
@@ -157,7 +155,7 @@ instance Parse Stm where
                         <* keyword "do"
                         <*> parse @Stm
                         <* keyword "end"
-                    , forto "_times" (Numeral 0) -- unassignable counter variable prevents modification from body
+                    , forto "_times" (Val 0) -- unassignable counter variable prevents modification from body
                         <$ keyword "do"
                         <*> parse @Aexp
                         <* keyword "times"
@@ -207,7 +205,8 @@ instance Parse Stm where
                         <* keyword "end"
                     ]
 
--- | Parser for variable definition operators.
+-- | Parser for variable definition operators, 'Dop'.
+-- Supports simple, increment, decrement, product, quotient, and remainder definitions.
 instance Parse Dop where
     parse =
         choice
@@ -219,13 +218,14 @@ instance Parse Dop where
             , Rem <$ operator "%="
             ]
 
--- | Parser for IMP constructs.
+-- | Parser for IMP language constructs, 'Construct' which encapsulate
+-- arithmetic and boolean expressions, statements and whitespace.
 instance Parse Construct where
     parse =
         choice . map try $
             [ Statement <$> parse @Stm
-            , Bool <$> parse @Bexp
-            , Arithm <$> parse @Aexp
+            , Boolean <$> parse @Bexp
+            , Arithmetic <$> parse @Aexp
             , Whitespace <$ whitespace
             ]
 
@@ -235,8 +235,8 @@ forto x e1 e2 s =
     Local x e1 $
         -- stop condition is evaluated every iteration
         While
-            (Rel Lt (Variable x) e2)
-            (Seq s $ VarDef x Inc (Numeral 1))
+            (Rel Lt (Var x) e2)
+            (Seq s $ VarDef x Inc (Val 1))
 
 -- | Parser for procedure parameter and return variable lists.
 paramret :: Parser ([String], [String])
@@ -270,5 +270,8 @@ wrap :: String -> String
 wrap = ('<' :) . (++ ">") -- this is why haskell is awesome
 
 -- | Top-level parser for any type that implements 'Parse'.
+-- Takes a channel name for error reporting and input string to parse,
+-- and returns either parse error or the successfully parsed value.
+-- Used in "IMP.REPL" to parse user input and "IMP.CLI" to parse source code.
 parser :: (Parse a) => String -> String -> Either ParseError a
 parser channel = Parsec.parse (whitespace *> parse <* eof) $ wrap channel

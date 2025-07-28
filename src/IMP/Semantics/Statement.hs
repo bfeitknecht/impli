@@ -1,3 +1,5 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+
 {- |
 Module      : IMP.Semantics.Statement
 Description : Execution semantics for statements in the IMP language
@@ -8,12 +10,19 @@ Stability   : stable
 Portability : portable
 
 This module defines the execution semantics for statements in IMP.
-It provides the @interpret@ function, which interprets statements within a given
+It provides the 'interpret' function, which interprets statements within a given
 state and environment. The module supports a variety of imperative constructs,
 including variable definitions, loops, conditionals, and procedure calls.
+
+The interpreter implements both big-step and small-step operational semantics,
+controlled by the 'small' flag in "IMP.Config". Statement execution relies on
+expression evaluation from "IMP.Semantics.Expression" and state manipulation from
+"IMP.Semantics.State".
 -}
 module IMP.Semantics.Statement (
     interpret,
+    run,
+    steps,
 ) where
 
 import Control.Exception (catch)
@@ -32,14 +41,18 @@ import IMP.Semantics.State
 import IMP.Syntax
 import IMP.Util
 
--- | Interpret statement in state, returning resulting state in REPL monad.
+-- | Interpret 'Stm' in 'State' and returns result wrapped in 'REPL' monad.
+-- Depending on the value of 'small' in "IMP.Config",
+-- uses either small-step semantics (via 'IMP.Semantics.Statement.steps')
+-- or big-step semantics (via 'IMP.Semantics.Statement.run').
+-- Used by "IMP.REPL" to execute user input statements.
 interpret :: State -> Stm -> REPL State
 interpret state stm =
     if small
         then steps [state] stm
         else run state stm
 
--- | Run statement in state, returning resulting state in REPL monad.
+-- | Run 'Stm' in 'State' and returns result wrapped in 'REPL'.
 run :: State -> Stm -> REPL State
 run state stm = case stm of
     Skip -> return state
@@ -95,7 +108,7 @@ run state stm = case stm of
     ProcInvoc name (arguments, returns) ->
         case getProc state name of
             Nothing -> throwError $ Error $ "undefined procedure: " ++ name
-            Just (Proc _ (params, rets) body)
+            Just (Procedure _ (params, rets) body)
                 | length arguments /= length params -> throwError $ Error "mismatched parameters"
                 | length returns /= length rets -> throwError $ Error "mismatched returns"
                 | otherwise -> do
@@ -146,7 +159,7 @@ run state stm = case stm of
     Timeout _ _ -> throwError $ Error "timeout statement not supported in big-step semantics"
     Alternate _ _ -> throwError $ Error "alternate execution not supported in big-step semantics"
 
--- | Step in configuration, returning resulting configuration in REPL monad.
+-- | Step 'Stm' in stack of 'State's and returns result ('Conf') wrapped in 'REPL'.
 step :: [State] -> Stm -> REPL Conf
 step [] _ = error "invalid configuration for step: empty state stack"
 step stack@(state : states) stm = case stm of
@@ -216,7 +229,7 @@ step stack@(state : states) stm = case stm of
     ProcInvoc name (arguments, returns) -> do
         case getProc state name of
             Nothing -> throwError $ Error $ "undefined procedure: " ++ name
-            Just (Proc _ (params, rets) body)
+            Just (Procedure _ (params, rets) body)
                 | length arguments /= length params -> throwError $ Error "mismatched number of arguments"
                 | length returns /= length rets -> throwError $ Error "mismatched number of return values"
                 | otherwise -> do
@@ -293,15 +306,13 @@ steps stack stm = do
         Just s' -> steps (state' : states') s'
 
 -- | Read line of input from the user with prompt, handling EOF.
+-- Used to handle the @read@ statement.
 inget :: String -> REPL String
 inget p = do
     result <- liftIO $ do
         putStr p
         flush
-        catch (Just <$> getLine) handleEOF
+        catch (Just <$> getLine) $ \(_ :: IOError) -> return Nothing
     case result of
         Just input -> return input
-        Nothing -> output "" >> output goodbye >> throwError Ok
-    where
-        handleEOF :: IOError -> IO (Maybe String)
-        handleEOF _ = return Nothing
+        Nothing -> output ("\n" ++ goodbye) >> throwError Ok
