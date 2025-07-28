@@ -1,8 +1,7 @@
 **/.DS_Store
-devlog
+.devlog
 bin/
 dist-newstyle
 cabal.project.local
-cabal.project.wasm.local
 .ghci
 .imp_history

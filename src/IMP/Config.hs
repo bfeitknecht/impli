@@ -8,6 +8,9 @@ Stability   : stable
 Portability : portable
 
 This module defines Haskeline settings for the IMP REPL.
+It provides options used by "IMP.REPL" to configure
+the interactive interpreter, including prompt text,
+welcome and goodbye messages, and history settings.
 -}
 module IMP.Config (
     welcome,
@@ -20,38 +23,34 @@ module IMP.Config (
 
 import System.Console.Haskeline
 
--- | The welcome message printed when the REPL is started.
+-- | Welcome message displayed when 'IMP.Semantics.Statement.repl' is started.
 welcome :: String
 welcome = "Welcome to the IMP REPL! Enter :help to list available metacommands and :quit to exit."
 
--- | The REPL prompt.
+-- | Prompt in 'IMP.Semantics.Statement.repl' displayed before each input line.
 prompt :: String
 prompt = "IMP> "
 
--- | The goodbye message displayed when the REPL is quit.
+-- | Goodbye message displayed when 'IMP.Semantics.Statement.repl' is quit with @:quit@.
 goodbye :: String
 goodbye = "Goodbye!"
 
--- | The file to save the REPL history to.
-historyfile :: Maybe FilePath
-historyfile = Just ".imp_history"
-
--- | Automatically save the REPL history .
-autohistory :: Bool
-autohistory = True
-
--- | REPL Settings for Haskeline.
+-- | REPL settings for "System.Console.Haskeline".
+-- Used to configure the execution mode in "IMP.CLI".
 settings :: Settings IO
 settings =
-    (defaultSettings :: Settings IO)
-        { historyFile = historyfile
-        , autoAddHistory = autohistory
+    defaultSettings
+        { historyFile = Just ".imp_history"
+        , autoAddHistory = True
         }
 
--- | REPL Settings with no historyFile.AssFail
+-- | REPL settings with no historyFile.
+-- Used in "IMP.CLI" when history persistence is not desired.
 nohistory :: Settings IO
 nohistory = settings {historyFile = Nothing}
 
--- | Use small-step semantics for interpretation.
+-- | Use small-step semantics for interpretation in 'IMP.Semantics.Statement.interpret'.
+-- When @True@, "IMP.Semantics.Statement" uses small-step semantics, i.e. 'IMP.Semantics.Statement.steps'.
+-- Otherwise it uses big-step semantics, i.e. 'IMP.Semantics.Statement.run'.
 small :: Bool
 small = True

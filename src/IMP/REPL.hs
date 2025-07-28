@@ -12,9 +12,14 @@ Portability : portable
 
 This module provides an interactive REPL for IMP, allowing users to
 interpret statements, evaluate expressions, display ASTs and inspect program state.
+It uses configuration settings from "IMP.Config", parsing functionality from "IMP.Parser",
+and semantic interpretation from "IMP.Semantics.Statement" to execute IMP programs interactively.
 -}
 module IMP.REPL (
     repl,
+    loop,
+    dispatch,
+    handleMeta,
     printAST,
 ) where
 
@@ -23,7 +28,7 @@ import Control.Monad.Except (catchError, throwError)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Class (lift)
 import Control.Monad.Trans.Except (runExceptT)
-import System.Console.Haskeline hiding (display)
+import qualified System.Console.Haskeline as Haskeline
 import System.Exit (exitFailure)
 
 import qualified Data.Map as Map
@@ -40,21 +45,21 @@ import IMP.Syntax
 import IMP.Util
 
 -- | Start IMP REPL with given environment.
-repl :: Settings IO -> Env -> IO ()
+-- Takes 'Haskeline.Settings' for "System.Console.Haskeline" from "IMP.Config" and initial 'Env'.
+repl :: Haskeline.Settings IO -> Env -> IO ()
 repl setting env = do
     putStrLn welcome
-    runInputT setting $ do
+    Haskeline.runInputT setting $ do
         result <- runExceptT (loop env)
         case result of
-            Left err
-                | err == Ok -> return ()
-                | otherwise -> liftIO $ print err >> exitFailure
+            Left err -> liftIO $ print err >> exitFailure -- unrecoverable error encountered
             Right _ -> return ()
 
--- | Read input, parse, dispatch, and handle meta commands.
+-- | Read, parse, dispatch input and handle meta commands.
+-- This continuously processes user input until termination is requested or unrecoverable error occurs.
 loop :: Env -> REPL ()
 loop env = do
-    line <- lift $ getInputLine prompt
+    line <- lift $ Haskeline.getInputLine prompt
     flip catchError handleThrow $
         case line of
             Nothing -> output goodbye -- ctrl-d
@@ -67,22 +72,23 @@ loop env = do
                     loop env'
     where
         handleThrow err = case err of
-            Ok -> throwError err
+            Ok -> return () -- ctrl+d encountered
             AssFail _ -> throwError err
             Raised _ -> throwError err
             _ -> display err >> loop env
 
--- | Dispatch parsed construct in environment.
+-- | Dispatch parsed 'Construct' in given environment, 'Env'. Interprets statements with "IMP.Semantics.State"
+-- and evaluates expressions using "IMP.Semantics.Expression", then displays result to the user.
 dispatch :: Env -> Construct -> REPL Env
 dispatch env@(state, trace) construct = case construct of
     Statement s -> do
         state' <- catchError (interpret state s) throwError
         return (state', trace ++ [s])
-    Arithm e -> display (evaluate state e) >> return env
-    Bool b -> output (if evaluate state b then "true" else "false") >> return env
+    Arithmetic e -> display (evaluate state e) >> return env
+    Boolean b -> output (if evaluate state b then "true" else "false") >> return env
     Whitespace -> return env
 
--- | Handle meta command (starting with @:@).
+-- | Handle meta command (starting with @:@). Processes special commands that control the REPL.
 handleMeta :: String -> Env -> REPL ()
 handleMeta meta env@(state, trace) = case normalizeMeta (words meta) of
     [")"] -> do
@@ -114,7 +120,10 @@ handleMeta meta env@(state, trace) = case normalizeMeta (words meta) of
         loop env
     ["state"] -> do
         let (vars, procs, flag) = state
-        outputSection "Variables:" [k ++ " = " ++ show v | (k, v) <- Map.toList vars, head k /= '_']
+        outputSection
+            "Variables:"
+            -- IMP.State.setVar invariant guarantees no empty string key
+            [k ++ " = " ++ show v | (k, v) <- Map.toList vars, head k /= '_']
         outputSection "Procedures:" [prettify p | p <- procs]
         output $ "Break: " ++ show flag
         loop env
@@ -134,9 +143,7 @@ handleMeta meta env@(state, trace) = case normalizeMeta (words meta) of
             Just i ->
                 if i <= 0 || i > length trace
                     then throwError $ Error $ "index out of bounds: " ++ show i
-                    else display element >> loop env
-                where
-                    element = trace !! (i - 1)
+                    else display (trace !! (i - 1)) >> loop env
         | otherwise -> printAST input >> loop env
     _ ->
         throwError $
@@ -147,6 +154,7 @@ handleMeta meta env@(state, trace) = case normalizeMeta (words meta) of
                     ]
 
 -- | Normalize meta command from alias to full form.
+-- Allows users to type abbreviated versions of commands like @:h@ instead of @:help@.
 normalizeMeta :: [String] -> [String]
 normalizeMeta ws = case ws of
     ["?"] -> ["help"]
@@ -164,7 +172,7 @@ normalizeMeta ws = case ws of
             rest = unwords xs
     _ -> ws
 
--- | Help message for meta commands.
+-- | Help message for meta commands. Displayed when user enters @:help@ or @:?@ command.
 helpMessage :: [String]
 helpMessage =
     [ ":help / :?               Show this help message"
@@ -178,20 +186,23 @@ helpMessage =
     , ":ast (INPUT | #n)        Parse and display AST of input or n-th statement in trace"
     ]
 
--- | Parse and display AST of given input string.
+-- | Parse and display AST of given input string. Uses "IMP.Parser" to parse the input
+-- and displays the resulting abstract syntax tree to help users understand program structure.
 printAST :: String -> REPL ()
 printAST input = case parser "ast" input of
     Left err -> throwError $ ParseFail $ unlines' [input, show err]
     Right (parsed :: Construct) -> display parsed
 
--- | Convert Trace to IMP source code.
+-- | Convert Trace to IMP source code. Uses "IMP.Pretty" to format the execution trace
+-- as valid IMP source code that can be saved to file.
 prettyTrace :: Trace -> String
 prettyTrace [] = "skip\n"
 prettyTrace trace =
     unlines $
         map ((++ ";") . prettify) (init trace) ++ [prettify $ last trace]
 
--- | Interpret IMP source file, updating state.
+-- | Interpret IMP source file, updating state. Reads IMP code from file,
+-- parses it using "IMP.Parser" and interprets it using "IMP.Semantics.Statement".
 readIMP :: State -> FilePath -> REPL State
 readIMP state path = do
     result <- liftIO $ try (readFile path) :: REPL (Either IOException String)
@@ -204,30 +215,37 @@ readIMP state path = do
                 output $ "+++ INFO: interpreted file: " ++ path
                 return state'
 
--- | Write trace to a file as valid IMP program.
+-- | Write trace to a file as valid IMP program. Saves the execution history
+-- as an IMP program that can be loaded and interpreted again.
 writeIMP :: Trace -> FilePath -> REPL ()
 writeIMP trace path = liftIO $ do
     let content = prettyTrace trace
     result <- try (writeFile path content) :: IO (Either IOException ())
     case result of
-        Left err -> print (IOFail $ unlines' ["write trace to: " ++ path, show err])
-        Right () -> print (Info $ unlines' ["wrote trace to: " ++ path])
+        Left err -> print $ IOFail $ unlines' ["write trace to: " ++ path, show err]
+        Right () -> print $ Info $ unlines' ["wrote trace to: " ++ path]
 
 -- | Parse string as positive integer index.
+-- Used by the @:ast@ command to interpret
+-- numeric indices referring to statements in the trace.
 parseIndex :: String -> Maybe Int
 parseIndex ds
     | all (`elem` ['0' .. '9']) ds = Just (read ds)
     | otherwise = Nothing
 
--- | Produce string of n spaces.
+-- | Produce string of @n@ spaces.
+-- Used for formatting indented output in the REPL.
 space :: Int -> String
 space n = replicate n ' '
 
--- | Indent each line of a string by n spaces.
+-- | Indent each line of a string by @n@ spaces.
+-- Used to format multi-line output.
 indent :: Int -> String -> String
 indent n = unlines' . map (space n ++) . lines
 
 -- | Output a titled section with optional indented content.
+-- Used for displaying
+-- structured information like defined state or the help text.
 outputSection :: String -> [String] -> REPL ()
 outputSection title section =
     output $

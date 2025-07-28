@@ -54,3 +54,4 @@ There are some crucial points for further improvement. These include the followi
 - improve documentation with examples
 - write standard library
 - extend test suite
+- rewrite everything to use `Control.Monad.State` in the transformer stack

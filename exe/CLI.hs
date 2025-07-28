@@ -14,6 +14,8 @@ of a given construct. The CLI also includes options for reading input from
 standard input and displaying the version.
 -}
 module CLI (
+    Mode (..),
+    parseMode,
     parseCLI,
     runCLI,
 ) where
@@ -36,22 +38,22 @@ import IMP.Util
 
 import qualified Paths_impli as Paths
 
-{- FOURMOLU_DISABLE -}
 -- | Mode to run the CLI.
+{- FOURMOLU_DISABLE -}
 data Mode
-    = REPL              -- ^ Start the interactive REPL.
+    = REPL Bool         -- ^ Start interactive REPL with switch to toggle history.
     | File FilePath     -- ^ Interpret IMP source file.
     | Command String    -- ^ Interpret IMP command passed as a string.
     | AST String        -- ^ Show the AST of a construct.
     | STDIN             -- ^ Interpret from standard input.
-    | Version           -- ^ Print the version.
+    | Version           -- ^ Show the version.
 {- FOURMOLU_ENABLE -}
 
 -- | Parser for the CLI mode.
 parseMode :: Parser Mode
 parseMode =
     asum
-        [ pure REPL
+        [ REPL <$> switch (long "no-history" <> help "Disable REPL history")
         , File <$> strArgument (metavar "FILE" <> help "Interpret source file")
         , Command <$> strOption (long "command" <> short 'c' <> metavar "COMMAND" <> help "Interpret command")
         , AST <$> strOption (long "ast" <> short 'a' <> metavar "CONSTRUCT" <> help "Show AST")
@@ -72,6 +74,7 @@ cli = info modifier description
                 <> progDesc "An interpreter and REPL for the imperative toy language IMP"
                 <> footer "For more information visit https://github.com/bfeitknecht/impli"
 
+-- | Parse CLI options and return 'Mode' for execution.
 parseCLI :: IO Mode
 parseCLI = customExecParser defaultPrefs {prefColumns = 120} cli
 
@@ -79,7 +82,7 @@ parseCLI = customExecParser defaultPrefs {prefColumns = 120} cli
 runCLI :: Mode -> IO ()
 runCLI mode =
     case mode of
-        REPL -> runREPL
+        REPL nohist -> runREPL nohist
         File path -> runFile path
         Command cmd -> runCommand cmd
         AST construct -> runAST construct
@@ -87,8 +90,8 @@ runCLI mode =
         Version -> runVersion
 
 -- | Run the interactive REPL.
-runREPL :: IO ()
-runREPL = repl settings start
+runREPL :: Bool -> IO ()
+runREPL nohist = repl (if nohist then nohistory else settings) start
 
 -- | Interpret a source file or standard input if path is @-@.
 runFile :: FilePath -> IO ()
