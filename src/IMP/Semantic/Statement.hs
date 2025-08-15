@@ -1,7 +1,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 {- |
-Module      : IMP.Semantics.Statement
+Module      : IMP.Semantic.Statement
 Description : Execution semantics for statements in the IMP language
 Copyright   : (c) Basil Feitknecht, 2025
 License     : MIT
@@ -16,10 +16,10 @@ including variable definitions, loops, conditionals, and procedure calls.
 
 The interpreter implements both big-step and small-step operational semantics,
 controlled by the 'small' flag in "IMP.Config". Statement execution relies on
-expression evaluation from "IMP.Semantics.Expression" and state manipulation from
-"IMP.Semantics.State".
+expression evaluation from "IMP.Semantic.Expression" and state manipulation from
+"IMP.Semantic.State".
 -}
-module IMP.Semantics.Statement (
+module IMP.Semantic.Statement (
     interpret,
     run,
     steps,
@@ -36,15 +36,15 @@ import qualified Data.Map as Map
 import IMP.Config
 import IMP.Pretty
 import IMP.Result
-import IMP.Semantics.Expression
-import IMP.Semantics.State
+import IMP.Semantic.Expression
+import IMP.Semantic.State
 import IMP.Syntax
 import IMP.Util
 
 -- | Interpret 'Stm' in 'State' and returns result wrapped in 'REPL' monad.
 -- Depending on the value of 'small' in "IMP.Config",
--- uses either small-step semantics (via 'IMP.Semantics.Statement.steps')
--- or big-step semantics (via 'IMP.Semantics.Statement.run').
+-- uses either small-step semantics (via 'IMP.Semantic.Statement.steps')
+-- or big-step semantics (via 'IMP.Semantic.Statement.run').
 -- Used by "IMP.REPL" to execute user input statements.
 interpret :: State -> Stm -> REPL State
 interpret state stm =

@@ -1,7 +1,7 @@
 {-# LANGUAGE FunctionalDependencies #-}
 
 {- |
-Module      : IMP.Semantics.Expression
+Module      : IMP.Semantic.Expression
 Description : Evaluation of arithmetic and boolean expressions in the IMP language
 Copyright   : (c) Basil Feitknecht, 2025
 License     : MIT
@@ -10,16 +10,16 @@ Stability   : stable
 Portability : portable
 
 This module defines the evaluation semantics for arithmetic and boolean expressions.
-It provides the 'Evaluate' typeclass, which is used by "IMP.Semantics.Statement" to
+It provides the 'Evaluate' typeclass, which is used by "IMP.Semantic.Statement" to
 evaluate expressions within a program state. The module implements evaluation rules
 for all expression types defined in "IMP.Syntax".
 -}
-module IMP.Semantics.Expression (
+module IMP.Semantic.Expression (
     Evaluate,
     evaluate,
 ) where
 
-import IMP.Semantics.State
+import IMP.Semantic.State
 import IMP.Syntax
 import IMP.Util
 

@@ -32,8 +32,8 @@ import IMP.Config
 import IMP.Parser
 import IMP.REPL
 import IMP.Result
-import IMP.Semantics.State
-import IMP.Semantics.Statement
+import IMP.Semantic.State
+import IMP.Semantic.Statement
 import IMP.Util
 
 import qualified Paths_impli as Paths

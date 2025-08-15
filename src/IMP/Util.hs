@@ -10,7 +10,7 @@ Portability : portable
 This module provides utility functions and definitions used in the
 "IMP.Parser" module. It includes token parsers, reserved keywords, operators,
 and helper functions for parsing identifiers, symbols, and whitespace.
-It also provides safe arithmetic operations used by "IMP.Semantics.Expression"
+It also provides safe arithmetic operations used by "IMP.Semantic.Expression"
 and string manipulation utilities used throughout the interpreter.
 -}
 module IMP.Util where
@@ -172,21 +172,21 @@ symbol :: String -> Parser String
 symbol x = Tok.symbol lexer x <?> x
 
 -- | Unlines without final newline.
--- Used by "IMP.REPL" and "IMP.Semantics.Statement" for text formatting.
+-- Used by "IMP.REPL" and "IMP.Semantic.Statement" for text formatting.
 unlines' :: [String] -> String
 unlines' = init . unlines
 
 -- | Safe integer division: returns zero if divisor is zero.
---    Used by "IMP.Semantics.Expression" to implement division that doesn't raise exceptions.
+--    Used by "IMP.Semantic.Expression" to implement division that doesn't raise exceptions.
 (//) :: Integer -> Integer -> Integer
 (//) v1 v2 = if v2 == 0 then 0 else div v1 v2
 
 -- | Safe integer modulo: returns the dividend if divisor is zero.
---    Used by "IMP.Semantics.Expression" to implement modulo that doesn't raise exceptions.
+--    Used by "IMP.Semantic.Expression" to implement modulo that doesn't raise exceptions.
 (%%) :: Integer -> Integer -> Integer
 (%%) v1 v2 = if v2 == 0 then v1 else mod v1 v2
 
 -- | Flush stdout.
--- Used by "IMP.REPL" and "IMP.Semantics.Statement" to ensure output is displayed immediately.
+-- Used by "IMP.REPL" and "IMP.Semantic.Statement" to ensure output is displayed immediately.
 flush :: IO ()
 flush = hFlush stdout

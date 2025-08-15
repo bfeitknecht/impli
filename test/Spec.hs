@@ -8,9 +8,9 @@ import Test.Tasty.HUnit
 import IMP.Parser
 import IMP.Pretty
 import IMP.Result
-import IMP.Semantics.Expression
-import IMP.Semantics.State
-import IMP.Semantics.Statement
+import IMP.Semantic.Expression
+import IMP.Semantic.State
+import IMP.Semantic.Statement
 import IMP.Syntax
 
 main :: IO ()

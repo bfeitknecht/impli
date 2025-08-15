@@ -28,17 +28,17 @@ The most apparent deviations from the specifications are that parentheses are no
 
 The table below depicts the correspondence between semantic functions defined in the lectures and according functions in this library for `state` $\equiv \sigma$.
 
-| FMFP                                                              | `impli`                                     |
-| ----------------------------------------------------------------- | ------------------------------------------- |
-| $\sigma_{\text{zero}}$                                            | `IMP.Semantics.State.initial`               |
-| $\sigma(x)$                                                       | `IMP.Semantics.State.getVar state x`        |
-| $\sigma[x \mapsto n]$                                             | `IMP.Semantics.State.setVar state x n`      |
-| $\langle s, \sigma \rangle \to \sigma'$                           | `IMP.Semantics.Statement.run state s`       |
-| $\langle s, \sigma \rangle \underset{1}{\to} \gamma$              | `IMP.Semantics.Statement.step [state] s`    |
-| $\langle s, \sigma \rangle \overset{*}{\underset{1}{\to}} \gamma$ | `IMP.Semantics.Statement.steps [state] s`   |
-| $\mathcal{N}[[n]]$                                                | `id n`                                      |
-| $\mathcal{A}[[e]]\sigma$                                          | `IMP.Semantics.Expression.evaluate state e` |
-| $\mathcal{B}[[b]]\sigma$                                          | `IMP.Semantics.Expression.evaluate state b` |
+| FMFP                                                              | `impli`                                    |
+| ----------------------------------------------------------------- | ------------------------------------------ |
+| $\sigma_{\text{zero}}$                                            | `IMP.Semantic.State.initial`               |
+| $\sigma(x)$                                                       | `IMP.Semantic.State.getVar state x`        |
+| $\sigma[x \mapsto n]$                                             | `IMP.Semantic.State.setVar state x n`      |
+| $\langle s, \sigma \rangle \to \sigma'$                           | `IMP.Semantic.Statement.run state s`       |
+| $\langle s, \sigma \rangle \underset{1}{\to} \gamma$              | `IMP.Semantic.Statement.step [state] s`    |
+| $\langle s, \sigma \rangle \overset{*}{\underset{1}{\to}} \gamma$ | `IMP.Semantic.Statement.steps [state] s`   |
+| $\mathcal{N}[[n]]$                                                | `id n`                                     |
+| $\mathcal{A}[[e]]\sigma$                                          | `IMP.Semantic.Expression.evaluate state e` |
+| $\mathcal{B}[[b]]\sigma$                                          | `IMP.Semantic.Expression.evaluate state b` |
 
 
 ## Roadmap

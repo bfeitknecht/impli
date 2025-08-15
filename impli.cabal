@@ -50,16 +50,29 @@ library
   hs-source-dirs: src
   -- cabal-gild: discover src
   exposed-modules:
+    Config
     IMP.Config
     IMP.Parser
     IMP.Pretty
     IMP.REPL
     IMP.Result
-    IMP.Semantics.Expression
-    IMP.Semantics.State
-    IMP.Semantics.Statement
+    IMP.Semantic.Expression
+    IMP.Semantic.State
+    IMP.Semantic.Statement
     IMP.Syntax
     IMP.Util
+    IMP2.Exception
+    IMP2.Parser
+    IMP2.Pretty
+    IMP2.REPL
+    IMP2.Semantic.Expression
+    IMP2.Semantic.Operational
+    IMP2.Semantic.State
+    IMP2.Semantic.Statement
+    IMP2.Semantic.Structural
+    IMP2.Syntax
+    Rewrite
+    Util
 
 executable impli
   import: shared-settings

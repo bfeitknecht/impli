@@ -8,7 +8,7 @@ Stability   : stable
 Portability : portable
 
 This module defines the result type used throughout the IMP interpreter.
-These result types are used by the "IMP.REPL" and "IMP.Semantics.Statement"
+These result types are used by the "IMP.REPL" and "IMP.Semantic.Statement"
 modules to report various outcomes of interpreter operations to users.
 -}
 module IMP.Result (
@@ -16,7 +16,7 @@ module IMP.Result (
 ) where
 
 -- | Result type for variation over different possible outcomes.
---    Used by "IMP.REPL" and "IMP.Semantics.Statement" to indicate success,
+--    Used by "IMP.REPL" and "IMP.Semantic.Statement" to indicate success,
 --    failure, or other execution states.
 {- FOURMOLU_DISABLE -}
 data Result

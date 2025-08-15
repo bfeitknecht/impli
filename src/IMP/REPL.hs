@@ -13,7 +13,7 @@ Portability : portable
 This module provides an interactive REPL for IMP, allowing users to
 interpret statements, evaluate expressions, display ASTs and inspect program state.
 It uses configuration settings from "IMP.Config", parsing functionality from "IMP.Parser",
-and semantic interpretation from "IMP.Semantics.Statement" to execute IMP programs interactively.
+and semantic interpretation from "IMP.Semantic.Statement" to execute IMP programs interactively.
 -}
 module IMP.REPL (
     repl,
@@ -38,9 +38,9 @@ import IMP.Config
 import IMP.Parser
 import IMP.Pretty
 import IMP.Result
-import IMP.Semantics.Expression
-import IMP.Semantics.State
-import IMP.Semantics.Statement
+import IMP.Semantic.Expression
+import IMP.Semantic.State
+import IMP.Semantic.Statement
 import IMP.Syntax
 import IMP.Util
 
@@ -49,11 +49,7 @@ import IMP.Util
 repl :: Haskeline.Settings IO -> Env -> IO ()
 repl setting env = do
     putStrLn welcome
-    Haskeline.runInputT setting $ do
-        result <- runExceptT (loop env)
-        case result of
-            Left err -> liftIO $ print err >> exitFailure -- unrecoverable error encountered
-            Right _ -> return ()
+    Haskeline.runInputT setting $ runExceptT (loop env) >> return ()
 
 -- | Read, parse, dispatch input and handle meta commands.
 -- This continuously processes user input until termination is requested or unrecoverable error occurs.
@@ -73,12 +69,12 @@ loop env = do
     where
         handleThrow err = case err of
             Ok -> return () -- ctrl+d encountered
-            AssFail _ -> throwError err
-            Raised _ -> throwError err
+            AssFail _ -> display err >> liftIO exitFailure
+            Raised _ -> display err >> liftIO exitFailure
             _ -> display err >> loop env
 
--- | Dispatch parsed 'Construct' in given environment, 'Env'. Interprets statements with "IMP.Semantics.State"
--- and evaluates expressions using "IMP.Semantics.Expression", then displays result to the user.
+-- | Dispatch parsed 'Construct' in given environment, 'Env'. Interprets statements with "IMP.Semantic.State"
+-- and evaluates expressions using "IMP.Semantic.Expression", then displays result to the user.
 dispatch :: Env -> Construct -> REPL Env
 dispatch env@(state, trace) construct = case construct of
     Statement s -> do
@@ -156,21 +152,21 @@ handleMeta meta env@(state, trace) = case normalizeMeta (words meta) of
 -- | Normalize meta command from alias to full form.
 -- Allows users to type abbreviated versions of commands like @:h@ instead of @:help@.
 normalizeMeta :: [String] -> [String]
-normalizeMeta ws = case ws of
+normalizeMeta metas = case metas of
     ["?"] -> ["help"]
     ["h"] -> ["help"]
     ["q"] -> ["quit"]
     ["c"] -> ["clear"]
     ["t"] -> ["trace"]
     ["s"] -> ["state"]
-    (x : xs)
-        | elem x ["l", "load"] -> ["load", rest]
-        | elem x ["w", "write"] -> ["write", rest]
-        | elem x ["a", "ast"] -> ["ast", rest]
-        | elem x ["r", "reset"] -> ["reset", rest]
+    (w : ws)
+        | elem w ["l", "load"] -> ["load", rest]
+        | elem w ["w", "write"] -> ["write", rest]
+        | elem w ["a", "ast"] -> ["ast", rest]
+        | elem w ["r", "reset"] -> ["reset", rest]
         where
-            rest = unwords xs
-    _ -> ws
+            rest = unwords ws
+    _ -> metas
 
 -- | Help message for meta commands. Displayed when user enters @:help@ or @:?@ command.
 helpMessage :: [String]
@@ -202,7 +198,7 @@ prettyTrace trace =
         map ((++ ";") . prettify) (init trace) ++ [prettify $ last trace]
 
 -- | Interpret IMP source file, updating state. Reads IMP code from file,
--- parses it using "IMP.Parser" and interprets it using "IMP.Semantics.Statement".
+-- parses it using "IMP.Parser" and interprets it using "IMP.Semantic.Statement".
 readIMP :: State -> FilePath -> REPL State
 readIMP state path = do
     result <- liftIO $ try (readFile path) :: REPL (Either IOException String)

@@ -14,7 +14,7 @@ arithmetic expressions, boolean expressions, statements, and procedures. These t
 the abstract syntax tree (AST) that is constructed by "IMP.Parser", manipulated by
 "IMP.Semantic.Statement" and "IMP.Semantic.Expression", and displayed using "IMP.Pretty".
 -}
-module IMP.Syntax (
+module IMP2.Syntax (
     Aexp (..),
     Aop (..),
     Bexp (..),
@@ -182,4 +182,3 @@ instance Variables Aexp where
 instance Variables Stm where
     variables stm = case stm of
         Skip -> []
-        _ -> []

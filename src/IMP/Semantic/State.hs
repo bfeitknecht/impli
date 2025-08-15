@@ -1,5 +1,5 @@
 {- |
-Module      : IMP.Semantics.State
+Module      : IMP.Semantic.State
 Description : Defines the state and environment for the IMP language interpreter
 Copyright   : (c) Basil Feitknecht, 2025
 License     : MIT
@@ -12,10 +12,10 @@ of @impli@. It includes types and functions for handling variables, procedures,
 and execution traces, as well as utility functions for state manipulation.
 The state is represented as a combination of defined variables, procedures,
 and a flag for break conditions. The environment includes the execution trace
-for debugging and analysis. This module is used throughout "IMP.Semantics.Statement" and
-"IMP.Semantics.Expression" to manipulate program state during interpretation.
+for debugging and analysis. This module is used throughout "IMP.Semantic.Statement" and
+"IMP.Semantic.Expression" to manipulate program state during interpretation.
 -}
-module IMP.Semantics.State (
+module IMP.Semantic.State (
     REPL,
     Conf,
     Vars,
@@ -66,7 +66,7 @@ type Vars = Map.Map String Integer
 type State = (Vars, [Proc], Bool)
 
 -- | Program configuration with stack of states and remaining steps of statement.
--- Used by the small-step interpreter in "IMP.Semantics.Statement" to represent execution state.
+-- Used by the small-step interpreter in "IMP.Semantic.Statement" to represent execution state.
 type Conf = ([State], Maybe Stm)
 
 -- | Initial interpreter state with no variables, no procedures and break flag unset.
@@ -115,64 +115,64 @@ nobreak :: State -> State
 nobreak (vars, procs, _) = (vars, procs, False)
 
 -- | Get value of variable from state (zero if undefined).
--- Used by "IMP.Semantics.Expression" when evaluating variable references.
+-- Used by "IMP.Semantic.Expression" when evaluating variable references.
 getVar :: State -> String -> Integer
 getVar (vars, _, _) x = Map.findWithDefault 0 x vars
 
 -- | Set value of variable in state. The placeholder @_@ is ignored.
--- Used by "IMP.Semantics.Statement" for variable definitions.
+-- Used by "IMP.Semantic.Statement" for variable definitions.
 setVar :: State -> String -> Integer -> State
 setVar state "_" _ = state -- placeholder write-only variable
 setVar _ "" _ = error "variable name can't be empty string"
 setVar (vars, procs, flag) var val = (Map.insert var val vars, procs, flag)
 
 -- | Set multiple variables in state.
--- Used by "IMP.Semantics.Statement" for multiple definitions like procedure returns.
+-- Used by "IMP.Semantic.Statement" for multiple definitions like procedure returns.
 setVars :: State -> [(String, Integer)] -> State
 setVars = foldl (uncurry . setVar)
 
 -- | Get procedure by name from state.
--- Used by "IMP.Semantics.Statement" when invoking procedures.
+-- Used by "IMP.Semantic.Statement" when invoking procedures.
 getProc :: State -> String -> Maybe Proc
 getProc (_, procs, _) name = List.find ((name ==) . procname) procs
 
 -- | Set procedure in state.
--- Used by "IMP.Semantics.Statement" when defining procedures.
+-- Used by "IMP.Semantic.Statement" when defining procedures.
 setProc :: State -> Proc -> State
 setProc (vars, procs, flag) proc = (vars, proc : procs, flag)
 
 -- | Set break flag in state.
--- Used by "IMP.Semantics.Statement" when executing a @break@ statement.
+-- Used by "IMP.Semantic.Statement" when executing a @break@ statement.
 setBreak :: State -> State
 setBreak (vars, procs, _) = (vars, procs, True)
 
 -- | Reset break flag in state.
--- Used by "IMP.Semantics.Statement" after processing a @break@ statement.
+-- Used by "IMP.Semantic.Statement" after processing a @break@ statement.
 resetBreak :: State -> State
 resetBreak (vars, procs, _) = (vars, procs, False)
 
 -- | Generate variable name for flip index.
--- Used for implementing the @flip@/@flop@ construct in "IMP.Semantics.Statement".
+-- Used for implementing the @flip@/@flop@ construct in "IMP.Semantic.Statement".
 flipvar :: Integer -> String
 flipvar i = "_flip" ++ show i
 
 -- | Get value of flip variable (flip if zero, otherwise flop).
--- Used by "IMP.Semantics.Statement" and "IMP.Semantics.Expression" for the @flip@ construct.
+-- Used by "IMP.Semantic.Statement" and "IMP.Semantic.Expression" for the @flip@ construct.
 getFlip :: State -> Integer -> Bool
 getFlip state i = getVar state (flipvar i) == 0
 
 -- | Set flip variable to flip.
--- Used by "IMP.Semantics.Statement" when toggling @flop@ to @flip@.
+-- Used by "IMP.Semantic.Statement" when toggling @flop@ to @flip@.
 setFlip :: State -> Integer -> State
 setFlip state i = setVar state (flipvar i) 0
 
 -- | Set flip variable to flop.
--- Used by "IMP.Semantics.Statement" when toggling @flip@ to @flop@.
+-- Used by "IMP.Semantic.Statement" when toggling @flip@ to @flop@.
 setFlop :: State -> Integer -> State
 setFlop state i = setVar state (flipvar i) 1
 
 -- | Output string to the user, followed by newline and flush.
--- Used by "IMP.REPL" and "IMP.Semantics.Statement" for user interaction.
+-- Used by "IMP.REPL" and "IMP.Semantic.Statement" for user interaction.
 output :: String -> REPL ()
 output msg = liftIO $ putStrLn msg >> flush
 

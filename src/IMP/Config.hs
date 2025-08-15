@@ -23,15 +23,15 @@ module IMP.Config (
 
 import System.Console.Haskeline
 
--- | Welcome message displayed when 'IMP.Semantics.Statement.repl' is started.
+-- | Welcome message displayed when 'IMP.Semantic.Statement.repl' is started.
 welcome :: String
 welcome = "Welcome to the IMP REPL! Enter :help to list available metacommands and :quit to exit."
 
--- | Prompt in 'IMP.Semantics.Statement.repl' displayed before each input line.
+-- | Prompt in 'IMP.Semantic.Statement.repl' displayed before each input line.
 prompt :: String
 prompt = "IMP> "
 
--- | Goodbye message displayed when 'IMP.Semantics.Statement.repl' is quit with @:quit@.
+-- | Goodbye message displayed when 'IMP.Semantic.Statement.repl' is quit with @:quit@.
 goodbye :: String
 goodbye = "Goodbye!"
 
@@ -49,8 +49,8 @@ settings =
 nohistory :: Settings IO
 nohistory = settings {historyFile = Nothing}
 
--- | Use small-step semantics for interpretation in 'IMP.Semantics.Statement.interpret'.
--- When @True@, "IMP.Semantics.Statement" uses small-step semantics, i.e. 'IMP.Semantics.Statement.steps'.
--- Otherwise it uses big-step semantics, i.e. 'IMP.Semantics.Statement.run'.
+-- | Use small-step semantics for interpretation in 'IMP.Semantic.Statement.interpret'.
+-- When @True@, "IMP.Semantic.Statement" uses small-step semantics, i.e. 'IMP.Semantic.Statement.steps'.
+-- Otherwise it uses big-step semantics, i.e. 'IMP.Semantic.Statement.run'.
 small :: Bool
 small = True
