@@ -26,6 +26,7 @@ module IMP.Syntax (
 )
 where
 
+import Data.List
 
 -- | Arithmetic expressions. Parsed by "IMP.Parser" and evaluated by "IMP.Semantics.Expression".
 data Aexp
@@ -41,40 +42,34 @@ instance Num Aexp where
     (-) = Bin Sub
     (*) = Bin Mul
     fromInteger = Val
-    abs e = case e of
-        Val v -> Val $ abs v
-        _ -> error "abs not supported for abstract syntax"
-    signum e = case e of
-        Val v -> Val $ signum v
-        _ -> error "signum not supported for abstract syntax"
+    abs (Val v) = Val $ abs v
+    abs _ = error "abs not supported for abstract syntax"
+    signum (Val v) = Val $ signum v
+    signum _ = error "signum not supported for abstract syntax"
 
 -- | Partial implementation of 'Ord'.
 instance Ord Aexp where
-    e1 <= e2 = case (e1, e2) of
-        (Val v1, Val v2) -> v1 <= v2
-        _ -> error "operation not supported for abstract syntax"
+    Val v1 <= Val v2 = v1 <= v2
+    _ <= _ = error "order not supported for abstract syntax"
 
 -- | Partial implementation of 'Enum'.
 instance Enum Aexp where
     toEnum = Val . toEnum
-    fromEnum e = case e of
-        Val v -> fromEnum v
-        _ -> error "fromEnum not supported for abstract syntax"
+    fromEnum (Val v) = fromEnum v
+    fromEnum _ = error "fromEnum not supported for abstract syntax"
 
 -- | Partial implementation of 'Real'.
 instance Real Aexp where
-    toRational e = case e of
-        Val v -> toRational v
-        _ -> error "toRational not supported for abstract syntax"
+    toRational (Val v) = toRational v
+    toRational _ = error "toRational not supported for abstract syntax"
 
 -- | Partial implementation of 'Integral'.
 instance Integral Aexp where
     div = Bin Div
     mod = Bin Mod
     quotRem e1 e2 = (div e1 e2, mod e1 e2)
-    toInteger e = case e of
-        Val v -> v
-        _ -> error "toInteger not supported for abstract syntax"
+    toInteger (Val v) = v
+    toInteger _ = error "toInteger not supported for abstract syntax"
 
 -- | Arithmetic operators.
 -- Used in 'Bin' constructor of 'Aexp' for binary operations.
@@ -151,12 +146,12 @@ data Stm
 data Proc = Procedure
     { procname :: String                -- ^ Procedure name used for invocation.
     , procsign :: ([String], [String])  -- ^ Procedure signature with variable names of parameters and returns.
-    , procbody :: Stm                   -- ^ Procedure body statement to execute.
+    , procbody :: Stm                   -- ^ Procedure body, statement to execute.
     }
     deriving (Eq)
 
 instance Show Proc where
-    show p = unwords ["Procedure", '"' : procname p ++ "\"", show $ procsign p, show $ procbody p]
+    show p = unwords ["Procedure", show $ procname p, show $ procsign p, show $ procbody p]
 
 -- | IMP constructs. Top-level elements that can be parsed by "IMP.Parser" and processed by "IMP.REPL".
 data Construct
@@ -165,3 +160,26 @@ data Construct
     | Boolean Bexp          -- ^ Boolean expression to be evaluated
     | Whitespace            -- ^ Whitespace or comment (ignored during execution)
     deriving (Eq, Show)
+
+class Variables a where
+    variables :: a -> [String]
+
+instance Variables Bexp where
+    variables bexp = case bexp of
+        Or b1 b2 -> union (variables b1) (variables b2)
+        And b1 b2 -> union (variables b1) (variables b2)
+        Not b -> variables b
+        Rel _ e1 e2 -> union (variables e1) (variables e2)
+        Lit _ -> []
+
+instance Variables Aexp where
+    variables aexp = case aexp of
+        Bin _ e1 e2 -> union (variables e1) (variables e2)
+        Var x -> [x]
+        Val _ -> []
+        Time s -> variables s
+
+instance Variables Stm where
+    variables stm = case stm of
+        Skip -> []
+        _ -> []
