@@ -1,14 +1,14 @@
 module IMP2.REPL where
 
-import Config
 import Control.Monad.IO.Class
-import IMP2.Syntax
-import Util
 
 import qualified System.Console.Haskeline as Haskeline
 
+import Config
 import IMP2.Parser
 import IMP2.Semantic.State
+import IMP2.Syntax
+import Util
 
 type Env = (State, [Stm])
 

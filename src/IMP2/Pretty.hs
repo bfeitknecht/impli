@@ -9,10 +9,7 @@ Maintainer  : bfeitknecht@ethz.ch
 Stability   : stable
 Portability : portable
 
-This module provides pretty-printing functionality for IMP constructs. It defines
-'Pretty' instances for the abstract syntax tree types defined in "IMP.Syntax",
-enabling structured formatting of IMP programs and expressions. These functions
-are used by "IMP.REPL" for displaying outputs to users.
+__TODO__
 -}
 module IMP2.Pretty (
     prettify,
@@ -22,51 +19,46 @@ module IMP2.Pretty (
 import Prettyprinter
 import Prettyprinter.Render.String
 
-import IMP.Syntax
+import IMP2.Syntax
 
--- | Prettyprint instance for arithmetic expressions, 'Aexp'.
+-- | __TODO__
 instance Pretty Aexp where
-    pretty e = case e of
+    pretty a = case a of
         Val n -> pretty n
         Var x -> pretty x
-        Bin Add e1 e2 -> pretty e1 <+> pretty "+" <+> pretty e2
-        Bin Sub e1 e2 -> pretty e1 <+> pretty "-" <+> pretty e2
-        Bin Mul e1 e2 -> pretty e1 <+> pretty "*" <+> pretty e2
-        Bin Div e1 e2 -> pretty e1 <+> pretty "/" <+> pretty e2
-        Bin Mod e1 e2 -> pretty e1 <+> pretty "%" <+> pretty e2
+        Bin Add a1 a2 -> pretty a1 <+> pretty "+" <+> pretty a2
+        Bin Sub a1 a2 -> pretty a1 <+> pretty "-" <+> pretty a2
+        Bin Mul a1 a2 -> pretty a1 <+> pretty "*" <+> pretty a2
+        Bin Div a1 a2 -> pretty a1 <+> pretty "/" <+> pretty a2
+        Bin Mod a1 a2 -> pretty a1 <+> pretty "%" <+> pretty a2
         Time s -> pretty "time" <+> pretty s
 
--- | Prettyprint instance for boolean expressions, 'Bexp'.
+-- | __TODO__
 instance Pretty Bexp where
     pretty b = case b of
         Lit bool -> pretty (if bool then "true" else "false")
         Not b1 -> pretty "not" <+> pretty b1
         Or b1 b2 -> pretty b1 <+> pretty "or" <+> pretty b2
         And b1 b2 -> pretty b1 <+> pretty "and" <+> pretty b2
-        Rel Eq e1 e2 -> pretty e1 <+> pretty "=" <+> pretty e2
-        Rel Neq e1 e2 -> pretty e1 <+> pretty "#" <+> pretty e2
-        Rel Lt e1 e2 -> pretty e1 <+> pretty "<" <+> pretty e2
-        Rel Leq e1 e2 -> pretty e1 <+> pretty "<=" <+> pretty e2
-        Rel Gt e1 e2 -> pretty e1 <+> pretty ">" <+> pretty e2
-        Rel Geq e1 e2 -> pretty e1 <+> pretty ">=" <+> pretty e2
+        Rel Eq a1 a2 -> pretty a1 <+> pretty "=" <+> pretty a2
+        Rel Neq a1 a2 -> pretty a1 <+> pretty "#" <+> pretty a2
+        Rel Lt a1 a2 -> pretty a1 <+> pretty "<" <+> pretty a2
+        Rel Leq a1 a2 -> pretty a1 <+> pretty "<=" <+> pretty a2
+        Rel Gt a1 a2 -> pretty a1 <+> pretty ">" <+> pretty a2
+        Rel Geq a1 a2 -> pretty a1 <+> pretty ">=" <+> pretty a2
 
--- | Prettyprint instance for assignment operators, 'Dop'.
-instance Pretty Dop where
-    pretty f = case f of
-        Def -> pretty ":="
-        Inc -> pretty "+="
-        Dec -> pretty "-="
-        Prod -> pretty "*="
-        Quot -> pretty "/="
-        Rem -> pretty "%="
-
--- | Prettyprint instance for statements, 'Stm'.
+-- | __TODO__
 instance Pretty Stm where
     pretty stm = case stm of
         Skip -> pretty "skip"
-        VarDef x f e -> pretty x <+> pretty f <+> pretty e
+        VarDef x Def a -> pretty x <+> pretty ":=" <+> pretty a
+        VarDef x Inc a -> pretty x <+> pretty "+=" <+> pretty a
+        VarDef x Dec a -> pretty x <+> pretty "-=" <+> pretty a
+        VarDef x Prod a -> pretty x <+> pretty "*=" <+> pretty a
+        VarDef x Quot a -> pretty x <+> pretty "/=" <+> pretty a
+        VarDef x Rem a -> pretty x <+> pretty "%=" <+> pretty a
         Seq s1 s2 -> vsep [pretty s1 <> semi, pretty s2]
-        If b s1 s2 ->
+        IfElse b s1 s2 ->
             vsep
                 [ pretty "if" <+> pretty b <+> pretty "then"
                 , indent 4 (pretty s1)
@@ -80,11 +72,11 @@ instance Pretty Stm where
                 , indent 4 (pretty s)
                 , pretty "end"
                 ]
-        Print e -> pretty "print" <+> pretty e
+        Print a -> pretty "print" <+> pretty a
         Read x -> pretty "read" <+> pretty x
-        Local x e s ->
+        Local x a s ->
             vsep
-                [ pretty "var" <+> pretty x <+> pretty ":=" <+> pretty e <+> pretty "in"
+                [ pretty "var" <+> pretty x <+> pretty ":=" <+> pretty a <+> pretty "in"
                 , indent 4 (pretty s)
                 , pretty "end"
                 ]
@@ -97,16 +89,15 @@ instance Pretty Stm where
                 , indent 4 (pretty body)
                 , pretty "end"
                 ]
-        ProcInvoc name (args, rets) ->
-            pretty name <> parens (semmicommas args rets)
+        ProcInvoc name (args, rets) -> pretty name <> parens (semmicommas args rets)
         Break -> pretty "break"
         Revert s b ->
             vsep
                 [ pretty "revert" <+> pretty s <+> pretty "if" <+> pretty b
                 ]
-        Match e ms d ->
+        Match a ms d ->
             vsep
-                [ pretty "match" <+> pretty e <+> pretty "on"
+                [ pretty "match" <+> pretty a <+> pretty "on"
                 , indent 4 $
                     vsep $
                         map (\(v, s) -> pretty v <> colon <+> pretty s <> comma) ms
@@ -115,7 +106,7 @@ instance Pretty Stm where
                 ]
         Havoc x -> pretty "havoc" <+> pretty x
         Assert b -> pretty "assert" <+> pretty b
-        Flip i s1 s2 ->
+        FlipFlop i s1 s2 ->
             vsep
                 [ pretty "flip" <> parens (pretty i)
                 , indent 4 (pretty s1)
@@ -123,8 +114,8 @@ instance Pretty Stm where
                 , indent 4 (pretty s2)
                 , pretty "end"
                 ]
-        Raise e -> pretty "raise" <+> pretty e
-        Try s1 x s2 ->
+        Raise a -> pretty "raise" <+> pretty a
+        TryCatch s1 x s2 ->
             vsep
                 [ pretty "try"
                 , indent 4 (pretty s1)
@@ -133,11 +124,11 @@ instance Pretty Stm where
                 , pretty "end"
                 ]
         Swap x y -> pretty "swap" <+> pretty x <+> pretty y
-        Timeout s e ->
+        Timeout s a ->
             vsep
                 [ pretty "timeout"
                 , indent 4 (pretty s)
-                , pretty "after" <+> pretty e
+                , pretty "after" <+> pretty a
                 , pretty "end"
                 ]
         Alternate s1 s2 ->
@@ -148,7 +139,7 @@ instance Pretty Stm where
                 ]
         _ -> undefined
 
--- | Prettyprint instance for procedures, 'Proc.
+-- | __TODO__
 instance Pretty Proc where
     pretty (Procedure name (params, rets) body) =
         vsep
@@ -156,21 +147,18 @@ instance Pretty Proc where
             , indent 4 (pretty body)
             ]
 
--- | Render value to string with layout.
--- Used by "IMP.REPL" to structure output.
+-- | __TODO__
 prettify :: (Pretty a) => a -> String
 prettify = renderString . layoutPretty defaultLayoutOptions . pretty
 
--- | Render prettyprintable value to a single-line string.
+-- | __TODO__
 stringify :: (Pretty a) => a -> String
 stringify = unwords . words . prettify
 
--- | Combine documents with commas.
--- Used for formatting parameter and argument lists.
+-- | __TODO__
 commas :: [Doc ann] -> Doc ann
 commas = hsep . punctuate comma
 
--- | Combine two lists of values with semicolon separator.
--- Used for formatting procedure parameter and return variable lists.
+-- | __TODO__
 semmicommas :: (Pretty a, Pretty b) => [a] -> [b] -> Doc ann
 semmicommas xs ys = commas (map pretty xs) <> semi <+> commas (map pretty ys)

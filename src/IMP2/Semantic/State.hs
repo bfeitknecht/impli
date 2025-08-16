@@ -1,13 +1,12 @@
 module IMP2.Semantic.State where
 
-import IMP2.Syntax
-
 import qualified Control.Monad.Trans.Except as Except
 import qualified Data.List as List
 import qualified Data.Map as Map
 
 import IMP.Util
 import IMP2.Exception
+import IMP2.Syntax
 
 type IMP = Except.ExceptT Exception IO
 

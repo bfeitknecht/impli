@@ -1,16 +1,17 @@
+{-# OPTIONS_GHC -Wno-x-partial #-}
+
 module IMP2.Semantic.Operational where
 
+import IMP2.Semantic.State
 import IMP2.Syntax
 
-import IMP2.Semantic.State
-
 step :: Conf -> IMP Conf
-step = undefined
+step (stack, Just Skip) = return (stack, Nothing)
 
 steps :: Conf -> IMP State
 steps ([], _) = error ""
 steps conf = do
-    ((st' : sts'), rest) <- step conf
-    case rest of
-        Nothing -> return st'
-        _ -> steps ((st' : sts'), rest)
+    (stack', rest) <- step conf
+    if rest == Nothing
+        then return . head $ stack'
+        else steps (stack', rest)
