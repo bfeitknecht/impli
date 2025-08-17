@@ -72,7 +72,6 @@ library
     IMP2.Semantic.Statement
     IMP2.Semantic.Structural
     IMP2.Syntax
-    Util
 
 executable impli
   import: shared-settings

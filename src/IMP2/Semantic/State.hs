@@ -4,7 +4,6 @@ import qualified Control.Monad.Trans.Except as Except
 import qualified Data.List as List
 import qualified Data.Map as Map
 
-import IMP.Util
 import IMP2.Exception
 import IMP2.Syntax
 
