@@ -4,4 +4,4 @@ import IMP2.State
 import IMP2.Syntax
 
 run :: (State, Stm) -> IMP State
-run (st, Skip) = return st
+run (state, Skip) = return state

@@ -9,10 +9,7 @@ Maintainer  : bfeitknecht@ethz.ch
 Stability   : stable
 Portability : portable
 
-This module defines the evaluation semantics for arithmetic and boolean expressions.
-It provides the 'Evaluate' typeclass, which is used by "IMP.Semantic.Statement" to
-evaluate expressions within a program state. The module implements evaluation rules
-for all expression types defined in "IMP.Syntax".
+__TODO__
 -}
 module IMP2.Expression (
     Evaluate,
@@ -65,6 +62,8 @@ instance Evaluate Bexp Bool where
                     Geq -> v1 >= v2
 
 -- | __TODO__
+-- __CHECK__
+-- rewrite to count steps in operational semantics
 instance Evaluate Stm Integer where
     evaluate state stm = case stm of
         Skip -> 0

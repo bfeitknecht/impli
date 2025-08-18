@@ -13,6 +13,7 @@ import System.Exit
 import Text.Read (readMaybe)
 
 import Control.Monad.Except (catchError, throwError)
+
 import Control.Monad.IO.Class
 import Control.Monad.Trans.Class (lift)
 
@@ -33,9 +34,9 @@ type REPL = Except.ExceptT Exception (Haskeline.InputT IO)
 start :: Env
 start = (initial, [])
 
--- | Lift IMP computation into REPL monad.
+-- | Lift IMP computation into 'REPL' monad.
 liftIMP :: IMP a -> REPL a
-liftIMP imp = (liftIO . Except.runExceptT) imp >>= either throwError return
+liftIMP = Except.ExceptT . lift . Except.runExceptT
 
 -- | __TODO__
 repl :: Haskeline.Settings IO -> Env -> IO ()
@@ -67,12 +68,12 @@ loop env = do
 
 -- | __TODO__
 dispatch :: Env -> Construct -> REPL Env
-dispatch env@(st, tr) cnstr = case cnstr of
+dispatch env@(state, trace) cnstr = case cnstr of
     Statement stm -> do
-        st' <- liftIMP $ interpret st stm
-        return (st', stm : tr)
-    Arithmetic aexp -> display (evaluate st aexp) >> return env
-    Boolean bexp -> output (if evaluate st bexp then "true" else "false") >> return env
+        state' <- liftIMP $ interpret state stm
+        return (state', stm : trace)
+    Arithmetic aexp -> display (evaluate state aexp) >> return env
+    Boolean bexp -> output (if evaluate state bexp then "true" else "false") >> return env
     Whitespace -> return env
 
 -- | __TODO__
@@ -109,58 +110,58 @@ normalizeMeta rest = rest
 -- | __TODO__
 handleMeta :: Env -> [String] -> REPL ()
 handleMeta env [")"] = output "You look good today!" >> loop env
-handleMeta env ["help"] =
+handleMeta env ["help"] = do
     outputSection
         "All meta commands can be abbreviated by their first letter."
         helpMessage
-        >> loop env
+    loop env
 handleMeta _ ["quit"] = output goodbye
 handleMeta env ["clear"] = clear >> loop env
-handleMeta ((vs, ps, bf), tr) ["reset", it]
+handleMeta ((vars, procs, flag), trace) ["reset", it]
     | null it = (display . Info) "environment reset" >> loop start
-    | it `elem` ["v", "vars"] = (display . Info) "variables reset" >> loop ((zero, ps, bf), tr)
-    | it `elem` ["p", "procs"] = (display . Info) "procedures reset" >> loop ((vs, [], bf), tr)
-    | it `elem` ["b", "break"] = (display . Info) "break flag reset" >> loop ((vs, ps, False), tr)
-    | it `elem` ["t", "trace"] = (display . Info) "trace reset" >> loop ((vs, ps, bf), [])
+    | it `elem` ["v", "vars"] = (display . Info) "variables reset" >> loop ((zero, procs, flag), trace)
+    | it `elem` ["p", "procs"] = (display . Info) "procedures reset" >> loop ((vars, [], flag), trace)
+    | it `elem` ["b", "break"] = (display . Info) "break flag reset" >> loop ((vars, procs, False), trace)
+    | it `elem` ["t", "trace"] = (display . Info) "trace reset" >> loop ((vars, procs, flag), [])
     | otherwise = throwError . Error $ "unrecognized aspect to reset: " ++ it
-handleMeta env@(_, tr) ["trace"] =
+handleMeta env@(_, trace) ["trace"] = do
     outputSection
         "Trace:"
         [ unlines $ zipWith (++) (idx : buf) ls
-        | (i, s) <- zip [1 :: Int ..] tr
+        | (i, s) <- zip [1 :: Int ..] trace
         , let
             len = length (show i) + 3
             idx = "#" ++ show i ++ space 2
             buf = repeat $ space len
             ls = lines $ prettify s
         ]
-        >> loop env
-handleMeta env@((vs, ps, bf), _) ["state"] = do
+    loop env
+handleMeta env@((vars, procs, flag), _) ["state"] = do
     outputSection
         "Variables:"
         -- invariant of IMP2.State.setVar guarantees no nempty string key
-        [k ++ " = " ++ show v | (k, v) <- Map.toList vs, head k /= '_']
-    outputSection "Procedures:" [prettify p | p <- ps]
-    output $ "Break: " ++ show bf
+        [k ++ " = " ++ show v | (k, v) <- Map.toList vars, head k /= '_']
+    outputSection "Procedures:" [prettify p | p <- procs]
+    output $ "Break: " ++ show flag
     loop env
-handleMeta (st, tr) ["load", it]
+handleMeta (state, trace) ["load", it]
     | null it = throwError . Info $ "no filepath provided"
     | otherwise = do
-        st' <- loadIMP st it
-        loop (st', tr)
-handleMeta env@(_, tr) ["write", it]
+        state' <- loadIMP state it
+        loop (state', trace)
+handleMeta env@(_, trace) ["write", it]
     | null it = throwError . Info $ "no filepath provided"
-    | otherwise = writeIMP tr it >> loop env
-handleMeta env@(_, tr) ["ast", it]
+    | otherwise = writeIMP trace it >> loop env
+handleMeta env@(_, trace) ["ast", it]
     | null it = throwError . Info $ "nothing to parse"
     | "#" <- it = throwError . Info $ "no parseIndex provided"
     | '#' : ds <- it = case readMaybe ds of
         Nothing -> throwError . ParseFail $ it
         Just i ->
-            if i <= 0 || i > length tr
+            if i <= 0 || i > length trace
                 then throwError $ Error $ "parseIndex out of bounds: " ++ show i
-                else display (tr !! (i - 1)) >> loop env
-    | otherwise = (liftIO . printAST) it >> loop env
+                else display (trace !! (i - 1)) >> loop env
+    | otherwise = liftIO (printAST it) >> loop env
 handleMeta _ meta =
     throwError . Error $
         unlines
@@ -170,23 +171,23 @@ handleMeta _ meta =
 
 -- | __TODO__
 loadIMP :: State -> FilePath -> REPL State
-loadIMP st path = do
+loadIMP state path = do
     content <-
-        (liftIO $ readFile path)
+        liftIO (readFile path)
             `catchError` (\e -> throwError . IOFail $ unlines ["read from: " ++ path, show e])
     case parser path content of
         Left e -> throwError . ParseFail $ unlines [path, show e]
         Right stm -> do
-            st' <- liftIMP $ interpret st stm
+            state' <- liftIMP $ interpret state stm
             display . Info $ "interpreted: " ++ path
-            return st'
+            return state'
 
 -- | __TODO__
 writeIMP :: [Stm] -> FilePath -> REPL ()
-writeIMP tr path = do
-    let content = prettytrace tr
+writeIMP trace path = do
+    let content = prettytrace trace
     _ <-
-        (liftIO $ writeFile path content)
+        liftIO (writeFile path content)
             `catchError` (\e -> throwError . IOFail $ unlines ["write to: " ++ path, show e])
     throwError . Info $ "wrote to: " ++ path
 
@@ -198,11 +199,11 @@ printAST input = case parser "ast" input of
 
 -- | __TODO__
 prettytrace :: [Stm] -> String
-prettytrace tr = prettify $ foldr Seq Skip tr
+prettytrace trace = prettify $ foldr Seq Skip trace
 
 -- | __TODO__
 clear :: REPL ()
-clear = liftIO $ ANSI.clearScreen >> ANSI.setCursorPosition 0 0
+clear = liftIO (ANSI.clearScreen >> ANSI.setCursorPosition 0 0)
 
 -- | __TODO__
 output :: String -> REPL ()

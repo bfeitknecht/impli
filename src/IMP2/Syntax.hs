@@ -9,10 +9,7 @@ Maintainer  : bfeitknecht@ethz.ch
 Stability   : stable
 Portability : portable
 
-This module provides the syntax definitions for the IMP language. It includes data types for
-arithmetic expressions, boolean expressions, statements, and procedures. These types form
-the abstract syntax tree (AST) that is constructed by "IMP.Parser", manipulated by
-"IMP.Semantic.Statement" and "IMP.Semantic.Expression", and displayed using "IMP.Pretty".
+__TODO__
 -}
 module IMP2.Syntax (
     Aexp (..),
@@ -190,9 +187,9 @@ instance Variables Stm where
         Seq s1 s2 -> variables s1 ++ variables s2
         IfElse b s1 s2 -> variables b ++ variables s1 ++ variables s2
         While b s -> variables b ++ variables s
-        Print e -> variables e
+        Print a -> variables a
         Read x -> [x]
-        Local x e s -> x : variables e ++ variables s
+        Local x a s -> x : variables a ++ variables s
         Par s1 s2 -> variables s1 ++ variables s2
         NonDet s1 s2 -> variables s1 ++ variables s2
         ProcDef (Procedure p (ps, rs) s) -> p : ps ++ rs ++ variables s
@@ -201,11 +198,11 @@ instance Variables Stm where
         Return _ _ -> error $ "illegal statement for free variables: " ++ show stm
         Break -> []
         Revert s b -> variables s ++ variables b
-        Match e ms d -> variables d ++ variables e ++ concatMap (variables . snd) ms
+        Match a ms d -> variables d ++ variables a ++ concatMap (variables . snd) ms
         Havoc x -> [x]
         Assert b -> variables b
         FlipFlop _ s1 s2 -> variables s1 ++ variables s2
-        Raise e -> variables e
+        Raise a -> variables a
         TryCatch s1 x s2 -> x : variables s1 ++ variables s2
         Swap x y -> [x, y]
         Timeout s a -> variables s ++ variables a
