@@ -102,7 +102,7 @@ handleMeta meta env@(state, trace) = case normalizeMeta (words meta) of
         | elem rest ["b", "break"] -> output "+++ INFO: break flag reset " >> loop (nobreak state, trace)
         | elem rest ["t", "trace"] -> output "+++ INFO: trace reset " >> loop (state, [])
         | otherwise -> throwError $ Error $ "unrecognized aspect to reset: " ++ rest
-    ["trace"] -> do
+    ["trace"] ->
         outputSection
             "Trace:"
             [ unlines' $ zipWith (++) (idx : buf) ls
@@ -113,7 +113,7 @@ handleMeta meta env@(state, trace) = case normalizeMeta (words meta) of
                 buf = repeat $ space len
                 ls = lines $ prettify s
             ]
-        loop env
+            >> loop env
     ["state"] -> do
         let (vars, procs, flag) = state
         outputSection

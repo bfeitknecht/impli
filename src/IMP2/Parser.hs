@@ -103,12 +103,17 @@ instance Parses Stm where
     parses = buildExpressionParser table term <?> "statement"
         where
             table =
-                [ [Infix (NonDet <$ operator "[]") AssocLeft]
-                , [Infix (Par <$ operator "par") AssocLeft]
-                , [Infix (Alternate <$ operator "alternate") AssocLeft]
-                , [Infix (Seq <$ operator ";") AssocLeft]
-                ]
-            term = choice . map try $ if extensions then imp ++ ext else imp
+                if extensions
+                    then
+                        [ [Infix (NonDet <$ operator "[]") AssocLeft]
+                        , [Infix (Par <$ operator "par") AssocLeft]
+                        , [Infix (Alternate <$ operator "alternate") AssocLeft]
+                        , [Infix (Seq <$ operator ";") AssocLeft]
+                        ]
+                    else [[Infix (Seq <$ operator ";") AssocLeft]]
+            term =
+                choice . map try $
+                    if extensions then imp ++ ext else imp
 
 imp :: [Parser Stm]
 imp =
@@ -146,13 +151,13 @@ ext =
         Procedure
             <$ keyword "procedure"
             <*> identifier
-            <*> parens (signat identifier identifier)
+            <*> parens (signature identifier identifier)
             <* keyword "begin"
             <*> parses @Stm
             <* keyword "end"
     , ProcInvoc
         <$> identifier
-        <*> parens (signat (parses @Aexp) variable) -- allow placeholder in return variables
+        <*> parens (signature (parses @Aexp) variable) -- allow placeholder in return variables
     , (\s b -> Seq s $ While (Not b) s)
         <$ keyword "repeat"
         <*> parses @Stm
@@ -236,8 +241,8 @@ for x a1 a2 s =
             (Rel Lt (Var x) a2) -- stop condition is evaluated every iteration
             (Seq s $ VarDef x Inc (Val 1))
 
-signat :: Parser a -> Parser b -> Parser ([a], [b])
-signat p1 p2 =
+signature :: Parser a -> Parser b -> Parser ([a], [b])
+signature p1 p2 =
     (,)
         <$> sepBy p1 (symbol ",")
         <* symbol ";"

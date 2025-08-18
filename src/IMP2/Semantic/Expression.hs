@@ -14,19 +14,19 @@ It provides the 'Evaluate' typeclass, which is used by "IMP.Semantic.Statement" 
 evaluate expressions within a program state. The module implements evaluation rules
 for all expression types defined in "IMP.Syntax".
 -}
-module IMP2.Semantic.Expression where
+module IMP2.Semantic.Expression (
+    Evaluate,
+    evaluate,
+) where
 
 import IMP2.Semantic.State
 import IMP2.Syntax
 
--- | Typeclass for evaluating expressions or statements in a state.
+-- | __TODO__
 class Evaluate a b | a -> b where
-    -- | Evaluate a value of type @a@ in the given state, producing a result of type @b@.
-    --        For 'Aexp' it produces an 'Integer', for 'Bexp' it produces a 'GHC.Types.Bool',
-    --        and for 'Stm' it produces an 'Integer' counting variable definitions.
     evaluate :: State -> a -> b
 
--- | Evaluate an arithmetic expression to an integer.
+-- | __TODO__
 instance Evaluate Aexp Integer where
     evaluate state aexp = case aexp of
         Val n -> n
@@ -44,7 +44,7 @@ instance Evaluate Aexp Integer where
                     Mod -> v1 %% v2
         Time s -> evaluate state s
 
--- | Evaluate a boolean expression to a boolean value.
+-- | __TODO__
 instance Evaluate Bexp Bool where
     evaluate state bexp = case bexp of
         Lit b -> b
@@ -64,7 +64,7 @@ instance Evaluate Bexp Bool where
                     Gt -> v1 > v2
                     Geq -> v1 >= v2
 
--- | Evaluate a statement to an integer (number of variable definitions).
+-- | __TODO__
 instance Evaluate Stm Integer where
     evaluate state stm = case stm of
         Skip -> 0
