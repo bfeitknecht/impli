@@ -1,9 +1,9 @@
-module IMP2.Semantic.Statement where
+module IMP2.Statement where
 
 import Config
 import IMP2.Semantic.Operational
-import IMP2.Semantic.State
 import IMP2.Semantic.Structural
+import IMP2.State
 import IMP2.Syntax
 
 interpret :: State -> Stm -> IMP State

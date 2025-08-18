@@ -14,12 +14,12 @@ It provides the 'Evaluate' typeclass, which is used by "IMP.Semantic.Statement" 
 evaluate expressions within a program state. The module implements evaluation rules
 for all expression types defined in "IMP.Syntax".
 -}
-module IMP2.Semantic.Expression (
+module IMP2.Expression (
     Evaluate,
     evaluate,
 ) where
 
-import IMP2.Semantic.State
+import IMP2.State
 import IMP2.Syntax
 
 -- | __TODO__

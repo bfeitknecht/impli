@@ -1,4 +1,4 @@
-module IMP2.Semantic.State where
+module IMP2.State where
 
 import qualified Control.Monad.Trans.Except as Except
 import qualified Data.List as List

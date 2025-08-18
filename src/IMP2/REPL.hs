@@ -18,11 +18,11 @@ import Control.Monad.Trans.Class (lift)
 
 import Config
 import IMP2.Exception
+import IMP2.Expression
 import IMP2.Parser
 import IMP2.Pretty
-import IMP2.Semantic.Expression
-import IMP2.Semantic.State
-import IMP2.Semantic.Statement
+import IMP2.State
+import IMP2.Statement
 import IMP2.Syntax
 
 type Env = (State, [Stm])

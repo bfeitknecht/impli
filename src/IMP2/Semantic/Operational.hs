@@ -2,7 +2,7 @@
 
 module IMP2.Semantic.Operational where
 
-import IMP2.Semantic.State
+import IMP2.State
 import IMP2.Syntax
 
 step :: Conf -> IMP Conf

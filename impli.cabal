@@ -62,15 +62,15 @@ library
     IMP.Syntax
     IMP.Util
     IMP2.Exception
+    IMP2.Expression
     IMP2.Lexer
     IMP2.Parser
     IMP2.Pretty
     IMP2.REPL
-    IMP2.Semantic.Expression
     IMP2.Semantic.Operational
-    IMP2.Semantic.State
-    IMP2.Semantic.Statement
     IMP2.Semantic.Structural
+    IMP2.State
+    IMP2.Statement
     IMP2.Syntax
 
 executable impli
