@@ -7,7 +7,7 @@ Maintainer  : bfeitknecht@ethz.ch
 Stability   : stable
 Portability : portable
 
-__TODO__
+TODO
 -}
 module Main where
 

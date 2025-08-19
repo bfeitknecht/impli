@@ -6,7 +6,7 @@ import Text.Parsec.String
 
 import qualified Text.Parsec.Token as Token
 
--- | __TODO__
+-- | TODO
 keywords :: [String]
 keywords =
     [ "skip"
@@ -49,7 +49,7 @@ keywords =
     , "alternate"
     ]
 
--- | __TODO__
+-- | TODO
 operators :: [String]
 operators =
     [ "+"
@@ -74,7 +74,7 @@ operators =
     , "%="
     ]
 
--- | __TODO__
+-- | TODO
 lexer :: Token.TokenParser ()
 lexer = Token.makeTokenParser style
     where
@@ -89,42 +89,42 @@ lexer = Token.makeTokenParser style
                 , Token.identLetter = alphaNum
                 }
 
--- | __TODO__
+-- | TODO
 identifier :: Parser String
 identifier = Token.identifier lexer <?> "identifier"
 
--- | __TODO__
+-- | TODO
 variable :: Parser String
 variable = identifier <|> symbol "_" <?> "variable"
 
--- | __TODO__
+-- | TODO
 reserved :: String -> Parser ()
 reserved = Token.reserved lexer
 
--- | __TODO__
+-- | TODO
 keyword :: String -> Parser ()
 keyword x = reserved x <?> x
 
--- | __TODO__
+-- | TODO
 reservedOp :: String -> Parser ()
 reservedOp = Token.reservedOp lexer
 
--- | __TODO__
+-- | TODO
 operator :: String -> Parser ()
 operator x = reservedOp x <?> x
 
--- | __TODO__
+-- | TODO
 parens :: Parser a -> Parser a
 parens = Token.parens lexer
 
--- | __TODO__
+-- | TODO
 integer :: Parser Integer
 integer = Token.integer lexer <?> "integer"
 
--- | __TODO__
+-- | TODO
 whitespace :: Parser ()
 whitespace = Token.whiteSpace lexer <?> "whitespace"
 
--- | __TODO__
+-- | TODO
 symbol :: String -> Parser String
 symbol x = Token.symbol lexer x <?> x

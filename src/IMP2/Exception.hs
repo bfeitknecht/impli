@@ -2,7 +2,7 @@ module IMP2.Exception (
     Exception (..),
 ) where
 
--- | __TODO__
+-- | TODO
 {- FOURMOLU_DISABLE -}
 data Exception
     = ParseFail String
@@ -15,9 +15,9 @@ data Exception
     deriving (Eq)
 {- FOURMOLU_ENABLE -}
 
--- | __TODO__
+-- | TODO
 instance Show Exception where
-    show err = case err of
+    show e = case e of
         ParseFail msg -> "*** ERROR: parse failure in: " ++ msg
         AssertFail msg -> "*** ERROR: assertion failure in: " ++ msg
         IOFail msg -> "*** ERROR: IO failure in: " ++ msg

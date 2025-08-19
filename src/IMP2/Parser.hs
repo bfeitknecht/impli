@@ -9,7 +9,7 @@ Maintainer  : bfeitknecht@ethz.ch
 Stability   : stable
 Portability : portable
 
-__TODO__
+TODO
 -}
 module IMP2.Parser (
     Parses,
@@ -25,16 +25,16 @@ import Config
 import IMP2.Lexer
 import IMP2.Syntax
 
--- | __TODO__
+-- | TODO
 parser :: (Parses a) => String -> String -> Either ParseError a
 parser = parse (whitespace *> parses <* eof)
 
--- | __TODO__
+-- | TODO
 class Parses a where
-    -- | __TODO__
+    -- | TODO
     parses :: Parser a
 
--- | __TODO__
+-- | TODO
 instance Parses Aexp where
     parses = buildExpressionParser table term <?> "arithmetic expression"
         where
@@ -57,7 +57,7 @@ instance Parses Aexp where
                     , Time <$ keyword "time" <*> parses @Stm
                     ]
 
--- | __TODO__
+-- | TODO
 instance Parses Bexp where
     parses = buildExpressionParser table term <?> "boolean expression"
         where
@@ -74,7 +74,7 @@ instance Parses Bexp where
                     , Lit False <$ keyword "false"
                     ]
 
--- | __TODO__
+-- | TODO
 instance Parses Rop where
     parses =
         choice
@@ -86,7 +86,7 @@ instance Parses Rop where
             , Gt <$ operator ">"
             ]
 
--- | __TODO__
+-- | TODO
 instance Parses Dop where
     parses =
         choice
@@ -98,7 +98,7 @@ instance Parses Dop where
             , Rem <$ operator "%="
             ]
 
--- | __TODO__
+-- | TODO
 instance Parses Stm where
     parses = buildExpressionParser table term <?> "statement"
         where
@@ -183,7 +183,7 @@ ext =
         <*> parses @Stm
         <* keyword "if"
         <*> parses @Bexp
-    , Break <$ keyword "break" -- __INFO__: parses outside while
+    , Break <$ keyword "break" -- INFO: parses outside while
     , Match
         <$ keyword "match"
         <*> parses @Aexp
@@ -223,7 +223,7 @@ ext =
         <* keyword "end"
     ]
 
--- | __TODO__
+-- | TODO
 instance Parses Construct where
     parses =
         choice . map try $
@@ -233,7 +233,7 @@ instance Parses Construct where
             , Whitespace <$ whitespace
             ]
 
--- | __TODO__
+-- | TODO
 for :: String -> Aexp -> Aexp -> Stm -> Stm
 for x a1 a2 s =
     Local x a1 $
@@ -248,7 +248,7 @@ signature p1 p2 =
         <* symbol ";"
         <*> sepBy p2 (symbol ",")
 
--- | __TODO__
+-- | TODO
 branch :: Parser (Integer, Stm)
 branch =
     (,)

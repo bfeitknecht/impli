@@ -9,7 +9,7 @@ Maintainer  : bfeitknecht@ethz.ch
 Stability   : stable
 Portability : portable
 
-__TODO__
+TODO
 -}
 module IMP2.Expression (
     Evaluate,
@@ -19,11 +19,11 @@ module IMP2.Expression (
 import IMP2.State
 import IMP2.Syntax
 
--- | __TODO__
+-- | TODO
 class Evaluate a b | a -> b where
     evaluate :: State -> a -> b
 
--- | __TODO__
+-- | TODO
 instance Evaluate Aexp Integer where
     evaluate state aexp = case aexp of
         Val n -> n
@@ -41,7 +41,7 @@ instance Evaluate Aexp Integer where
                     Mod -> v1 %% v2
         Time s -> evaluate state s
 
--- | __TODO__
+-- | TODO
 instance Evaluate Bexp Bool where
     evaluate state bexp = case bexp of
         Lit b -> b
@@ -61,8 +61,8 @@ instance Evaluate Bexp Bool where
                     Gt -> v1 > v2
                     Geq -> v1 >= v2
 
--- | __TODO__
--- __CHECK__
+-- | TODO
+-- CHECK
 -- rewrite to count steps in operational semantics
 instance Evaluate Stm Integer where
     evaluate state stm = case stm of

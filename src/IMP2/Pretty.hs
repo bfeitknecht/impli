@@ -9,7 +9,7 @@ Maintainer  : bfeitknecht@ethz.ch
 Stability   : stable
 Portability : portable
 
-__TODO__
+TODO
 -}
 module IMP2.Pretty (
     prettify,
@@ -21,7 +21,7 @@ import Prettyprinter.Render.String
 
 import IMP2.Syntax
 
--- | __TODO__
+-- | TODO
 instance Pretty Aexp where
     pretty a = case a of
         Val n -> pretty n
@@ -33,7 +33,7 @@ instance Pretty Aexp where
         Bin Mod a1 a2 -> pretty a1 <+> pretty "%" <+> pretty a2
         Time s -> pretty "time" <+> pretty s
 
--- | __TODO__
+-- | TODO
 instance Pretty Bexp where
     pretty b = case b of
         Lit bool -> pretty (if bool then "true" else "false")
@@ -47,7 +47,7 @@ instance Pretty Bexp where
         Rel Gt a1 a2 -> pretty a1 <+> pretty ">" <+> pretty a2
         Rel Geq a1 a2 -> pretty a1 <+> pretty ">=" <+> pretty a2
 
--- | __TODO__
+-- | TODO
 instance Pretty Stm where
     pretty stm = case stm of
         Skip -> pretty "skip"
@@ -139,7 +139,7 @@ instance Pretty Stm where
                 ]
         _ -> undefined
 
--- | __TODO__
+-- | TODO
 instance Pretty Proc where
     pretty (Procedure name (params, rets) body) =
         vsep
@@ -147,18 +147,18 @@ instance Pretty Proc where
             , indent 4 (pretty body)
             ]
 
--- | __TODO__
+-- | TODO
 prettify :: (Pretty a) => a -> String
 prettify = renderString . layoutPretty defaultLayoutOptions . pretty
 
--- | __TODO__
+-- | TODO
 stringify :: (Pretty a) => a -> String
 stringify = unwords . words . prettify
 
--- | __TODO__
+-- | TODO
 commas :: [Doc ann] -> Doc ann
 commas = hsep . punctuate comma
 
--- | __TODO__
+-- | TODO
 semmicommas :: (Pretty a, Pretty b) => [a] -> [b] -> Doc ann
 semmicommas xs ys = commas (map pretty xs) <> semi <+> commas (map pretty ys)

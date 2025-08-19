@@ -9,12 +9,10 @@ import Control.Monad.IO.Class
 import System.IO
 import Text.Read (readMaybe)
 
-import Config
-
 import IMP2.Exception
 import IMP2.Syntax
 
--- | __TODO__
+-- | TODO
 type IMP = Except.ExceptT Exception IO
 
 -- | Map of defined variables from string identifier to integer values.
@@ -24,7 +22,7 @@ type Vars = Map.Map String Integer
 type State = (Vars, [Proc], Bool)
 
 -- | Interpreter configuration as pair of state stack and remaining statement execution.
-type Conf = ([State], Maybe Stm)
+type Conf = (Maybe Stm, [State])
 
 -- | Default variable map with no definitions.
 zero :: Map.Map String Integer
@@ -34,7 +32,7 @@ zero = Map.empty
 initial :: State
 initial = (zero, [], False)
 
--- | __TODO__
+-- | TODO
 getVal :: String -> IMP Integer
 getVal p = do
     liftIO $ putStr p >> hFlush stdout
@@ -43,66 +41,72 @@ getVal p = do
         Nothing -> throwError Empty
         Just s -> case readMaybe s of
             Nothing -> do
-                liftIO . print . Info $ "invalid input, please enter an integer"
+                liftIO $ print . Info $ "invalid input, please enter an integer"
                 getVal p
             Just i -> return i
 
--- maybe undefined undefined (readMaybe result)
+-- | TODO
+getVars :: State -> Vars
+getVars (vars, _, _) = vars
 
 -- | Get the integer value of provided variable identifier or zero if undefined.
 getVar :: State -> String -> Integer
 getVar (vars, _, _) x = Map.findWithDefault 0 x vars
 
--- | __TODO__
+-- | TODO
 setVar :: State -> String -> Integer -> State
 setVar state "_" _ = state -- placeholder write-only variable
-setVar _ "" _ = error "variable name can't be empty string"
+setVar _ "" _ = error "illegal argument for variable: identifier can't be empty string"
 setVar (vars, procs, flag) var val = (Map.insert var val vars, procs, flag)
 
--- | __TODO__
+-- | TODO
 setVars :: State -> [(String, Integer)] -> State
 setVars = foldl $ uncurry . setVar
 
--- | __TODO__
+-- | TODO
+getProcs :: State -> [Proc]
+getProcs (_, procs, _) = procs
+
+-- | TODO
 getProc :: State -> String -> Maybe Proc
 getProc (_, procs, _) name = List.find ((name ==) . procname) procs
 
--- | __TODO__
+-- | TODO
 setProc :: State -> Proc -> State
 setProc (vars, procs, flag) proc = (vars, proc : procs, flag)
 
--- | __TODO__
+-- | TODO
 getBreak :: State -> Bool
 getBreak (_, _, flag) = flag
 
--- | __TODO__
+-- | TODO
 setBreak :: State -> State
 setBreak (vars, procs, _) = (vars, procs, True)
 
--- | __TODO__
+-- | TODO
 resetBreak :: State -> State
 resetBreak (vars, procs, _) = (vars, procs, False)
 
--- | __TODO__
+-- | TODO
 flipvar :: Integer -> String
 flipvar i = "_flip" ++ show i
 
--- | __TODO__
+-- | TODO
 getFlip :: State -> Integer -> Bool
 getFlip state i = getVar state (flipvar i) == 0
 
--- | __TODO__
+-- | TODO
 setFlip :: State -> Integer -> State
 setFlip state i = setVar state (flipvar i) 0
 
--- | __TODO__
+-- | TODO
 setFlop :: State -> Integer -> State
 setFlop state i = setVar state (flipvar i) 1
 
--- | __TODO__
+-- | TODO
 (//) :: Integer -> Integer -> Integer
 (//) v1 v2 = if v2 == 0 then 0 else div v1 v2
 
--- | __TODO__
+-- | TODO
 (%%) :: Integer -> Integer -> Integer
 (%%) v1 v2 = if v2 == 0 then v1 else mod v1 v2

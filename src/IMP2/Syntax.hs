@@ -9,7 +9,7 @@ Maintainer  : bfeitknecht@ethz.ch
 Stability   : stable
 Portability : portable
 
-__TODO__
+TODO
 -}
 module IMP2.Syntax (
     Aexp (..),
@@ -27,7 +27,7 @@ where
 
 import Data.List (nub)
 
--- | __TODO__
+-- | TODO
 data Aexp
     = Bin Aop Aexp Aexp
     | Var String
@@ -35,7 +35,7 @@ data Aexp
     | Time Stm
     deriving (Eq, Show)
 
--- | __TODO__
+-- | TODO
 instance Num Aexp where
     (+) = Bin Add
     (-) = Bin Sub
@@ -46,23 +46,23 @@ instance Num Aexp where
     signum (Val v) = Val $ signum v
     signum _ = error "signum not supported for abstract syntax"
 
--- | __TODO__
+-- | TODO
 instance Ord Aexp where
     Val v1 <= Val v2 = v1 <= v2
     _ <= _ = error "order not supported for abstract syntax"
 
--- | __TODO__
+-- | TODO
 instance Enum Aexp where
     toEnum = Val . toEnum
     fromEnum (Val v) = fromEnum v
     fromEnum _ = error "fromEnum not supported for abstract syntax"
 
--- | __TODO__
+-- | TODO
 instance Real Aexp where
     toRational (Val v) = toRational v
     toRational _ = error "toRational not supported for abstract syntax"
 
--- | __TODO__
+-- | TODO
 instance Integral Aexp where
     div = Bin Div
     mod = Bin Mod
@@ -70,7 +70,7 @@ instance Integral Aexp where
     toInteger (Val v) = v
     toInteger _ = error "toInteger not supported for abstract syntax"
 
--- | __TODO__
+-- | TODO
 data Aop
     = Add
     | Sub
@@ -79,7 +79,7 @@ data Aop
     | Mod
     deriving (Eq, Show)
 
--- | __TODO__
+-- | TODO
 data Bexp
     = Or Bexp Bexp
     | And Bexp Bexp
@@ -88,7 +88,7 @@ data Bexp
     | Lit Bool
     deriving (Eq, Show)
 
--- | __TODO__
+-- | TODO
 data Rop
     = Eq
     | Neq
@@ -98,7 +98,7 @@ data Rop
     | Geq
     deriving (Eq, Show)
 
--- | __TODO__
+-- | TODO
 data Dop
     = Def
     | Inc
@@ -108,7 +108,7 @@ data Dop
     | Rem
     deriving (Eq, Show)
 
--- | __TODO__
+-- | TODO
 data Stm
     = Skip
     | VarDef String Dop Aexp
@@ -138,7 +138,7 @@ data Stm
     | Alternate Stm Stm
     deriving (Eq, Show)
 
--- | __TODO__
+-- | TODO
 data Proc = Procedure
     { procname :: String
     , procsign :: ([String], [String])
@@ -146,11 +146,11 @@ data Proc = Procedure
     }
     deriving (Eq)
 
--- | __TODO__
+-- | TODO
 instance Show Proc where
     show p = unwords ["Procedure", show $ procname p, show $ procsign p, show $ procbody p]
 
--- | __TODO__
+-- | TODO
 data Construct
     = Statement Stm
     | Arithmetic Aexp
@@ -158,11 +158,11 @@ data Construct
     | Whitespace
     deriving (Eq, Show)
 
--- | __TODO__
+-- | TODO
 class Variables a where
     variables :: a -> [String]
 
--- | __TODO__
+-- | TODO
 instance Variables Bexp where
     variables bexp = nub $ case bexp of
         Or b1 b2 -> variables b1 ++ variables b2
@@ -171,7 +171,7 @@ instance Variables Bexp where
         Rel _ a1 a2 -> variables a1 ++ variables a2
         Lit _ -> []
 
--- | __TODO__
+-- | TODO
 instance Variables Aexp where
     variables aexp = nub $ case aexp of
         Bin _ a1 a2 -> variables a1 ++ variables a2
@@ -179,7 +179,7 @@ instance Variables Aexp where
         Val _ -> []
         Time s -> variables s
 
--- | __TODO__
+-- | TODO
 instance Variables Stm where
     variables stm = nub $ case stm of
         Skip -> []

@@ -2,27 +2,27 @@ module Config where
 
 import System.Console.Haskeline
 
--- | __TODO__
+-- | TODO
 operational :: Bool
 operational = True
 
--- | __TODO__
+-- | TODO
 extensions :: Bool
 extensions = True
 
--- | __TODO__
+-- | TODO
 welcome :: String
 welcome = "Welcome to the IMP REPL! Enter :help to list available metacommands and :quit to exit."
 
--- | __TODO__
+-- | TODO
 prompt :: String
 prompt = "IMP> "
 
--- | __TODO__
+-- | TODO
 goodbye :: String
 goodbye = "Goodbye!"
 
--- | __TODO__
+-- | TODO
 settings :: Settings IO
 settings =
     defaultSettings

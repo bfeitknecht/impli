@@ -6,9 +6,9 @@ import IMP2.Semantic.Structural
 import IMP2.State
 import IMP2.Syntax
 
--- | __TODO__
-interpret :: State -> Stm -> IMP State
-interpret state stm =
+-- | TODO
+interpret :: (Stm, State) -> IMP State
+interpret (stm, state) =
     if operational
-        then steps ([state], stm)
-        else run (state, stm)
+        then steps (stm, [state])
+        else run (stm, state)

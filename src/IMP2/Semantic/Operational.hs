@@ -1,152 +1,160 @@
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# OPTIONS_GHC -Wno-x-partial #-}
 
 module IMP2.Semantic.Operational where
 
+import IMP2.Exception
 import IMP2.Expression
+import IMP2.Pretty
 import IMP2.State
 import IMP2.Syntax
 
-import Control.Monad.IO.Class
+import Control.Monad.Except (catchError, throwError)
+import Control.Monad.IO.Class (liftIO)
+import System.Random (randomIO)
 
-step :: ([State], Stm) -> IMP Conf
-step (stack, Skip) = return (stack, Nothing)
-step (state : states, VarDef x f a) =
-    let
-        v = getVar state x
-        v' = evaluate state a
-        state' = setVar state x $ case f of
-            Def -> v'
-            Inc -> v + v'
-            Dec -> v - v'
-            Prod -> v * v'
-            Quot -> v // v'
-            Rem -> v %% v'
-    in
-        return (state' : states, Nothing)
-step (stack, Seq s1 s2) = do
-    (stack', rest) <- step (stack, s1)
-    case rest of
-        Nothing -> return (stack', Just s2)
-        Just s1' -> return (stack', Just $ Seq s1' s2)
-step (stack@(state : _), IfElse b s1 s2) =
-    if evaluate state b
-        then return (stack, Just s1)
-        else return (stack, Just s2)
-step (stack@(state : states), While b s) =
-    if evaluate state b
-        then
-            if not $ getBreak state
-                then return (stack, Just $ Seq s $ While b s)
-                else return (resetBreak state : states, Nothing)
-        else return (stack, Nothing)
-step (stack, Print a) = liftIO (print $ evaluate (head stack) a) >> return (stack, Nothing)
-step (state : states, Read x) = do
-    v <- getVal $ x ++ " := "
-    return (setVar state x v : states, Nothing)
-step _ = undefined
+import qualified Data.Map as Map
 
-{-
-Local x e s -> do
-    let
-        snapshot = ([(x, getVar state x)], prs state, brk state)
-        local = setVar state x $ evaluate state e
-    return (local : states, Just $ Seq s $ Restore snapshot)
-Par s1 s2 -> do
-    left <- randomIO :: REPL Bool
-    if left
-        then do
-            (stack', rest1) <- step stack s1
-            case rest1 of
-                Nothing -> return (stack', Just s2)
-                Just s1' -> return (stack', Just $ Par s1' s2)
-        else do
-            (stack', rest2) <- step stack s2
-            case rest2 of
-                Nothing -> return (stack', Just s1)
-                Just s2' -> return (stack', Just $ Par s1 s2')
-NonDet s1 s2 -> do
-    left <- randomIO :: REPL Bool
-    if left
-        then return (stack, Just s1)
-        else return (stack, Just s2)
-ProcDef p -> return (setProc state p : states, Nothing)
-ProcInvoc name (arguments, returns) -> do
-    case getProc state name of
-        Nothing -> throwError $ Error $ "undefined procedure: " ++ name
-        Just (Procedure _ (params, rets) body)
-            | length arguments /= length params -> throwError $ Error "mismatched number of arguments"
-            | length returns /= length rets -> throwError $ Error "mismatched number of return values"
-            | otherwise -> do
-                let
-                    vals = map (evaluate state) arguments -- evaluate arguments
-                    local = (Map.fromList (zip params vals), prs state, brk state) -- into local state
-                return (local : stack, Just $ Seq body $ Return rets returns)
-Restore (vars, procs, flag) -> do
-    let state' = setVars (vrs state, procs, flag) vars
-    return (state' : states, Nothing)
-Return rets returns -> case stack of
-    (callee : caller : rest) -> do
+step :: (Stm, [State]) -> IMP Conf
+step (_, []) = error "illegal configuration for step: empty state stack"
+step (stm, stack@(state : states)) = case stm of
+    Skip -> return (Nothing, stack)
+    VarDef x f a ->
         let
-            vals = map (getVar callee) rets
-            caller' = setVars caller $ zip returns vals
-        return (caller' : rest, Nothing)
-    _ -> throwError $ Error "insufficient callstack!"
-Break -> return (setBreak state : states, Nothing)
-Revert s b -> do
-    -- uninitialized variables can't be restored!
-    let snapshot = (Map.toList (vrs state), prs state, brk state)
-    return (stack, Just $ Seq s $ If b (Restore snapshot) Skip)
-Match e ms d -> do
-    let v = evaluate state e
-    case lookup v ms of
-        Just s -> return (stack, Just s)
-        Nothing -> return (stack, Just d)
-Havoc x -> do
-    v <- randomIO :: REPL Integer
-    return (setVar state x v : states, Nothing)
-Assert b ->
-    if evaluate state b
-        then return (stack, Nothing)
-        else throwError $ AssFail $ prettify b
-Flip i s1 s2 ->
-    if getFlip state i
-        then return (setFlop state i : states, Just s1)
-        else return (setFlip state i : states, Just s2)
-Raise e -> throwError $ Raised $ evaluate state e
-Try s1 x s2 -> do
-    (stack', rest) <- catchError (step stack s1) $ \err -> case err of
-        Raised v -> do
-            let state' = setVar state x v
-            return (state' : states, Just s2)
-        _ -> throwError err
-    case rest of
-        Nothing -> return (stack', Nothing)
-        Just s1' -> return (stack', Just $ Try s1' x s2)
-Swap x y -> do
-    let
-        v = getVar state x
-        w = getVar state y
-    return (setVars state [(x, w), (y, v)] : states, Nothing)
-Timeout s e ->
-    if evaluate state e <= 0
-        then return (stack, Nothing)
-        else do
-            (stack', rest) <- step stack s
-            case rest of
-                Nothing -> return (stack', Nothing)
-                Just s' -> return (stack', Just $ Timeout s' $ e - 1)
-Alternate s1 s2 -> do
-    (stack', rest) <- step [state] s1
-    case rest of
-        Just s1' -> return (stack', Just $ Alternate s2 s1')
-        Nothing -> return (stack', Just s2)
--}
+            v = getVar state x
+            v' = evaluate state a
+            state' = setVar state x $ case f of
+                Def -> v'
+                Inc -> v + v'
+                Dec -> v - v'
+                Prod -> v * v'
+                Quot -> v // v'
+                Rem -> v %% v'
+        in
+            return (Nothing, state' : states)
+    Seq s1 s2 -> do
+        (rest, stack') <- step (s1, stack)
+        case rest of
+            Nothing -> return (Just s2, stack')
+            Just s1' -> return (Just $ Seq s1' s2, stack')
+    IfElse b s1 s2 ->
+        if evaluate state b
+            then return (Just s1, stack)
+            else return (Just s2, stack)
+    While b s ->
+        if evaluate state b
+            then
+                if not $ getBreak state
+                    then return (Just $ Seq s $ While b s, stack)
+                    else return (Nothing, resetBreak state : states)
+            else return (Nothing, stack)
+    Print a -> liftIO (print $ evaluate state a) >> return (Nothing, stack)
+    Read x -> do
+        v <- getVal $ x ++ " := "
+        return (Nothing, setVar state x v : states)
+    Local x a s ->
+        let
+            snapshot = ([(x, getVar state x)], getProcs state, getBreak state)
+            local = setVar state x $ evaluate state a
+        in
+            -- maybe put local on stack and make Restore simply Pop the top state?
+            return (Just $ Seq s $ Restore snapshot, local : states)
+    Par s1 s2 -> do
+        left <- randomIO :: IMP Bool
+        if left
+            then do
+                (rest1, stack') <- step (s1, stack)
+                case rest1 of
+                    Nothing -> return (Just s2, stack')
+                    Just s1' -> return (Just $ Par s1' s2, stack')
+            else do
+                (rest2, stack') <- step (s2, stack)
+                case rest2 of
+                    Nothing -> return (Just s1, stack')
+                    Just s2' -> return (Just $ Par s1 s2', stack')
+    NonDet s1 s2 -> do
+        left <- randomIO :: IMP Bool
+        if left
+            then return (Just s1, stack)
+            else return (Just s2, stack)
+    ProcDef p -> return (Nothing, setProc state p : states)
+    ProcInvoc name (arguments, returns) ->
+        case getProc state name of
+            Nothing -> throwError . Error $ "undefined procedure: " ++ name
+            Just (Procedure _ (params, rets) body)
+                | length arguments /= length params -> throwError . Error $ "mismatched number of arguments to parameters"
+                | length returns /= length rets -> throwError . Error $ "mismatched number of return variables"
+                | otherwise ->
+                    let
+                        vals = map (evaluate state) arguments -- evaluate arguments
+                        local = (Map.fromList (zip params vals), getProcs state, getBreak state) -- into local state
+                    in
+                        return (Just $ Seq body $ Return rets returns, local : stack)
+    Restore (vars, procs, flag) ->
+        let state' = setVars (getVars state, procs, flag) vars
+        in return (Nothing, state' : states)
+    Return rets returns -> case stack of
+        (callee : caller : rest) ->
+            let
+                vals = map (getVar callee) rets
+                caller' = setVars caller $ zip returns vals
+            in
+                return (Nothing, caller' : rest)
+        _ -> error "illegal configuration for step: empty state stack"
+    Break -> return (Nothing, setBreak state : states)
+    Revert s b ->
+        -- INFO: uninitialized variables can't be restored!
+        let snapshot = (Map.toList (getVars state), getProcs state, getBreak state)
+        in return (Just $ Seq s $ IfElse b (Restore snapshot) Skip, stack)
+    Match a ms d ->
+        let v = evaluate state a
+        in case lookup v ms of
+            Just s -> return (Just s, stack)
+            Nothing -> return (Just d, stack)
+    Havoc x -> do
+        v <- randomIO :: IMP Integer
+        return (Nothing, setVar state x v : states)
+    Assert b ->
+        if evaluate state b
+            then return (Nothing, stack)
+            else throwError . AssertFail $ prettify b
+    FlipFlop i s1 s2 ->
+        if getFlip state i
+            then return (Just s1, setFlop state i : states)
+            else return (Just s2, setFlip state i : states)
+    Raise a -> throwError . Raised $ evaluate state a
+    TryCatch s1 x s2 -> do
+        (rest, stack') <- catchError (step (s1, stack)) $ \e -> case e of
+            Raised v ->
+                let state' = setVar state x v -- catch in x
+                in return (Just s2, state' : states) -- continue with s2
+            _ -> throwError e -- can't catch, propagate
+        case rest of
+            Nothing -> return (Nothing, stack')
+            Just s1' -> return (Just $ TryCatch s1' x s2, stack')
+    Swap x y ->
+        let
+            v = getVar state x
+            w = getVar state y
+        in
+            return (Nothing, setVars state [(x, w), (y, v)] : states)
+    Timeout s a ->
+        if evaluate state a <= 0
+            then return (Nothing, stack)
+            else do
+                (rest, stack') <- step (s, stack)
+                case rest of
+                    Nothing -> return (Nothing, stack')
+                    Just s' -> return (Just $ Timeout s' (a - 1), stack')
+    Alternate s1 s2 -> do
+        (rest, stack') <- step (s1, stack)
+        case rest of
+            Nothing -> return (Just s2, stack')
+            Just s1' -> return (Just $ Alternate s2 s1', stack')
 
-steps :: ([State], Stm) -> IMP State
-steps ([], _) = error ""
+steps :: (Stm, [State]) -> IMP State
+steps (_, []) = error "insufficient"
 steps conf = do
-    (stack', rest) <- step conf
+    (rest, stack'@(state' : _)) <- step conf
     case rest of
-        Nothing -> return . head $ stack'
-        Just stm -> steps (stack', stm)
+        Nothing -> return state'
+        Just stm -> steps (stm, stack')
