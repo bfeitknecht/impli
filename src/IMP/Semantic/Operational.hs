@@ -1,3 +1,14 @@
+{- |
+Module      : IMP.Semantic.Operational
+Description : TODO
+Copyright   : (c) Basil Feitknecht, 2025
+License     : MIT
+Maintainer  : bfeitknecht@ethz.ch
+Stability   : stable
+Portability : portable
+
+TODO
+-}
 module IMP.Semantic.Operational where
 
 import IMP.Exception
@@ -12,6 +23,7 @@ import System.Random (randomIO)
 
 import qualified Data.Map as Map
 
+-- | TODO
 step :: (Stm, [State]) -> IMP Conf
 step (_, []) = error "illegal configuration for step: empty state stack"
 step (stm, stack@(state : states)) = case stm of
@@ -100,7 +112,7 @@ step (stm, stack@(state : states)) = case stm of
         _ -> error "illegal configuration for step: empty state stack"
     Break -> return (Nothing, setBreak state : states)
     Revert s b ->
-        -- INFO: uninitialized variables can't be restored!
+        -- INFO: uninitialized variables can't be restored
         let snapshot = (Map.toList (getVars state), getProcs state, getBreak state)
         in return (Just $ Seq s $ IfElse b (Restore snapshot) Skip, stack)
     Match a ms d ->
@@ -149,6 +161,7 @@ step (stm, stack@(state : states)) = case stm of
             Nothing -> return (Just s2, stack')
             Just s1' -> return (Just $ Alternate s2 s1', stack')
 
+-- | TODO
 steps :: (Stm, [State]) -> IMP State
 steps (_, []) = error "insufficient"
 steps conf = do

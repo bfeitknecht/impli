@@ -1,9 +1,21 @@
+{- |
+Module      : IMP.State
+Description : TODO
+Copyright   : (c) Basil Feitknecht, 2025
+License     : MIT
+Maintainer  : bfeitknecht@ethz.ch
+Stability   : stable
+Portability : portable
+
+TODO
+-}
 module IMP.State where
 
 import qualified Control.Monad.Trans.Except as Except
 import qualified Data.List as List
 import qualified Data.Map as Map
 
+import Control.Exception (IOException, try)
 import Control.Monad.Except (throwError)
 import Control.Monad.IO.Class
 import System.IO
@@ -36,14 +48,14 @@ initial = (zero, [], False)
 getVal :: String -> IMP Integer
 getVal x = do
     liftIO $ putStr (x ++ " := ") >> hFlush stdout
-    result <- Just <$> liftIO getLine
-    case result of
-        Nothing -> throwError Empty
-        Just s -> case readMaybe s of
-            Nothing -> do
-                liftIO . print . Info $ "invalid input, please enter an integer"
-                getVal x
-            Just i -> return i
+    input <-
+        liftIO (try getLine :: IO (Either IOException String))
+            >>= either (\_ -> throwError Empty) return
+    case readMaybe input of
+        Nothing -> do
+            liftIO . print . Info $ "invalid input, please enter an integer"
+            getVal x
+        Just i -> return i
 
 -- | TODO
 getVars :: State -> Vars

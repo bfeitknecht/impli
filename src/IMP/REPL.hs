@@ -1,6 +1,17 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# OPTIONS_GHC -Wno-x-partial #-}
 
+{- |
+Module      : IMP.REPL
+Description : TODO
+Copyright   : (c) Basil Feitknecht, 2025
+License     : MIT
+Maintainer  : bfeitknecht@ethz.ch
+Stability   : stable
+Portability : portable
+
+TODO
+-}
 module IMP.REPL where
 
 import qualified Control.Monad.Trans.Except as Except
@@ -107,7 +118,6 @@ normalizeMeta (w : ws)
 normalizeMeta rest = rest
 
 -- | TODO
--- CHECK: rewrite with case expression anyway?
 handleMeta :: Env -> [String] -> REPL ()
 handleMeta env@(trace, state@(vars, procs, flag)) meta = case meta of
     [")"] -> output "You look good today!" >> loop env

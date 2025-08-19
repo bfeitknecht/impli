@@ -2,7 +2,7 @@
 
 {- |
 Module      : IMP.Syntax
-Description : Defines the syntax of the IMP language, including expressions, statements, and procedures.
+Description : Syntax definition of the IMP language
 Copyright   : (c) Basil Feitknecht, 2025
 License     : MIT
 Maintainer  : bfeitknecht@ethz.ch
@@ -29,10 +29,10 @@ import Data.List (nub)
 
 -- | TODO
 data Aexp
-    = Bin Aop Aexp Aexp
-    | Var String
-    | Val Integer
-    | Time Stm
+    = Bin Aop Aexp Aexp -- ^ TODO
+    | Var String -- ^ TODO
+    | Val Integer -- ^ TODO
+    | Time Stm -- ^ TODO
     deriving (Eq, Show)
 
 -- | TODO
@@ -72,77 +72,76 @@ instance Integral Aexp where
 
 -- | TODO
 data Aop
-    = Add
-    | Sub
-    | Mul
-    | Div
-    | Mod
+    = Add -- ^ TODO
+    | Sub -- ^ TODO
+    | Mul -- ^ TODO
+    | Div -- ^ TODO
+    | Mod -- ^ TODO
     deriving (Eq, Show)
 
 -- | TODO
 data Bexp
-    = Or Bexp Bexp
-    | And Bexp Bexp
-    | Not Bexp
-    | Rel Rop Aexp Aexp
-    | Lit Bool
+    = Or Bexp Bexp -- ^ TODO
+    | And Bexp Bexp -- ^ TODO
+    | Not Bexp -- ^ TODO
+    | Rel Rop Aexp Aexp -- ^ TODO
+    | Lit Bool -- ^ TODO
     deriving (Eq, Show)
 
 -- | TODO
 data Rop
-    = Eq
-    | Neq
-    | Lt
-    | Leq
-    | Gt
-    | Geq
+    = Eq -- ^ TODO
+    | Neq -- ^ TODO
+    | Lt -- ^ TODO
+    | Leq -- ^ TODO
+    | Gt -- ^ TODO
+    | Geq -- ^ TODO
     deriving (Eq, Show)
 
 -- | TODO
 data Dop
-    = Def
-    | Inc
-    | Dec
-    | Prod
-    | Quot
-    | Rem
+    = Def -- ^ TODO
+    | Inc -- ^ TODO
+    | Dec -- ^ TODO
+    | Prod -- ^ TODO
+    | Quot -- ^ TODO
+    | Rem -- ^ TODO
     deriving (Eq, Show)
 
 -- | TODO
 data Stm
-    = Skip
-    | VarDef String Dop Aexp
-    | Seq Stm Stm
-    | IfElse Bexp Stm Stm
-    | While Bexp Stm
-    | Print Aexp
-    | Read String
-    | Local String Aexp Stm
-    | Par Stm Stm
-    | NonDet Stm Stm
-    | ProcDef Proc
-    | ProcInvoc String ([Aexp], [String])
-    | Restore
-        ([(String, Integer)], [Proc], Bool)
-    | Return [String] [String]
-    | Break
-    | Revert Stm Bexp
-    | Match Aexp [(Integer, Stm)] Stm
-    | Havoc String
-    | Assert Bexp
-    | FlipFlop Integer Stm Stm
-    | Raise Aexp
-    | TryCatch Stm String Stm
-    | Swap String String
-    | Timeout Stm Aexp
-    | Alternate Stm Stm
+    = Skip -- ^ TODO
+    | VarDef String Dop Aexp -- ^ TODO
+    | Seq Stm Stm -- ^ TODO
+    | IfElse Bexp Stm Stm -- ^ TODO
+    | While Bexp Stm -- ^ TODO
+    | Print Aexp -- ^ TODO
+    | Read String -- ^ TODO
+    | Local String Aexp Stm -- ^ TODO
+    | Par Stm Stm -- ^ TODO
+    | NonDet Stm Stm -- ^ TODO
+    | ProcDef Proc -- ^ TODO
+    | ProcInvoc String ([Aexp], [String]) -- ^ TODO
+    | Restore ([(String, Integer)], [Proc], Bool) -- ^ TODO
+    | Return [String] [String] -- ^ TODO
+    | Break -- ^ TODO
+    | Revert Stm Bexp -- ^ TODO
+    | Match Aexp [(Integer, Stm)] Stm -- ^ TODO
+    | Havoc String -- ^ TODO
+    | Assert Bexp -- ^ TODO
+    | FlipFlop Integer Stm Stm -- ^ TODO
+    | Raise Aexp -- ^ TODO
+    | TryCatch Stm String Stm -- ^ TODO
+    | Swap String String -- ^ TODO
+    | Timeout Stm Aexp -- ^ TODO
+    | Alternate Stm Stm -- ^ TODO
     deriving (Eq, Show)
 
 -- | TODO
 data Proc = Procedure
-    { procname :: String
-    , procsign :: ([String], [String])
-    , procbody :: Stm
+    { procname :: String -- ^ TODO
+        , procsign :: ([String], [String]) -- ^ TODO
+        , procbody :: Stm -- ^ TODO
     }
     deriving (Eq)
 
@@ -152,10 +151,10 @@ instance Show Proc where
 
 -- | TODO
 data Construct
-    = Statement Stm
-    | Arithmetic Aexp
-    | Boolean Bexp
-    | Whitespace
+    = Statement Stm -- ^ TODO
+    | Arithmetic Aexp -- ^ TODO
+    | Boolean Bexp -- ^ TODO
+    | Whitespace -- ^ TODO
     deriving (Eq, Show)
 
 -- | TODO

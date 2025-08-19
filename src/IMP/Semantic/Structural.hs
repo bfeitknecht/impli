@@ -1,3 +1,14 @@
+{- |
+Module      : IMP.Semantic.Structural
+Description : TODO
+Copyright   : (c) Basil Feitknecht, 2025
+License     : MIT
+Maintainer  : bfeitknecht@ethz.ch
+Stability   : stable
+Portability : portable
+
+TODO
+-}
 module IMP.Semantic.Structural where
 
 import IMP.Exception
@@ -12,6 +23,7 @@ import System.Random (randomIO)
 
 import qualified Data.Map as Map
 
+-- | TODO
 run :: (Stm, State) -> IMP State
 run (stm, state) = case stm of
     Skip -> return state
@@ -50,8 +62,7 @@ run (stm, state) = case stm of
             local = setVar state x new
         state' <- run (s, local)
         return $ setVar state' x old
-    -- FIXME: this should be possible
-    Par _ _ -> throwError . Error $ "parallel execution not yet supported in structural semantics"
+    Par _ _ -> throwError . Error $ "parallel execution not (yet) supported in structural semantics" -- FIXME: this should be possible
     NonDet s1 s2 -> do
         left <- randomIO :: IMP Bool
         if left

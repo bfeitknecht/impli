@@ -1,8 +1,8 @@
 {-# LANGUAGE FunctionalDependencies #-}
 
 {- |
-Module      : IMP.Semantic.Expression
-Description : Evaluation of arithmetic and boolean expressions in the IMP language
+Module      : IMP.Expression
+Description : Evaluation of expressions in the IMP language
 Copyright   : (c) Basil Feitknecht, 2025
 License     : MIT
 Maintainer  : bfeitknecht@ethz.ch
@@ -62,8 +62,7 @@ instance Evaluate Bexp Bool where
                     Geq -> v1 >= v2
 
 -- | TODO
--- CHECK
--- rewrite to count steps in operational semantics
+-- CHECK: rewrite to count steps in operational semantics
 instance Evaluate Stm Integer where
     evaluate state stm = case stm of
         Skip -> 0

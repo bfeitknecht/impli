@@ -1,13 +1,16 @@
 {- |
 Module      : CLI
-Description : Command-line interface for the IMP language interpreter
+Description : Commandline interface for the IMP language interpreter
 Copyright   : (c) Basil Feitknecht, 2025
 License     : MIT
 Maintainer  : bfeitknecht@ethz.ch
 Stability   : stable
 Portability : portable
 
-TODO
+Provides the commandline interface for the IMP language interpreter.
+Handles parsing of arguments and options, then runs in the appropriate
+execution mode, such as the REPL, file (or stdin) interpretation,
+command execution or prints the version, help or AST of a construct.
 -}
 module CLI (
     parseCLI,
@@ -19,6 +22,7 @@ import Data.Version (showVersion)
 import Options.Applicative
 import System.Exit (exitFailure)
 
+import Config
 import IMP.Exception
 import IMP.Parser
 import IMP.REPL
@@ -32,12 +36,12 @@ import qualified System.Console.Haskeline as Haskeline
 -- | Mode to run the CLI.
 {- FOURMOLU_DISABLE -}
 data Mode
-    = REPL Bool         -- ^ Start interactive REPL with switch to toggle history.
+    = REPL Bool         -- ^ Start interactive REPL with option to toggle history.
     | File FilePath     -- ^ Interpret IMP source file.
-    | Command String    -- ^ Interpret IMP command passed as a string.
-    | AST String        -- ^ Show the AST of a construct.
+    | Command String    -- ^ Interpret IMP command passed as string.
+    | AST String        -- ^ Print the AST of a construct.
     | STDIN             -- ^ Interpret from standard input.
-    | Version           -- ^ Show the version.
+    | Version           -- ^ Print the version.
 {- FOURMOLU_ENABLE -}
 
 -- | Parser for the CLI mode.
@@ -47,9 +51,9 @@ parseMode =
         [ REPL <$> switch (long "no-history" <> help "Disable REPL history")
         , File <$> strArgument (metavar "FILE" <> help "Interpret source file")
         , Command <$> strOption (long "command" <> short 'c' <> metavar "COMMAND" <> help "Interpret command")
-        , AST <$> strOption (long "ast" <> short 'a' <> metavar "CONSTRUCT" <> help "Show AST")
+        , AST <$> strOption (long "ast" <> short 'a' <> metavar "CONSTRUCT" <> help "Print AST")
         , flag' STDIN (long "stdin" <> help "Interpret from standard input")
-        , flag' Version (long "version" <> short 'v' <> help "Show version")
+        , flag' Version (long "version" <> short 'v' <> help "Print version")
         ]
 
 -- | Parser for the CLI options and information.
@@ -73,16 +77,12 @@ parseCLI = customExecParser defaultPrefs {prefColumns = 120} cli
 runCLI :: Mode -> IO ()
 runCLI mode =
     case mode of
-        REPL nohist -> runREPL nohist
+        REPL nohist -> repl (settings {Haskeline.autoAddHistory = not nohist}) start
         File path -> runFile path
         Command cmd -> runProgram "command" cmd
         AST input -> printAST input
         STDIN -> runSTDIN
         Version -> putStrLn $ "impli " ++ showVersion Paths.version
-
--- | Run the REPL with optionally disabled history.
-runREPL :: Bool -> IO ()
-runREPL hist = repl (settings hist) start
 
 -- | Interpret source file or standard input if path is @-@.
 runFile :: FilePath -> IO ()
@@ -109,12 +109,10 @@ runProgram channel input =
             Except.runExceptT (interpret (stm, initial))
                 >>= either (\e -> print e >> exitFailure) (\_ -> return ())
 
-defaults :: Haskeline.Settings IO
-defaults =
+-- | Default 'System.Console.Haskeline.Settings' for 'IMP.REPL.repl'.
+settings :: Haskeline.Settings IO
+settings =
     Haskeline.defaultSettings
-        { Haskeline.historyFile = Just ".imp_history"
+        { Haskeline.historyFile = historyFile
         , Haskeline.autoAddHistory = True
         }
-
-settings :: Bool -> Haskeline.Settings IO
-settings nohist = if nohist then defaults {Haskeline.autoAddHistory = True} else defaults
