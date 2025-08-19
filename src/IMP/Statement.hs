@@ -1,10 +1,10 @@
-module IMP2.Statement where
+module IMP.Statement where
 
 import Config
-import IMP2.Semantic.Operational
-import IMP2.Semantic.Structural
-import IMP2.State
-import IMP2.Syntax
+import IMP.Semantic.Operational
+import IMP.Semantic.Structural
+import IMP.State
+import IMP.Syntax
 
 -- | TODO
 interpret :: (Stm, State) -> IMP State

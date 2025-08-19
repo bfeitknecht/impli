@@ -1,7 +1,5 @@
 module Config where
 
-import System.Console.Haskeline
-
 -- | TODO
 operational :: Bool
 operational = True
@@ -21,11 +19,3 @@ prompt = "IMP> "
 -- | TODO
 goodbye :: String
 goodbye = "Goodbye!"
-
--- | TODO
-settings :: Settings IO
-settings =
-    defaultSettings
-        { historyFile = Just ".imp_history"
-        , autoAddHistory = True
-        }

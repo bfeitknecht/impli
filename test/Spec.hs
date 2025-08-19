@@ -1,16 +1,14 @@
 module Main (main) where
 
 import Control.Monad.Trans.Except (runExceptT)
-import System.Console.Haskeline (defaultSettings, runInputT)
 import Test.Tasty
 import Test.Tasty.HUnit
 
+import IMP.Expression
 import IMP.Parser
 import IMP.Pretty
-import IMP.Result
-import IMP.Semantic.Expression
-import IMP.Semantic.State
-import IMP.Semantic.Statement
+import IMP.State
+import IMP.Statement
 import IMP.Syntax
 
 main :: IO ()
@@ -33,21 +31,21 @@ parseTests =
         [ assertParseStm "skip" Skip
         , assertParseStm "x := 1" (VarDef "x" Def (Val 1))
         , assertParseStm "(skip; skip)" (Seq Skip Skip)
-        , assertParseStm "if true then skip end" (If (Lit True) Skip Skip)
-        , assertParseStm "if true then skip else skip end" (If (Lit True) Skip Skip)
+        , assertParseStm "if true then skip end" (IfElse (Lit True) Skip Skip)
+        , assertParseStm "if true then skip else skip end" (IfElse (Lit True) Skip Skip)
         , assertParseStm
             "if true then skip else if true then skip end end"
-            (If (Lit True) Skip (If (Lit True) Skip Skip))
+            (IfElse (Lit True) Skip (IfElse (Lit True) Skip Skip))
         , assertParseStm
             "while false do if true then skip else if true then skip end end end"
-            (While (Lit False) (If (Lit True) Skip (If (Lit True) Skip Skip)))
+            (While (Lit False) (IfElse (Lit True) Skip (IfElse (Lit True) Skip Skip)))
         , {-
           , assertParseStm
               "if true then skip else if true then skip end"
-              (If (Lit True) Skip (If (Lit True) Skip Skip))
+              (IfElse (Lit True) Skip (IfElse (Lit True) Skip Skip))
           , assertParseStm
               "while false do if true then skip else if true then skip end end"
-              (While (Lit False) (If (Lit True) Skip (If (Lit True) Skip Skip)))
+              (While (Lit False) (IfElse (Lit True) Skip (IfElse (Lit True) Skip Skip)))
           -}
           assertParseStm "while true do skip end" (While (Lit True) Skip)
         , assertParseStm "print 1" (Print (Val 1))
@@ -103,7 +101,7 @@ evalTests =
                 Time $
                     Seq
                         (Seq (VarDef "a" Def (Val 1)) (VarDef "a" Def (Val 2)))
-                        (If (Lit True) (VarDef "c" Def (Val 3)) Skip)
+                        (IfElse (Lit True) (VarDef "c" Def (Val 3)) Skip)
           in assertEvalAexp initial stm 3
         , assertEvalBexp initial (Rel Eq (Val 1) (Val 1)) True
         , assertEvalBexp initial (Rel Neq (Val 1) (Val 2)) True
@@ -127,11 +125,11 @@ execTests =
         , assertExec initial (VarDef "x" Def (Val 10)) ([("x", 10)], [])
         , assertExec
             initial
-            (If (Lit True) (VarDef "x" Def (Val 1)) Skip)
+            (IfElse (Lit True) (VarDef "x" Def (Val 1)) Skip)
             ([("x", 1)], [])
         , assertExec
             initial
-            (If (Lit False) Skip (VarDef "x" Def (Val 2)))
+            (IfElse (Lit False) Skip (VarDef "x" Def (Val 2)))
             ([("x", 2)], [])
         , let stm =
                 While
@@ -163,7 +161,7 @@ execTests =
                     Time $
                         Seq
                             (Seq (VarDef "a" Def (Val 1)) (VarDef "a" Def (Val 2)))
-                            (If (Lit True) (VarDef "c" Def (Val 3)) Skip)
+                            (IfElse (Lit True) (VarDef "c" Def (Val 3)) Skip)
           in assertExec initial stm ([("x", 3)], [])
         , let stm =
                 Seq
@@ -202,7 +200,7 @@ assertEvalBexp state b bool = testCase (stringify b) $ evaluate state b @?= bool
 
 assertExec :: State -> Stm -> ([(String, Integer)], [Proc]) -> TestTree
 assertExec state stm (vars, procs) = testCase (stringify stm) $ do
-    result <- launch $ interpret state stm
+    result <- runExceptT $ interpret (stm, state)
     case result of
         Left err -> assertFailure $ "Execution failed with error: " ++ show err
         Right state' -> do
@@ -227,6 +225,3 @@ assertExec state stm (vars, procs) = testCase (stringify stm) $ do
                     sequence_ varChecks
                     let procChecks = [getProc state' (procname proc) @?= Just proc | proc <- procs]
                     sequence_ procChecks
-
-launch :: REPL a -> IO (Either Result a)
-launch repl = runInputT defaultSettings (runExceptT repl)

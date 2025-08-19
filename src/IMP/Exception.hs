@@ -1,4 +1,4 @@
-module IMP2.Exception (
+module IMP.Exception (
     Exception (..),
 ) where
 

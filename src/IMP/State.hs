@@ -1,4 +1,4 @@
-module IMP2.State where
+module IMP.State where
 
 import qualified Control.Monad.Trans.Except as Except
 import qualified Data.List as List
@@ -9,8 +9,8 @@ import Control.Monad.IO.Class
 import System.IO
 import Text.Read (readMaybe)
 
-import IMP2.Exception
-import IMP2.Syntax
+import IMP.Exception
+import IMP.Syntax
 
 -- | TODO
 type IMP = Except.ExceptT Exception IO
@@ -34,15 +34,15 @@ initial = (zero, [], False)
 
 -- | TODO
 getVal :: String -> IMP Integer
-getVal p = do
-    liftIO $ putStr p >> hFlush stdout
+getVal x = do
+    liftIO $ putStr (x ++ " := ") >> hFlush stdout
     result <- Just <$> liftIO getLine
     case result of
         Nothing -> throwError Empty
         Just s -> case readMaybe s of
             Nothing -> do
-                liftIO $ print . Info $ "invalid input, please enter an integer"
-                getVal p
+                liftIO . print . Info $ "invalid input, please enter an integer"
+                getVal x
             Just i -> return i
 
 -- | TODO

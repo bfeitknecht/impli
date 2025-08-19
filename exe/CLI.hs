@@ -7,36 +7,27 @@ Maintainer  : bfeitknecht@ethz.ch
 Stability   : stable
 Portability : portable
 
-This module provides the command-line interface for the IMP language interpreter.
-It supports various modes of operation, including running the REPL, interpreting
-source files, executing commands directly, and printing the abstract syntax tree (AST)
-of a given construct. The CLI also includes options for reading input from
-standard input and displaying the version.
+TODO
 -}
 module CLI (
-    Mode (..),
-    parseMode,
     parseCLI,
     runCLI,
 ) where
 
-import Control.Exception (IOException, try)
-import Control.Monad.IO.Class (liftIO)
-import Control.Monad.Trans.Except (runExceptT)
+import Control.Monad.Except (catchError)
 import Data.Version (showVersion)
 import Options.Applicative
-import System.Console.Haskeline (runInputT)
 import System.Exit (exitFailure)
 
-import IMP.Config
+import IMP.Exception
 import IMP.Parser
 import IMP.REPL
-import IMP.Result
-import IMP.Semantic.State
-import IMP.Semantic.Statement
-import IMP.Util
+import IMP.State
+import IMP.Statement
 
+import qualified Control.Monad.Trans.Except as Except
 import qualified Paths_impli as Paths
+import qualified System.Console.Haskeline as Haskeline
 
 -- | Mode to run the CLI.
 {- FOURMOLU_DISABLE -}
@@ -61,7 +52,7 @@ parseMode =
         , flag' Version (long "version" <> short 'v' <> help "Show version")
         ]
 
--- | CLI parser information for optparse-applicative.
+-- | Parser for the CLI options and information.
 cli :: ParserInfo Mode
 cli = info modifier description
     where
@@ -78,57 +69,52 @@ cli = info modifier description
 parseCLI :: IO Mode
 parseCLI = customExecParser defaultPrefs {prefColumns = 120} cli
 
--- | Entry point for the CLI application
+-- | Entrypoint for the CLI.
 runCLI :: Mode -> IO ()
 runCLI mode =
     case mode of
-        REPL nohist -> runREPL nohist
+        REPL hist -> runREPL hist
         File path -> runFile path
-        Command cmd -> runCommand cmd
-        AST construct -> runAST construct
+        Command cmd -> runProgram "command" cmd
+        AST input -> printAST input
         STDIN -> runSTDIN
-        Version -> runVersion
+        Version -> putStrLn $ "impli " ++ showVersion Paths.version
 
--- | Run the interactive REPL.
+-- | Run the REPL with optionally disabled history.
 runREPL :: Bool -> IO ()
-runREPL nohist = repl (if nohist then nohistory else settings) start
+runREPL hist = repl (settings hist) start
 
--- | Interpret a source file or standard input if path is @-@.
+-- | Interpret source file or standard input if path is @-@.
 runFile :: FilePath -> IO ()
 runFile "-" = runSTDIN
 runFile path = do
-    result <- try (readFile path) :: IO (Either IOException String)
-    case result of
-        Left err -> print (IOFail $ unlines' ["read from: " ++ path, show err]) >> exitFailure
-        Right content -> runProgram path content
-
--- | Interpret a command passed as a string.
-runCommand :: String -> IO ()
-runCommand = runProgram "command"
-
--- | Print AST of a construct.
-runAST :: String -> IO ()
-runAST input = runInputT nohistory $ do
-    result <- runExceptT $ printAST input
-    liftIO $ case result of
-        Left err -> print err >> exitFailure
-        Right _ -> return ()
+    content <-
+        readFile path `catchError` \e -> do
+            print . IOFail $ unlines ["read from: " ++ path, show e]
+            exitFailure
+    runProgram path content
 
 -- | Interpret from standard input.
 runSTDIN :: IO ()
 runSTDIN = getContents >>= runProgram "stdin"
 
--- | Print the program version.
-runVersion :: IO ()
-runVersion = putStrLn $ "impli " ++ showVersion Paths.version
-
 -- | Run program with parse channel and input string.
 runProgram :: String -> String -> IO ()
-runProgram channel input = runInputT nohistory $
+runProgram channel input =
     case parser channel input of
-        Left err -> liftIO $ print (ParseFail $ unlines' [input, show err]) >> exitFailure
-        Right stm -> do
-            result <- runExceptT $ interpret initial stm
-            liftIO $ case result of
-                Left err -> print err >> exitFailure
-                Right _ -> return ()
+        Left e -> do
+            print . ParseFail $ unlines [input, show e]
+            exitFailure
+        Right stm ->
+            Except.runExceptT (interpret (stm, initial))
+                >>= either (\e -> print e >> exitFailure) (\_ -> return ())
+
+defaults :: Haskeline.Settings IO
+defaults =
+    Haskeline.defaultSettings
+        { Haskeline.historyFile = Just ".imp_history"
+        , Haskeline.autoAddHistory = True
+        }
+
+settings :: Bool -> Haskeline.Settings IO
+settings hist = if hist then defaults else defaults {Haskeline.autoAddHistory = True}

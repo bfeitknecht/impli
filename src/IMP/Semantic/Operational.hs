@@ -1,12 +1,12 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module IMP2.Semantic.Operational where
+module IMP.Semantic.Operational where
 
-import IMP2.Exception
-import IMP2.Expression
-import IMP2.Pretty
-import IMP2.State
-import IMP2.Syntax
+import IMP.Exception
+import IMP.Expression
+import IMP.Pretty
+import IMP.State
+import IMP.Syntax
 
 import Control.Monad.Except (catchError, throwError)
 import Control.Monad.IO.Class (liftIO)
@@ -49,7 +49,7 @@ step (stm, stack@(state : states)) = case stm of
             else return (Nothing, stack)
     Print a -> liftIO (print $ evaluate state a) >> return (Nothing, stack)
     Read x -> do
-        v <- getVal $ x ++ " := "
+        v <- getVal x
         return (Nothing, setVar state x v : states)
     Local x a s ->
         let

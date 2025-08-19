@@ -1,10 +1,10 @@
-module IMP2.Semantic.Structural where
+module IMP.Semantic.Structural where
 
-import IMP2.Exception
-import IMP2.Expression
-import IMP2.Pretty
-import IMP2.State
-import IMP2.Syntax
+import IMP.Exception
+import IMP.Expression
+import IMP.Pretty
+import IMP.State
+import IMP.Syntax
 
 import Control.Monad.Except (catchError, throwError)
 import Control.Monad.IO.Class (liftIO)
@@ -41,7 +41,7 @@ run (stm, state) = case stm of
             else return state
     Print e -> liftIO (print $ evaluate state e) >> return state
     Read x -> do
-        v <- getVal $ x ++ " := "
+        v <- getVal x
         return $ setVar state x v
     Local x a s -> do
         let

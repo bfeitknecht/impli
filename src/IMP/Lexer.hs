@@ -1,4 +1,4 @@
-module IMP2.Lexer where
+module IMP.Lexer where
 
 import Text.Parsec
 import Text.Parsec.Language
