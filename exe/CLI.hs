@@ -73,7 +73,7 @@ parseCLI = customExecParser defaultPrefs {prefColumns = 120} cli
 runCLI :: Mode -> IO ()
 runCLI mode =
     case mode of
-        REPL hist -> runREPL hist
+        REPL nohist -> runREPL nohist
         File path -> runFile path
         Command cmd -> runProgram "command" cmd
         AST input -> printAST input
@@ -117,4 +117,4 @@ defaults =
         }
 
 settings :: Bool -> Haskeline.Settings IO
-settings hist = if hist then defaults else defaults {Haskeline.autoAddHistory = True}
+settings nohist = if nohist then defaults {Haskeline.autoAddHistory = True} else defaults

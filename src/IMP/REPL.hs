@@ -1,4 +1,3 @@
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# OPTIONS_GHC -Wno-x-partial #-}
 
@@ -129,7 +128,7 @@ handleMeta env@(trace, state@(vars, procs, flag)) meta = case meta of
     ["trace"] -> do
         outputSection
             "Trace:"
-            [ unlines $ zipWith (++) (idx : buf) ls
+            [ init . unlines $ zipWith (++) (idx : buf) ls
             | (i, s) <- zip [1 :: Int ..] trace
             , let
                 len = length (show i) + 3

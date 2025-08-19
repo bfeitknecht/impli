@@ -1,5 +1,3 @@
-{-# LANGUAGE ScopedTypeVariables #-}
-
 module IMP.Semantic.Operational where
 
 import IMP.Exception
