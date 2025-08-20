@@ -22,10 +22,10 @@ import Control.Monad.Except (catchError)
 import Data.Version (showVersion)
 import IMP.Exception
 import IMP.Parser
-import IMP.REPL
 import IMP.State
 import IMP.Statement
 import Options.Applicative
+import REPL
 import System.Exit (exitFailure)
 
 import qualified Control.Monad.Trans.Except as Except

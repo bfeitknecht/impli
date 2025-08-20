@@ -11,7 +11,7 @@ Portability : portable
 
 TODO
 -}
-module IMP.REPL where
+module REPL where
 
 import Control.Monad.Except (catchError, throwError)
 import Control.Monad.IO.Class (liftIO)
