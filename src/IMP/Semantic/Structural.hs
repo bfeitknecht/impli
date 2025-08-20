@@ -27,12 +27,12 @@ import IMP.Syntax
 run :: (Stm, State) -> IMP State
 run (stm, state) = case stm of
     Skip -> return state
-    VarDef x f a ->
+    VarDef x dop a ->
         let
             v = getVar state x
             v' = evaluate state a
         in
-            return $ setVar state x $ case f of
+            return $ setVar state x $ case dop of
                 Def -> v'
                 Inc -> v + v'
                 Dec -> v - v'

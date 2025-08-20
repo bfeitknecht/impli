@@ -17,22 +17,20 @@ module CLI (
     runCLI,
 ) where
 
+import Config
 import Control.Monad.Except (catchError)
 import Data.Version (showVersion)
-import Options.Applicative
-import System.Exit (exitFailure)
-
-import qualified Control.Monad.Trans.Except as Except
-import qualified System.Console.Haskeline as Haskeline
-
-import Config
 import IMP.Exception
 import IMP.Parser
 import IMP.REPL
 import IMP.State
 import IMP.Statement
+import Options.Applicative
+import System.Exit (exitFailure)
 
+import qualified Control.Monad.Trans.Except as Except
 import qualified Paths_impli as Paths
+import qualified System.Console.Haskeline as Haskeline
 
 -- | Mode to run the CLI.
 {- FOURMOLU_DISABLE -}
@@ -78,7 +76,7 @@ parseCLI = customExecParser defaultPrefs {prefColumns = 120} cli
 runCLI :: Mode -> IO ()
 runCLI mode =
     case mode of
-        REPL nohist -> repl (settings {Haskeline.autoAddHistory = not nohist}) start
+        REPL h -> repl (settings h) start
         File path -> runFile path
         Command cmd -> runProgram "command" cmd
         AST input -> printAST input
@@ -111,9 +109,9 @@ runProgram channel input =
                 >>= either (\e -> print e >> exitFailure) (\_ -> return ())
 
 -- | Default 'System.Console.Haskeline.Settings' for 'IMP.REPL.repl'.
-settings :: Haskeline.Settings IO
-settings =
+settings :: Bool -> Haskeline.Settings IO
+settings noHistory =
     Haskeline.defaultSettings
-        { Haskeline.historyFile = historyFile
+        { Haskeline.historyFile = if noHistory then Nothing else historyFile
         , Haskeline.autoAddHistory = True
         }

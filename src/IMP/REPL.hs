@@ -67,11 +67,11 @@ loop env = do
                 (\e -> throwError . ParseFail $ unlines [input, show e])
                 (\c -> dispatch env c >>= loop)
                 (parser "interactive" input)
-                `catchError` \e -> case e of
-                    Empty -> output "" -- ctrl-d during read, flush line and exit cleanly
-                    AssertFail _ -> throwError e -- unrecoverable, propagate
-                    Raised _ -> throwError e -- ''
-                    _ -> display e >> loop env -- mistakes happen
+        `catchError` \e -> case e of
+            Empty -> output "" -- ctrl-d during read, flush line and exit cleanly
+            AssertFail _ -> throwError e -- unrecoverable, propagate
+            Raised _ -> throwError e -- ''
+            _ -> display e >> loop env -- mistakes happen
 
 -- | TODO
 dispatch :: Env -> Construct -> REPL Env
@@ -219,7 +219,7 @@ output = liftIO . putStrLn
 display :: (Show a) => a -> REPL ()
 display = output . show
 
--- CHECK: newline shenanigans
+-- | TODO
 outputSection :: String -> [String] -> REPL ()
 outputSection title [] = output title
 outputSection title sect = output $ title ++ '\n' : indent 4 (unlines sect)

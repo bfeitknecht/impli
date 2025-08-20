@@ -28,11 +28,11 @@ step :: (Stm, [State]) -> IMP Conf
 step (_, []) = error "illegal configuration for step: empty state stack"
 step (stm, stack@(state : states)) = case stm of
     Skip -> return (Nothing, stack)
-    VarDef x f a ->
+    VarDef x dop a ->
         let
             v = getVar state x
             v' = evaluate state a
-            state' = setVar state x $ case f of
+            state' = setVar state x $ case dop of
                 Def -> v'
                 Inc -> v + v'
                 Dec -> v - v'
