@@ -48,7 +48,7 @@ run (stm, state) = case stm of
         if evaluate state b
             then
                 if not $ getBreak state
-                    then run (Seq s $ While b s, state)
+                    then run (s <> While b s, state)
                     else return $ resetBreak state
             else return state
     Print e -> liftIO (print $ evaluate state e) >> return state
@@ -83,7 +83,7 @@ run (stm, state) = case stm of
                     let rets' = zip returns $ map (getVar state') rets -- extract returns
                     return $ setVars state rets' -- insert into callside
     Restore _ -> error $ "illegal statement for run in structural semantics: " ++ show stm
-    Return _ _ -> error $ "illegal statement for structural semantics: " ++ show stm
+    Return _ _ -> error $ "illegal statement for run in structural semantics: " ++ show stm
     Break -> return $ setBreak state
     Revert s b -> do
         let old = state

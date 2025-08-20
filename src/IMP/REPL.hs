@@ -1,5 +1,4 @@
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# OPTIONS_GHC -Wno-x-partial #-}
 
 {- |
 Module      : IMP.REPL
@@ -15,16 +14,15 @@ TODO
 module IMP.REPL where
 
 import qualified Control.Monad.Trans.Except as Except
+import qualified Data.Map as Map
 import qualified System.Console.ANSI as ANSI
 import qualified System.Console.Haskeline as Haskeline
 
-import qualified Data.Map as Map
-import System.Exit
+import System.Exit (exitFailure)
 import Text.Read (readMaybe)
 
 import Control.Monad.Except (catchError, throwError)
-
-import Control.Monad.IO.Class
+import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Class (lift)
 
 import Config
@@ -55,14 +53,14 @@ repl cfg env = do
     Haskeline.runInputT cfg (Except.runExceptT (loop env))
         >>= either
             (\e -> print e >> exitFailure)
-            return
+            (\_ -> putStrLn goodbye)
 
 -- | TODO
 loop :: Env -> REPL ()
 loop env = do
-    line <- lift $ Haskeline.getInputLine prompt
+    line <- lift . Haskeline.getInputLine $ prompt
     case line of
-        Nothing -> output goodbye -- ctrl-d, exit cleanly
+        Nothing -> return () -- ctrl-d, exit cleanly
         Just "" -> loop env -- empty line, loop
         Just (':' : rest) -> handleMeta env . normalizeMeta $ words rest
         Just input ->
@@ -71,7 +69,7 @@ loop env = do
                 (\c -> dispatch env c >>= loop)
                 (parser "interactive" input)
                 `catchError` \e -> case e of
-                    Empty -> output ('\n' : goodbye) >> return () -- ctrl-d during read, exit cleanly
+                    Empty -> output "" -- ctrl-d during read, flush line and exit cleanly
                     AssertFail _ -> throwError e -- unrecoverable, propagate
                     Raised _ -> throwError e -- ''
                     _ -> display e >> loop env -- mistakes happen
@@ -126,7 +124,7 @@ handleMeta env@(trace, state@(vars, procs, flag)) meta = case meta of
             "All meta commands can be abbreviated by their first letter."
             helpMessage
         loop env
-    ["quit"] -> output goodbye
+    ["quit"] -> return ()
     ["clear"] -> clear >> loop env
     ["reset", it]
         | null it -> (display . Info) "environment reset" >> loop start
@@ -136,24 +134,23 @@ handleMeta env@(trace, state@(vars, procs, flag)) meta = case meta of
         | it `elem` ["t", "trace"] -> (display . Info) "trace reset" >> loop ([], (vars, procs, flag))
         | otherwise -> throwError . Error $ "unrecognized aspect to reset: " ++ it
     ["trace"] -> do
+        -- CHECK: is there some better way to do this without reverse?
         outputSection
             "Trace:"
-            [ init . unlines $ zipWith (++) (idx : buf) ls
-            | (i, s) <- zip [1 :: Int ..] trace
+            [ init . unlines $ zipWith (++) (indx : bufs) (lines s)
+            | (i, s) <- zip [1 :: Int ..] (reverse . map prettify $ trace)
             , let
-                len = length (show i) + 3
-                idx = "#" ++ show i ++ space 2
-                buf = repeat $ space len
-                ls = lines $ prettify s
+                indx = '#' : show i ++ space 2
+                bufs = repeat . space $ length (show i) + 3
             ]
         loop env
     ["state"] -> do
         outputSection
             "Variables:"
-            -- invariant of IMP.State.setVar guarantees no nempty string key
+            -- INFO: invariant of IMP.State.setVar guarantees no empty string key
             [k ++ " = " ++ show v | (k, v) <- Map.toList vars, head k /= '_']
         outputSection "Procedures:" [prettify p | p <- procs]
-        output $ "Break: " ++ show flag
+        output $ "Break: " ++ show flag ++ "\n"
         loop env
     ["load", it]
         | null it -> throwError . Info $ "no filepath provided"
@@ -163,13 +160,14 @@ handleMeta env@(trace, state@(vars, procs, flag)) meta = case meta of
         | otherwise -> writeIMP trace it >> loop env
     ["ast", it]
         | null it -> throwError . Info $ "nothing to parse"
-        | "#" <- it -> throwError . Info $ "no parseIndex provided"
+        | "#" <- it -> throwError . Info $ "no index provided"
         | '#' : ds <- it -> case readMaybe ds of
             Nothing -> throwError . ParseFail $ it
             Just i ->
                 if i <= 0 || i > length trace
-                    then throwError $ Error $ "parseIndex out of bounds: " ++ show i
-                    else display (trace !! (i - 1)) >> loop env
+                    then throwError $ Error $ "index out of bounds: " ++ show i
+                    -- INFO: condition guarantees index in bounds
+                    else display (trace !! (length trace - i)) >> loop env
         | otherwise -> liftIO (printAST it) >> loop env
     _ ->
         throwError . Error $
@@ -197,8 +195,8 @@ writeIMP trace path = do
     let content = prettytrace trace
     _ <-
         liftIO (writeFile path content)
-            `catchError` (\e -> throwError . IOFail $ unlines ["write to: " ++ path, show e])
-    throwError . Info $ "wrote to: " ++ path
+            `catchError` (\e -> throwError . IOFail $ unlines ["write trace to: " ++ path, show e])
+    throwError . Info $ "wrote trace to: " ++ path
 
 -- | TODO
 printAST :: String -> IO ()
@@ -208,7 +206,7 @@ printAST input = case parser "ast" input of
 
 -- | TODO
 prettytrace :: [Stm] -> String
-prettytrace trace = prettify $ foldr Seq Skip trace
+prettytrace = prettify . mconcat -- Haskell is nice!
 
 -- | TODO
 clear :: REPL ()
@@ -222,10 +220,10 @@ output = liftIO . putStrLn
 display :: (Show a) => a -> REPL ()
 display = output . show
 
--- CHECK newline shenanigans
+-- CHECK: newline shenanigans
 outputSection :: String -> [String] -> REPL ()
 outputSection title [] = output title
-outputSection title par = output $ title ++ '\n' : indent 4 (unlines par)
+outputSection title sect = output $ title ++ '\n' : indent 4 (unlines sect)
 
 -- | TODO
 indent :: Int -> String -> String

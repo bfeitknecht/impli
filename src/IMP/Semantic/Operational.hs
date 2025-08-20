@@ -45,7 +45,7 @@ step (stm, stack@(state : states)) = case stm of
         (rest, stack') <- step (s1, stack)
         case rest of
             Nothing -> return (Just s2, stack')
-            Just s1' -> return (Just $ Seq s1' s2, stack')
+            Just s1' -> return (Just $ s1' <> s2, stack')
     IfElse b s1 s2 ->
         if evaluate state b
             then return (Just s1, stack)
@@ -54,7 +54,7 @@ step (stm, stack@(state : states)) = case stm of
         if evaluate state b
             then
                 if not $ getBreak state
-                    then return (Just $ Seq s $ While b s, stack)
+                    then return (Just $ s <> While b s, stack)
                     else return (Nothing, resetBreak state : states)
             else return (Nothing, stack)
     Print a -> liftIO (print $ evaluate state a) >> return (Nothing, stack)
@@ -66,8 +66,8 @@ step (stm, stack@(state : states)) = case stm of
             snapshot = ([(x, getVar state x)], getProcs state, getBreak state)
             local = setVar state x $ evaluate state a
         in
-            -- maybe put local on stack and make Restore simply Pop the top state?
-            return (Just $ Seq s $ Restore snapshot, local : states)
+            -- CHECK: perhaps push local state on stack and then pop later?
+            return (Just $ s <> Restore snapshot, local : states)
     Par s1 s2 -> do
         left <- randomIO :: IMP Bool
         if left
@@ -98,7 +98,7 @@ step (stm, stack@(state : states)) = case stm of
                         vals = map (evaluate state) arguments -- evaluate arguments
                         local = (Map.fromList (zip params vals), getProcs state, getBreak state) -- into local state
                     in
-                        return (Just $ Seq body $ Return rets returns, local : stack)
+                        return (Just $ body <> Return rets returns, local : stack)
     Restore (vars, procs, flag) ->
         let state' = setVars (getVars state, procs, flag) vars
         in return (Nothing, state' : states)
@@ -114,7 +114,7 @@ step (stm, stack@(state : states)) = case stm of
     Revert s b ->
         -- INFO: uninitialized variables can't be restored
         let snapshot = (Map.toList (getVars state), getProcs state, getBreak state)
-        in return (Just $ Seq s $ IfElse b (Restore snapshot) Skip, stack)
+        in return (Just $ s <> IfElse b (Restore snapshot) Skip, stack)
     Match a ms d ->
         let v = evaluate state a
         in case lookup v ms of

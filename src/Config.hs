@@ -1,25 +1,25 @@
 {- |
 Module      : Config
-Description : Configuration for the IMP language interpreter and REPL
+Description : Configuration for @impli@
 Copyright   : (c) Basil Feitknecht, 2025
 License     : MIT
 Maintainer  : bfeitknecht@ethz.ch
 Stability   : stable
 Portability : portable
 
-Configuration settings for IMP language interpreter and REPL environment.
+Configuration settings for the IMP language interpreter, REPL and CLI.
 -}
 module Config where
 
--- | Toggle to control IMP language semantic.
+-- | Toggle to control IMP language semantic in 'IMP.Statement.interpret'.
 operational :: Bool
 operational = True
 
--- | Toggle to control IMP language extension.
+-- | Toggle to control IMP language extension in 'IMP.Parser.parser'.
 extensions :: Bool
 extensions = True
 
--- | Default message displayed on entry of the REPL.
+-- | Default message displayed on entry of 'IMP.REPL.repl'.
 welcome :: String
 welcome = "Welcome to the IMP REPL! Enter :help to list available metacommands and :quit to exit."
 

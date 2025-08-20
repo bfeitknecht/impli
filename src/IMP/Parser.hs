@@ -157,8 +157,8 @@ ext =
             <* keyword "end"
     , ProcInvoc
         <$> identifier
-        <*> parens (signature (parses @Aexp) variable) -- allow placeholder in return variables
-    , (\s b -> Seq s $ While (Not b) s)
+        <*> parens (signature (parses @Aexp) variable) -- INFO: allow placeholder in return variables
+    , (\s b -> s <> While (Not b) s)
         <$ keyword "repeat"
         <*> parses @Stm
         <* keyword "until"
@@ -173,7 +173,7 @@ ext =
         <* keyword "do"
         <*> parses @Stm
         <* keyword "end"
-    , for "_times" (Val 0) -- unassignable counter variable prevents modification from body
+    , for "_times" (Val 0) -- INFO: unassignable counter variable prevents modification from body
         <$ keyword "do"
         <*> parses @Aexp
         <* keyword "times"
@@ -183,7 +183,7 @@ ext =
         <*> parses @Stm
         <* keyword "if"
         <*> parses @Bexp
-    , Break <$ keyword "break" -- INFO: parses outside while
+    , Break <$ keyword "break" -- FIXME: parses outside while
     , Match
         <$ keyword "match"
         <*> parses @Aexp
@@ -238,8 +238,8 @@ for :: String -> Aexp -> Aexp -> Stm -> Stm
 for x a1 a2 s =
     Local x a1 $
         While
-            (Rel Lt (Var x) a2) -- stop condition is evaluated every iteration
-            (Seq s $ VarDef x Inc (Val 1))
+            (Rel Lt (Var x) a2) -- INFO: stop condition is evaluated every iteration
+            (s <> VarDef x Inc (Val 1))
 
 signature :: Parser a -> Parser b -> Parser ([a], [b])
 signature p1 p2 =

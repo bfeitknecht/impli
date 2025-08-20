@@ -138,6 +138,14 @@ data Stm
     deriving (Eq, Show)
 
 -- | TODO
+instance Semigroup Stm where
+    (<>) = Seq
+
+-- | TODO
+instance Monoid Stm where
+    mempty = Skip
+
+-- | TODO
 data Proc = Procedure
     { procname :: String -- ^ TODO
         , procsign :: ([String], [String]) -- ^ TODO
@@ -193,8 +201,8 @@ instance Variables Stm where
         NonDet s1 s2 -> variables s1 ++ variables s2
         ProcDef (Procedure p (ps, rs) s) -> p : ps ++ rs ++ variables s
         ProcInvoc p (as, rs) -> p : rs ++ concatMap variables as
-        Restore _ -> error $ "illegal statement for free variables: " ++ show stm
-        Return _ _ -> error $ "illegal statement for free variables: " ++ show stm
+        Restore _ -> error $ "illegal statement for variables: " ++ show stm
+        Return _ _ -> error $ "illegal statement for variables: " ++ show stm
         Break -> []
         Revert s b -> variables s ++ variables b
         Match a ms d -> variables d ++ variables a ++ concatMap (variables . snd) ms

@@ -85,8 +85,8 @@ instance Evaluate Stm Integer where
         ProcInvoc name (args, _) -> case getProc state name of
             Just p -> evaluate state (procbody p) + (toInteger . length) args
             Nothing -> 0
-        Restore _ -> error $ "illegal statement for evaluation: " ++ show stm
-        Return _ _ -> error $ "illegal statement for evaluation: " ++ show stm
+        Restore _ -> error $ "illegal statement for evaluate: " ++ show stm
+        Return _ _ -> error $ "illegal statement for evaluate: " ++ show stm
         Break -> 0
         Revert s _ -> evaluate state s
         Match a ms d -> do
