@@ -11,17 +11,17 @@ TODO
 -}
 module IMP.Semantic.Operational where
 
-import IMP.Exception
-import IMP.Expression
-import IMP.Pretty
-import IMP.State
-import IMP.Syntax
-
 import Control.Monad.Except (catchError, throwError)
 import Control.Monad.IO.Class (liftIO)
 import System.Random (randomIO)
 
 import qualified Data.Map as Map
+
+import IMP.Exception
+import IMP.Expression
+import IMP.Pretty
+import IMP.State
+import IMP.Syntax
 
 -- | TODO
 step :: (Stm, [State]) -> IMP Conf

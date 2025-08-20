@@ -13,17 +13,16 @@ TODO
 -}
 module IMP.REPL where
 
+import Control.Monad.Except (catchError, throwError)
+import Control.Monad.IO.Class (liftIO)
+import Control.Monad.Trans.Class (lift)
+import System.Exit (exitFailure)
+import Text.Read (readMaybe)
+
 import qualified Control.Monad.Trans.Except as Except
 import qualified Data.Map as Map
 import qualified System.Console.ANSI as ANSI
 import qualified System.Console.Haskeline as Haskeline
-
-import System.Exit (exitFailure)
-import Text.Read (readMaybe)
-
-import Control.Monad.Except (catchError, throwError)
-import Control.Monad.IO.Class (liftIO)
-import Control.Monad.Trans.Class (lift)
 
 import Config
 import IMP.Exception

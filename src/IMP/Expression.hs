@@ -21,6 +21,7 @@ import IMP.Syntax
 
 -- | TODO
 class Evaluate a b | a -> b where
+    -- | TODO
     evaluate :: State -> a -> b
 
 -- | TODO

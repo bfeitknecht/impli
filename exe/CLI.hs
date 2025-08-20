@@ -22,6 +22,9 @@ import Data.Version (showVersion)
 import Options.Applicative
 import System.Exit (exitFailure)
 
+import qualified Control.Monad.Trans.Except as Except
+import qualified System.Console.Haskeline as Haskeline
+
 import Config
 import IMP.Exception
 import IMP.Parser
@@ -29,9 +32,7 @@ import IMP.REPL
 import IMP.State
 import IMP.Statement
 
-import qualified Control.Monad.Trans.Except as Except
 import qualified Paths_impli as Paths
-import qualified System.Console.Haskeline as Haskeline
 
 -- | Mode to run the CLI.
 {- FOURMOLU_DISABLE -}

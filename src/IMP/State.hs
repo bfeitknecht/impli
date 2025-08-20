@@ -11,15 +11,15 @@ TODO
 -}
 module IMP.State where
 
-import qualified Control.Monad.Trans.Except as Except
-import qualified Data.List as List
-import qualified Data.Map as Map
-
 import Control.Exception (IOException, try)
 import Control.Monad.Except (throwError)
 import Control.Monad.IO.Class
 import System.IO
 import Text.Read (readMaybe)
+
+import qualified Control.Monad.Trans.Except as Except
+import qualified Data.List as List
+import qualified Data.Map as Map
 
 import IMP.Exception
 import IMP.Syntax
