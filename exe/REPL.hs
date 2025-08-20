@@ -1,7 +1,7 @@
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications #-}
 
 {- |
-Module      : IMP.REPL
+Module      : REPL
 Description : TODO
 Copyright   : (c) Basil Feitknecht, 2025
 License     : MIT
@@ -33,15 +33,17 @@ import IMP.State
 import IMP.Statement
 import IMP.Syntax
 
-type Env = ([Stm], State)
-
+-- | TODO
 type REPL = Except.ExceptT Exception (Haskeline.InputT IO)
+
+-- | TODO
+type Env = ([Stm], State)
 
 -- | TODO
 start :: Env
 start = ([], initial)
 
--- | Lift IMP computation into 'REPL' monad.
+-- | Lift computation in 'IMP.State.IMP' into 'REPL'.
 liftIMP :: IMP a -> REPL a
 liftIMP = Except.ExceptT . lift . Except.runExceptT
 
@@ -199,9 +201,11 @@ writeIMP trace path = do
 
 -- | TODO
 printAST :: String -> IO ()
-printAST input = case parser "ast" input of
-    Left e -> print . ParseFail $ unlines [input, show e]
-    Right (c :: Construct) -> print c
+printAST input =
+    either
+        (\e -> print . ParseFail $ unlines [input, show e])
+        (\c -> print c)
+        (parser @Construct "interactive" input)
 
 -- | TODO
 prettytrace :: [Stm] -> String
