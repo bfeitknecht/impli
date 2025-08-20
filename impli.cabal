@@ -77,6 +77,14 @@ executable impli
   autogen-modules:
     Paths_impli
 
+executable impli-wasm
+  import: shared-settings
+  main-is: WASM.hs
+  hs-source-dirs: exe
+  build-depends:
+    base >=4.14 && <5,
+    impli,
+
 test-suite impli-test
   import: shared-settings
   type: exitcode-stdio-1.0
