@@ -7,6 +7,9 @@ package impli-wasm
         -funbox-strict-fields
         -fPIC
         -optl=-Wl,--allow-undefined
-        -optl=-Wl,--reactor-model
-        -optl=-Wl,--export=impli
+        -no-hs-main
+        -optl-mexec-model=reactor
+        -optl=-Wl,--export=initialize
+        -optl=-Wl,--export=execute
+        -optl=-Wl,--export=release
         -fexternal-interpreter

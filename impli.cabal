@@ -82,7 +82,8 @@ executable impli-wasm
   main-is: Web.hs
   hs-source-dirs: exe
   build-depends:
-    impli
+    ghc-experimental,
+    impli,
 
 test-suite impli-test
   import: shared-settings
