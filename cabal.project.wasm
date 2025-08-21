@@ -1,12 +1,12 @@
 packages: .
 
-with-compiler: ghc-9.12.2
-
 package impli-wasm
     optimization: 2
     ghc-options:
         -split-sections
         -funbox-strict-fields
         -fPIC
-        -optl-Wl,--allow-undefined
+        -optl=-Wl,--allow-undefined
+        -optl=-Wl,--reactor-model
+        -optl=-Wl,--export=impli
         -fexternal-interpreter
