@@ -12,10 +12,7 @@ Handles parsing of arguments and options, then runs in the appropriate
 execution mode, such as the REPL, file (or stdin) interpretation,
 command execution or prints the version, help or AST of a construct.
 -}
-module CLI (
-    parseCLI,
-    runCLI,
-) where
+module CLI where
 
 import Config
 import Control.Monad.Except (catchError)

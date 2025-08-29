@@ -24,7 +24,7 @@ import qualified Data.Map as Map
 import IMP.Exception
 import IMP.Syntax
 
--- | TODO
+-- | Encapsulation of computation in 'IMP.Statement.interpret'.
 type IMP = Except.ExceptT Exception IO
 
 -- | Map of defined variables from string identifier to integer values.

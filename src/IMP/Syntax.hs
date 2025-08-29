@@ -2,7 +2,7 @@
 
 {- |
 Module      : IMP.Syntax
-Description : Syntax definition of the IMP language
+Description : Syntax definition for the IMP language
 Copyright   : (c) Basil Feitknecht, 2025
 License     : MIT
 Maintainer  : bfeitknecht@ethz.ch
@@ -167,6 +167,7 @@ data Construct
 
 -- | TODO
 class Variables a where
+    -- | TODO
     variables :: a -> [String]
 
 -- | TODO

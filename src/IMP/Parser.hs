@@ -2,7 +2,7 @@
 
 {- |
 Module      : IMP.Parser
-Description : Parsing functionality for the IMP language
+Description : Parser for the IMP language
 Copyright   : (c) Basil Feitknecht, 2025
 License     : MIT
 Maintainer  : bfeitknecht@ethz.ch
@@ -115,6 +115,7 @@ instance Parses Stm where
                 choice . map try $
                     if extensions then imp ++ ext else imp
 
+-- | TODO
 imp :: [Parser Stm]
 imp =
     [ parens (parses @Stm) <?> "parenthesized statement"
@@ -137,6 +138,7 @@ imp =
     , Read <$ keyword "read" <*> identifier
     ]
 
+-- | TODO
 ext :: [Parser Stm]
 ext =
     [ Local
@@ -241,6 +243,7 @@ for x a1 a2 s =
             (Rel Lt (Var x) a2) -- INFO: stop condition is evaluated every iteration
             (s <> VarDef x Inc (Val 1))
 
+-- | TODO
 signature :: Parser a -> Parser b -> Parser ([a], [b])
 signature p1 p2 =
     (,)

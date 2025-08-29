@@ -2,7 +2,7 @@
 
 {- |
 Module      : IMP.Expression
-Description : Evaluation of expressions in the IMP language
+Description : Expression evaluation for the IMP language
 Copyright   : (c) Basil Feitknecht, 2025
 License     : MIT
 Maintainer  : bfeitknecht@ethz.ch

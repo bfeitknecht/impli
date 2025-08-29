@@ -1,6 +1,6 @@
 {- |
 Module      : Config
-Description : Configuration for @impli@
+Description : Configuration for the IMP language interpreter
 Copyright   : (c) Basil Feitknecht, 2025
 License     : MIT
 Maintainer  : bfeitknecht@ethz.ch

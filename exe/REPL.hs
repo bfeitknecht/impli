@@ -2,7 +2,7 @@
 
 {- |
 Module      : REPL
-Description : TODO
+Description : Read-Evaluate-Print-Loop for the IMP language interpreter
 Copyright   : (c) Basil Feitknecht, 2025
 License     : MIT
 Maintainer  : bfeitknecht@ethz.ch
@@ -33,25 +33,25 @@ import IMP.State
 import IMP.Statement
 import IMP.Syntax
 
--- | TODO
+-- | Encapsulation of computation in 'repl'.
 type REPL = Except.ExceptT Exception (Haskeline.InputT IO)
 
--- | TODO
+-- | Environment in 'repl' as 2-tuple of trace (list of 'IMP.Syntax.Stm') and 'IMP.State.State'.
 type Env = ([Stm], State)
 
--- | TODO
+-- | Start 'Env' for 'repl'.
 start :: Env
 start = ([], initial)
 
--- | Lift computation in 'IMP.State.IMP' into 'REPL'.
+-- | Lift computation from 'IMP.State.IMP' into 'REPL'.
 liftIMP :: IMP a -> REPL a
 liftIMP = Except.ExceptT . lift . Except.runExceptT
 
 -- | TODO
 repl :: Haskeline.Settings IO -> Env -> IO ()
-repl cfg env = do
+repl s env = do
     putStrLn welcome
-    Haskeline.runInputT cfg (Except.runExceptT (loop env))
+    Haskeline.runInputT s (Except.runExceptT (loop env))
         >>= either
             (\e -> print e >> exitFailure)
             (\_ -> putStrLn goodbye)
