@@ -1,0 +1,15 @@
+packages: .
+
+package impli-wasm
+    optimization: 2
+    ghc-options:
+        -split-sections
+        -funbox-strict-fields
+        -fPIC
+        -no-hs-main
+        -optl-mexec-model=reactor
+        -optl=-Wl,--allow-undefined
+        -optl=-Wl,--export=initialize
+        -optl=-Wl,--export=execute
+        -optl=-Wl,--export=release
+        -fexternal-interpreter
