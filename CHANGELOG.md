@@ -4,6 +4,25 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [3.0.0] - 2025-08-30
+
+- Separated `REPL` monad stack into `IMP` for interpreter logic and `REPL` for the REPL
+- Complete rewrite of the REPL for better user experience
+- Major restructure of the `Semantic/` module
+- Updated manpages and documentation
+
+---
+
+## [2.1.1] - 2025-07-28
+
+- Renamed some types and constructors for clarity
+- Updated `IMPM.ebnf`
+- Improved cosmetics throughout the codebase
+- Simplified `main` function
+- General maintenance and code cleanup
+
+---
+
 ## [2.1.0] - 2025-07-16
 
 - Add `alternate` operator.

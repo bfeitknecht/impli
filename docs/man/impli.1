@@ -1,4 +1,4 @@
-.TH IMPLI 1 "May 2025" "impli 2.0" "User Commands"
+.TH IMPLI 1 "May 2025" "impli 3.0" "User Commands"
 .SH NAME
 impli \- Interpreter and REPL for the imperative toy language IMP
 .SH SYNOPSIS
@@ -16,10 +16,16 @@ impli \- Interpreter and REPL for the imperative toy language IMP
 .br
 .B impli
 [\fB-v\fR|\fB--version\fR]
+.br
+.B impli
+[\fB--no-history\fR]
 .SH DESCRIPTION
 .B impli
 is an interpreter and interactive REPL for the imperative toy language IMP. It supports evaluating IMP source files, executing commands, printing abstract syntax trees, and more.
 
+.TP
+.B \-\-no-history
+Do not load or save the REPL history file.
 .SH MODES OF OPERATION
 .TP
 .B No arguments
