@@ -9,7 +9,11 @@ Maintainer  : bfeitknecht@ethz.ch
 Stability   : stable
 Portability : portable
 
-TODO
+Provides the Read-Evaluate-Print-Loop for the IMP language interpreter.
+This includes interactive parsing into 'IMP.Syntax.Construct' followed by interpretation
+with 'IMP.Expression.evaluate' or 'IMP.Statement.execute'.
+Supports various metacommands, such as inspection of interpreter state, interpret source file,
+print AST of IMP language construct and save execution history to disk.
 -}
 module REPL where
 
@@ -47,7 +51,13 @@ start = ([], initial)
 liftIMP :: IMP a -> REPL a
 liftIMP = Except.ExceptT . lift . Except.runExceptT
 
--- | TODO
+-- | Default settings for 'repl'.
+-- CHECK: custom `complete` function here.
+settings :: Bool -> Haskeline.Settings IO
+settings flag =
+    Haskeline.defaultSettings {Haskeline.historyFile = if flag then Nothing else historyFile}
+
+-- | REPL entrypoint with custom settings and environment.
 repl :: Haskeline.Settings IO -> Env -> IO ()
 repl s env = do
     putStrLn welcome
@@ -56,7 +66,7 @@ repl s env = do
             (\e -> print e >> exitFailure)
             (\_ -> putStrLn goodbye)
 
--- | TODO
+-- | REPL loop that processes input and maintains interpreter state.
 loop :: Env -> REPL ()
 loop env = do
     line <- lift . Haskeline.getInputLine $ prompt
@@ -75,17 +85,17 @@ loop env = do
             Raised _ -> throwError e -- ''
             _ -> display e >> loop env -- mistakes happen
 
--- | TODO
+-- | Process construct in environment, return updated environment.
 dispatch :: Env -> Construct -> REPL Env
 dispatch env@(trace, state) cnstr = case cnstr of
     Statement stm -> do
-        state' <- liftIMP $ interpret (stm, state)
+        state' <- liftIMP $ execute (stm, state)
         return (stm : trace, state')
     Arithmetic aexp -> display (evaluate state aexp) >> return env
     Boolean bexp -> output (if evaluate state bexp then "true" else "false") >> return env
     Whitespace -> return env
 
--- | TODO
+-- | Help message displayed when user enters @:help@ metacommand.
 helpMessage :: [String]
 helpMessage =
     [ ":help / :?               Show this help message"
@@ -99,7 +109,7 @@ helpMessage =
     , ":ast (INPUT | #n)        Parse and display AST of input or n-th statement in trace"
     ]
 
--- | TODO
+-- | Expand metacommand abbreviations.
 normalizeMeta :: [String] -> [String]
 normalizeMeta ["?"] = ["help"]
 normalizeMeta ["h"] = ["help"]
@@ -116,12 +126,12 @@ normalizeMeta (w : ws)
         it = unwords ws
 normalizeMeta rest = rest
 
--- | TODO
+-- | Process metacommand in environment, continue loop or exit.
 handleMeta :: Env -> [String] -> REPL ()
 handleMeta env@(trace, state@(vars, procs, flag)) meta = case meta of
     [")"] -> output "You look good today!" >> loop env
     ["help"] -> do
-        outputSection
+        explain
             "All meta commands can be abbreviated by their first letter."
             helpMessage
         loop env
@@ -136,7 +146,7 @@ handleMeta env@(trace, state@(vars, procs, flag)) meta = case meta of
         | otherwise -> throwError . Error $ "unrecognized aspect to reset: " ++ it
     ["trace"] -> do
         -- CHECK: is there some better way to do this without reverse?
-        outputSection
+        explain
             "Trace:"
             [ init . unlines $ zipWith (++) (indx : bufs) (lines s)
             | (i, s) <- zip [1 :: Int ..] (reverse . map prettify $ trace)
@@ -146,11 +156,11 @@ handleMeta env@(trace, state@(vars, procs, flag)) meta = case meta of
             ]
         loop env
     ["state"] -> do
-        outputSection
+        explain
             "Variables:"
             -- INFO: invariant of IMP.State.setVar guarantees no empty string key
             [k ++ " = " ++ show v | (k, v) <- Map.toList vars, head k /= '_']
-        outputSection "Procedures:" [prettify p | p <- procs]
+        explain "Procedures:" [prettify p | p <- procs]
         output $ "Break: " ++ show flag ++ "\n"
         loop env
     ["load", it]
@@ -177,7 +187,7 @@ handleMeta env@(trace, state@(vars, procs, flag)) meta = case meta of
                 , "Enter :help to list available metacommands and :quit to exit."
                 ]
 
--- | TODO
+-- | Interpret IMP language source file, return updated state.
 loadIMP :: State -> FilePath -> REPL State
 loadIMP state path = do
     content <-
@@ -186,11 +196,11 @@ loadIMP state path = do
     case parser path content of
         Left e -> throwError . ParseFail $ unlines [path, show e]
         Right stm -> do
-            state' <- liftIMP $ interpret (stm, state)
+            state' <- liftIMP $ execute (stm, state)
             display . Info $ "interpreted: " ++ path
             return state'
 
--- | TODO
+-- | Write trace to specified file.
 writeIMP :: [Stm] -> FilePath -> REPL ()
 writeIMP trace path = do
     let content = prettytrace trace
@@ -199,7 +209,7 @@ writeIMP trace path = do
             `catchError` (\e -> throwError . IOFail $ unlines ["write trace to: " ++ path, show e])
     throwError . Info $ "wrote trace to: " ++ path
 
--- | TODO
+-- | Parse input and print AST.
 printAST :: String -> IO ()
 printAST input =
     either
@@ -207,31 +217,31 @@ printAST input =
         (\c -> print c)
         (parser @Construct "interactive" input)
 
--- | TODO
+-- | Convert trace to valid IMP language source code.
 prettytrace :: [Stm] -> String
 prettytrace = prettify . mconcat -- Haskell is nice!
 
--- | TODO
+-- | Clear the terminal.
 clear :: REPL ()
 clear = liftIO (ANSI.clearScreen >> ANSI.setCursorPosition 0 0)
 
--- | TODO
+-- | 'putStrLn' inside 'REPL'.
 output :: String -> REPL ()
 output = liftIO . putStrLn
 
--- | TODO
+-- | 'print' inside 'REPL'.
 display :: (Show a) => a -> REPL ()
-display = output . show
+display = liftIO . print
 
--- | TODO
-outputSection :: String -> [String] -> REPL ()
-outputSection title [] = output title
-outputSection title sect = output $ title ++ '\n' : indent 4 (unlines sect)
+-- | Nicely format 'output' with heading and indented body.
+explain :: String -> [String] -> REPL ()
+explain heading [] = output heading
+explain heading body = output $ heading ++ '\n' : indent 4 (unlines body)
 
--- | TODO
+-- | Indent every line by @n@ space characters.
 indent :: Int -> String -> String
 indent n = unlines . map (space n ++) . lines
 
--- | TODO
+-- | 'String' of @n@ space characters.
 space :: Int -> String
 space n = replicate n ' '

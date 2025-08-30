@@ -1,13 +1,14 @@
 {- |
 Module      : IMP.State
-Description : TODO
+Description : State for the IMP language
 Copyright   : (c) Basil Feitknecht, 2025
 License     : MIT
 Maintainer  : bfeitknecht@ethz.ch
 Stability   : stable
 Portability : portable
 
-TODO
+State implementation for the IMP language.
+Provides definition and manipulation of state with some QOL helpers.
 -}
 module IMP.State where
 
@@ -24,7 +25,7 @@ import qualified Data.Map as Map
 import IMP.Exception
 import IMP.Syntax
 
--- | Encapsulation of computation in 'IMP.Statement.interpret'.
+-- | Encapsulation of computation in 'IMP.Semantics'.
 type IMP = Except.ExceptT Exception IO
 
 -- | Map of defined variables from string identifier to integer values.
@@ -33,7 +34,7 @@ type Vars = Map.Map String Integer
 -- | Interpreter state as triple of defined variables, procedures and break flag.
 type State = (Vars, [Proc], Bool)
 
--- | Interpreter configuration as pair of state stack and remaining statement execution.
+-- | Interpreter configuration as 2-tuple of remaining statement execution and state stack.
 type Conf = (Maybe Stm, [State])
 
 -- | Default variable map with no definitions.
@@ -44,7 +45,7 @@ zero = Map.empty
 initial :: State
 initial = (zero, [], False)
 
--- | TODO
+-- | Get value for provided variable with prompt.
 getVal :: String -> IMP Integer
 getVal x = do
     liftIO $ putStr (x ++ " := ") >> hFlush stdout
@@ -57,68 +58,70 @@ getVal x = do
             getVal x
         Just i -> return i
 
--- | TODO
+-- | Get defined variables.
 getVars :: State -> Vars
 getVars (vars, _, _) = vars
 
--- | Get the integer value of provided variable identifier or zero if undefined.
+-- | Get integer value of provided variable identifier or zero if undefined.
 getVar :: State -> String -> Integer
 getVar (vars, _, _) x = Map.findWithDefault 0 x vars
 
--- | TODO
+-- | Set variable name to integer value.
 setVar :: State -> String -> Integer -> State
 setVar state "_" _ = state -- INFO: placeholder write-only variable
 setVar _ "" _ = error "illegal argument for variable: identifier can't be empty string"
 setVar (vars, procs, flag) var val = (Map.insert var val vars, procs, flag)
 
--- | TODO
+-- | Set list of variable names to their paired integer values.
 setVars :: State -> [(String, Integer)] -> State
 setVars = foldl $ uncurry . setVar
 
--- | TODO
+-- | Get defined procedures.
 getProcs :: State -> [Proc]
 getProcs (_, procs, _) = procs
 
--- | TODO
+-- | Get some procedure by name, return 'Nothing' if undefined.
 getProc :: State -> String -> Maybe Proc
 getProc (_, procs, _) name = List.find ((name ==) . procname) procs
 
--- | TODO
+-- | Set procedure.
 setProc :: State -> Proc -> State
 setProc (vars, procs, flag) proc = (vars, proc : procs, flag)
 
--- | TODO
+-- | Get break flag.
 getBreak :: State -> Bool
 getBreak (_, _, flag) = flag
 
--- | TODO
+-- | Set break flag to 'True'.
 setBreak :: State -> State
 setBreak (vars, procs, _) = (vars, procs, True)
 
--- | TODO
+-- | Set break flag to 'False'.
 resetBreak :: State -> State
 resetBreak (vars, procs, _) = (vars, procs, False)
 
--- | TODO
+-- | Indicator variable for corresponding flip-flop index for internal use.
 flipvar :: Integer -> String
 flipvar i = "_flip" ++ show i
 
--- | TODO
+-- | Check if branch to flip.
 getFlip :: State -> Integer -> Bool
 getFlip state i = getVar state (flipvar i) == 0
 
--- | TODO
+-- | Set branch to flip.
 setFlip :: State -> Integer -> State
 setFlip state i = setVar state (flipvar i) 0
 
--- | TODO
+-- | Set branch to flop.
 setFlop :: State -> Integer -> State
 setFlop state i = setVar state (flipvar i) 1
 
--- | TODO
+-- | Safe division, zero if divisor is zero.
 (//) :: Integer -> Integer -> Integer
-(//) v1 v2 = if v2 == 0 then 0 else div v1 v2
+(//) _ 0 = 0
+(//) v1 v2 = div v1 v2
 
--- | TODO
+-- | Safe modulus, dividend if divisor is zero.
 (%%) :: Integer -> Integer -> Integer
-(%%) v1 v2 = if v2 == 0 then v1 else mod v1 v2
+(%%) v1 0 = v1
+(%%) v1 v2 = mod v1 v2

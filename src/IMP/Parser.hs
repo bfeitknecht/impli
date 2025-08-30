@@ -9,7 +9,8 @@ Maintainer  : bfeitknecht@ethz.ch
 Stability   : stable
 Portability : portable
 
-TODO
+Parser implementation for the IMP language.
+Provides parsers for arithmetic expressions, boolean expressions, statements and comments.
 -}
 module IMP.Parser (
     Parses,
@@ -25,16 +26,16 @@ import Config
 import IMP.Lexer
 import IMP.Syntax
 
--- | TODO
+-- | Parse over channel some input string.
 parser :: (Parses a) => String -> String -> Either ParseError a
 parser = parse (whitespace *> parses <* eof)
 
--- | TODO
+-- | Typeclass to parse into abstract syntax.
 class Parses a where
-    -- | TODO
+    -- | Parse into abstract syntax.
     parses :: Parser a
 
--- | TODO
+-- | Parser for arithmetic expression with operator precedence.
 instance Parses Aexp where
     parses = buildExpressionParser table term <?> "arithmetic expression"
         where
@@ -57,7 +58,7 @@ instance Parses Aexp where
                     , Time <$ keyword "time" <*> parses @Stm
                     ]
 
--- | TODO
+-- | Parser for boolean expression with operator precedence.
 instance Parses Bexp where
     parses = buildExpressionParser table term <?> "boolean expression"
         where
@@ -74,7 +75,7 @@ instance Parses Bexp where
                     , Lit False <$ keyword "false"
                     ]
 
--- | TODO
+-- | Parser for relational operator used in boolean expressions.
 instance Parses Rop where
     parses =
         choice
@@ -86,7 +87,7 @@ instance Parses Rop where
             , Gt <$ operator ">"
             ]
 
--- | TODO
+-- | Parser for definition operator used in variable definition.
 instance Parses Dop where
     parses =
         choice
@@ -98,7 +99,7 @@ instance Parses Dop where
             , Rem <$ operator "%="
             ]
 
--- | TODO
+-- | Parser for statement with operator precedence.
 instance Parses Stm where
     parses = buildExpressionParser table term <?> "statement"
         where
@@ -115,7 +116,7 @@ instance Parses Stm where
                 choice . map try $
                     if extensions then imp ++ ext else imp
 
--- | TODO
+-- | List of parsers for statements in the IMP language.
 imp :: [Parser Stm]
 imp =
     [ parens (parses @Stm) <?> "parenthesized statement"
@@ -138,7 +139,7 @@ imp =
     , Read <$ keyword "read" <*> identifier
     ]
 
--- | TODO
+-- | List of parsers for statements in the IMP language extension.
 ext :: [Parser Stm]
 ext =
     [ Local
@@ -185,7 +186,7 @@ ext =
         <*> parses @Stm
         <* keyword "if"
         <*> parses @Bexp
-    , Break <$ keyword "break" -- FIXME: parses outside while
+    , Break <$ keyword "break" -- INFO: parses outside while
     , Match
         <$ keyword "match"
         <*> parses @Aexp
@@ -225,7 +226,7 @@ ext =
         <* keyword "end"
     ]
 
--- | TODO
+-- | Parser for construct.
 instance Parses Construct where
     parses =
         choice . map try $
@@ -235,7 +236,7 @@ instance Parses Construct where
             , Whitespace <$ whitespace
             ]
 
--- | TODO
+-- | Helper parser for incremental loops, transforming them into equivalent while loops.
 for :: String -> Aexp -> Aexp -> Stm -> Stm
 for x a1 a2 s =
     Local x a1 $
@@ -243,7 +244,7 @@ for x a1 a2 s =
             (Rel Lt (Var x) a2) -- INFO: stop condition is evaluated every iteration
             (s <> VarDef x Inc (Val 1))
 
--- | TODO
+-- | Parser for procedure signature with parameters or arguments and return variables.
 signature :: Parser a -> Parser b -> Parser ([a], [b])
 signature p1 p2 =
     (,)
@@ -251,7 +252,7 @@ signature p1 p2 =
         <* symbol ";"
         <*> sepBy p2 (symbol ",")
 
--- | TODO
+-- | Parser for match branch with integer case and associated statement.
 branch :: Parser (Integer, Stm)
 branch =
     (,)

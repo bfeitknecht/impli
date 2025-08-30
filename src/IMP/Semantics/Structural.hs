@@ -1,15 +1,18 @@
 {- |
-Module      : IMP.Semantic.Structural
-Description : TODO
+Module      : IMP.Semantics.Structural
+Description : Structural semantics for the IMP language
 Copyright   : (c) Basil Feitknecht, 2025
 License     : MIT
 Maintainer  : bfeitknecht@ethz.ch
 Stability   : stable
 Portability : portable
 
-TODO
+Implementation of structural (big-step) semantics for the IMP language.
+Allows execution of statement in one step to simply determine the final state.
 -}
-module IMP.Semantic.Structural where
+module IMP.Semantics.Structural (
+    run,
+) where
 
 import Control.Monad.Except (catchError, throwError)
 import Control.Monad.IO.Class (liftIO)
@@ -23,7 +26,7 @@ import IMP.Pretty
 import IMP.State
 import IMP.Syntax
 
--- | TODO
+-- | Execute statement in the state, return final state.
 run :: (Stm, State) -> IMP State
 run (stm, state) = case stm of
     Skip -> return state

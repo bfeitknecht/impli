@@ -9,7 +9,7 @@ Maintainer  : bfeitknecht@ethz.ch
 Stability   : stable
 Portability : portable
 
-TODO
+Pretty-print implementation for constructs of the IMP language.
 -}
 module IMP.Pretty (
     prettify,
@@ -21,7 +21,7 @@ import Prettyprinter.Render.String
 
 import IMP.Syntax
 
--- | TODO
+-- | Pretty-print instance for arithmetic expression.
 instance Pretty Aexp where
     pretty a = case a of
         Val n -> pretty n
@@ -33,7 +33,7 @@ instance Pretty Aexp where
         Bin Mod a1 a2 -> pretty a1 <+> pretty "%" <+> pretty a2
         Time s -> pretty "time" <+> pretty s
 
--- | TODO
+-- | Pretty-print instance for boolean expression.
 instance Pretty Bexp where
     pretty b = case b of
         Lit bool -> pretty (if bool then "true" else "false")
@@ -47,7 +47,7 @@ instance Pretty Bexp where
         Rel Gt a1 a2 -> pretty a1 <+> pretty ">" <+> pretty a2
         Rel Geq a1 a2 -> pretty a1 <+> pretty ">=" <+> pretty a2
 
--- | TODO
+-- | Pretty-print instance for statement.
 instance Pretty Stm where
     pretty stm = case stm of
         Skip -> pretty "skip"
@@ -139,7 +139,7 @@ instance Pretty Stm where
                 ]
         _ -> undefined
 
--- | TODO
+-- | Pretty-print instance for procedure definition.
 instance Pretty Proc where
     pretty (Procedure name (params, rets) body) =
         vsep
@@ -147,18 +147,18 @@ instance Pretty Proc where
             , indent 4 (pretty body)
             ]
 
--- | TODO
+-- | Convert to pretty string with layout.
 prettify :: (Pretty a) => a -> String
 prettify = renderString . layoutPretty defaultLayoutOptions . pretty
 
--- | TODO
+-- | Convert to pretty single line string.
 stringify :: (Pretty a) => a -> String
 stringify = unwords . words . prettify
 
--- | TODO
+-- | Format list of documents with comma separators.
 commas :: [Doc ann] -> Doc ann
 commas = hsep . punctuate comma
 
--- | TODO
+-- | Format signature with commas and semicolon separator.
 semmicommas :: (Pretty a, Pretty b) => [a] -> [b] -> Doc ann
 semmicommas xs ys = commas (map pretty xs) <> semi <+> commas (map pretty ys)

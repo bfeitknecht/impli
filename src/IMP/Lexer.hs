@@ -1,13 +1,14 @@
 {- |
 Module      : IMP.Lexer
-Description : TODO
+Description : Lexer for the IMP language
 Copyright   : (c) Basil Feitknecht, 2025
 License     : MIT
 Maintainer  : bfeitknecht@ethz.ch
 Stability   : stable
 Portability : portable
 
-TODO
+Lexical analyzer for the IMP language. Defines lexical elements like keywords,
+operators, identifiers, and whitespace, and provides parsers for them.
 -}
 module IMP.Lexer where
 
@@ -17,7 +18,7 @@ import Text.Parsec.String
 
 import qualified Text.Parsec.Token as Token
 
--- | TODO
+-- | List of reserved keywords in the IMP language.
 keywords :: [String]
 keywords =
     [ "skip"
@@ -60,7 +61,7 @@ keywords =
     , "alternate"
     ]
 
--- | TODO
+-- | List of operator symbols in the IMP language.
 operators :: [String]
 operators =
     [ "+"
@@ -85,7 +86,7 @@ operators =
     , "%="
     ]
 
--- | TODO
+-- | TokenParser configuration for the parsers of the IMP language.
 lexer :: Token.TokenParser ()
 lexer = Token.makeTokenParser style
     where
@@ -100,42 +101,34 @@ lexer = Token.makeTokenParser style
                 , Token.identLetter = alphaNum
                 }
 
--- | TODO
+-- | Parser for identifier, i.e. definable variable and procedure name.
 identifier :: Parser String
 identifier = Token.identifier lexer <?> "identifier"
 
--- | TODO
+-- | Parser for variable names, i.e. identifier or underscore (placeholder discard variable).
 variable :: Parser String
 variable = identifier <|> symbol "_" <?> "variable"
 
--- | TODO
-reserved :: String -> Parser ()
-reserved = Token.reserved lexer
-
--- | TODO
+-- | Parser for reserved keyword, expectation attached.
 keyword :: String -> Parser ()
-keyword x = reserved x <?> x
+keyword x = (Token.reserved lexer) x <?> x
 
--- | TODO
-reservedOp :: String -> Parser ()
-reservedOp = Token.reservedOp lexer
-
--- | TODO
+-- | Parser for reserved operator, expectation attached.
 operator :: String -> Parser ()
-operator x = reservedOp x <?> x
+operator x = (Token.reservedOp lexer) x <?> x
 
--- | TODO
+-- | Parser for parentheses.
 parens :: Parser a -> Parser a
 parens = Token.parens lexer
 
--- | TODO
+-- | Parser for integer literals.
 integer :: Parser Integer
 integer = Token.integer lexer <?> "integer"
 
--- | TODO
+-- | Parser for whitespace, including comments.
 whitespace :: Parser ()
 whitespace = Token.whiteSpace lexer <?> "whitespace"
 
--- | TODO
+-- | Parser for symbol, expectation attached.
 symbol :: String -> Parser String
 symbol x = Token.symbol lexer x <?> x

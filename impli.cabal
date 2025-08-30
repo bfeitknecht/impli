@@ -53,8 +53,8 @@ library
     IMP.Lexer
     IMP.Parser
     IMP.Pretty
-    IMP.Semantic.Operational
-    IMP.Semantic.Structural
+    IMP.Semantics.Operational
+    IMP.Semantics.Structural
     IMP.State
     IMP.Statement
     IMP.Syntax

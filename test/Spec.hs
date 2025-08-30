@@ -200,7 +200,7 @@ assertEvalBexp state b bool = testCase (stringify b) $ evaluate state b @?= bool
 
 assertExec :: State -> Stm -> ([(String, Integer)], [Proc]) -> TestTree
 assertExec state stm (vars, procs) = testCase (stringify stm) $ do
-    result <- runExceptT $ interpret (stm, state)
+    result <- runExceptT $ execute (stm, state)
     case result of
         Left err -> assertFailure $ "Execution failed with error: " ++ show err
         Right state' -> do

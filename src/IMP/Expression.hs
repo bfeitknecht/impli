@@ -9,7 +9,8 @@ Maintainer  : bfeitknecht@ethz.ch
 Stability   : stable
 Portability : portable
 
-TODO
+Expression evaluation for the IMP language in the context of some state.
+Statements evaluate to the count of atomic operations.
 -}
 module IMP.Expression (
     Evaluate,
@@ -19,12 +20,12 @@ module IMP.Expression (
 import IMP.State
 import IMP.Syntax
 
--- | TODO
+-- | Typeclass to evaluate functional dependency.
 class Evaluate a b | a -> b where
-    -- | TODO
+    -- | Evaluate type in the context of some state to unique type.
     evaluate :: State -> a -> b
 
--- | TODO
+-- | Evaluate arithmetic expression to integer.
 instance Evaluate Aexp Integer where
     evaluate state aexp = case aexp of
         Val n -> n
@@ -42,7 +43,7 @@ instance Evaluate Aexp Integer where
                     Mod -> v1 %% v2
         Time s -> evaluate state s
 
--- | TODO
+-- | Evaluate boolean expression to boolean.
 instance Evaluate Bexp Bool where
     evaluate state bexp = case bexp of
         Lit b -> b
@@ -62,7 +63,7 @@ instance Evaluate Bexp Bool where
                     Gt -> v1 > v2
                     Geq -> v1 >= v2
 
--- | TODO
+-- | Evaluate statement to integer.
 -- CHECK: rewrite to count steps in operational semantics
 instance Evaluate Stm Integer where
     evaluate state stm = case stm of

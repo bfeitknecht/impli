@@ -11,7 +11,7 @@ Configuration settings for the IMP language interpreter, REPL and CLI.
 -}
 module Config where
 
--- | Toggle to control IMP language semantic in 'IMP.Statement.interpret'.
+-- | Toggle to control IMP language semantics in 'IMP.Statement.interpret'.
 operational :: Bool
 operational = True
 

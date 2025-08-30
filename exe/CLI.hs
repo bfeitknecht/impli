@@ -14,7 +14,6 @@ command execution or prints the version, help or AST of a construct.
 -}
 module CLI where
 
-import Config
 import Control.Monad.Except (catchError)
 import Data.Version (showVersion)
 import IMP.Exception
@@ -27,7 +26,6 @@ import System.Exit (exitFailure)
 
 import qualified Control.Monad.Trans.Except as Except
 import qualified Paths_impli as Paths
-import qualified System.Console.Haskeline as Haskeline
 
 -- | Mode to run the CLI.
 {- FOURMOLU_DISABLE -}
@@ -73,7 +71,7 @@ parseCLI = customExecParser defaultPrefs {prefColumns = 120} cli
 runCLI :: Mode -> IO ()
 runCLI mode =
     case mode of
-        REPL h -> repl (settings h) start
+        REPL nohist -> repl (settings nohist) start
         File path -> runFile path
         Command cmd -> runProgram "command" cmd
         AST input -> printAST input
@@ -102,13 +100,5 @@ runProgram channel input =
             print . ParseFail $ unlines [input, show e]
             exitFailure
         Right stm ->
-            Except.runExceptT (interpret (stm, initial))
+            Except.runExceptT (execute (stm, initial))
                 >>= either (\e -> print e >> exitFailure) (\_ -> return ())
-
--- | Default 'System.Console.Haskeline.Settings' for 'IMP.REPL.repl'.
-settings :: Bool -> Haskeline.Settings IO
-settings noHistory =
-    Haskeline.defaultSettings
-        { Haskeline.historyFile = if noHistory then Nothing else historyFile
-        , Haskeline.autoAddHistory = True
-        }

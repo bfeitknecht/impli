@@ -7,7 +7,8 @@ Maintainer  : bfeitknecht@ethz.ch
 Stability   : stable
 Portability : portable
 
-TODO
+Defines exception type that encapsulates various error conditions, such as
+parse, assertion and IO failures, raised exceptions, and generics.
 -}
 module IMP.Exception (
     Exception (..),

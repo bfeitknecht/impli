@@ -9,7 +9,8 @@ Maintainer  : bfeitknecht@ethz.ch
 Stability   : stable
 Portability : portable
 
-TODO
+Abstract syntax definition for the IMP language.
+Provides arithmetic expression, boolean expression, statement, and procedure definition.
 -}
 module IMP.Syntax (
     Aexp (..),
@@ -27,15 +28,15 @@ where
 
 import Data.List (nub)
 
--- | TODO
+-- | Arithmetic expression in the IMP language.
 data Aexp
-    = Bin Aop Aexp Aexp -- ^ TODO
-    | Var String -- ^ TODO
-    | Val Integer -- ^ TODO
-    | Time Stm -- ^ TODO
+    = Bin Aop Aexp Aexp -- ^ Binary operation
+    | Var String -- ^ Variable
+    | Val Integer -- ^ Integer value
+    | Time Stm -- ^ Atomic execution metric
     deriving (Eq, Show)
 
--- | TODO
+-- | Instance of 'Num' for 'Aexp' to allow numerical operations.
 instance Num Aexp where
     (+) = Bin Add
     (-) = Bin Sub
@@ -46,23 +47,23 @@ instance Num Aexp where
     signum (Val v) = Val $ signum v
     signum _ = error "signum not supported for abstract syntax"
 
--- | TODO
+-- | Instance of 'Ord' for 'Aexp' to allow ordering.
 instance Ord Aexp where
     Val v1 <= Val v2 = v1 <= v2
     _ <= _ = error "order not supported for abstract syntax"
 
--- | TODO
+-- | Instance of 'Enum' for 'Aexp' to allow conversion with 'Int'.
 instance Enum Aexp where
     toEnum = Val . toEnum
     fromEnum (Val v) = fromEnum v
     fromEnum _ = error "fromEnum not supported for abstract syntax"
 
--- | TODO
+-- | Instance of 'Real' for 'Aexp' to allow conversion with 'Rational'.
 instance Real Aexp where
     toRational (Val v) = toRational v
     toRational _ = error "toRational not supported for abstract syntax"
 
--- | TODO
+-- | Instance of 'Integral' for 'Aexp' to allow integer operations.
 instance Integral Aexp where
     div = Bin Div
     mod = Bin Mod
@@ -70,107 +71,107 @@ instance Integral Aexp where
     toInteger (Val v) = v
     toInteger _ = error "toInteger not supported for abstract syntax"
 
--- | TODO
+-- | Arithmetic operator for binary operations.
 data Aop
-    = Add -- ^ TODO
-    | Sub -- ^ TODO
-    | Mul -- ^ TODO
-    | Div -- ^ TODO
-    | Mod -- ^ TODO
+    = Add -- ^ Addition
+    | Sub -- ^ Subtraction
+    | Mul -- ^ Multiplication
+    | Div -- ^ Division
+    | Mod -- ^ Modulus
     deriving (Eq, Show)
 
--- | TODO
+-- | Boolean expression in the IMP language.
 data Bexp
-    = Or Bexp Bexp -- ^ TODO
-    | And Bexp Bexp -- ^ TODO
-    | Not Bexp -- ^ TODO
-    | Rel Rop Aexp Aexp -- ^ TODO
-    | Lit Bool -- ^ TODO
+    = Or Bexp Bexp -- ^ Disjunction
+    | And Bexp Bexp -- ^ Conjunction
+    | Not Bexp -- ^ Negation
+    | Rel Rop Aexp Aexp -- ^ Relation
+    | Lit Bool -- ^ Literal
     deriving (Eq, Show)
 
--- | TODO
+-- | Relational operator for relations.
 data Rop
-    = Eq -- ^ TODO
-    | Neq -- ^ TODO
-    | Lt -- ^ TODO
-    | Leq -- ^ TODO
-    | Gt -- ^ TODO
-    | Geq -- ^ TODO
+    = Eq -- ^ Equality
+    | Neq -- ^ Inequality
+    | Lt -- ^ Less
+    | Leq -- ^ Less or equal
+    | Gt -- ^ Greater
+    | Geq -- ^ Greater or equal
     deriving (Eq, Show)
 
--- | TODO
+-- | Definition operators for variable definitions.
 data Dop
-    = Def -- ^ TODO
-    | Inc -- ^ TODO
-    | Dec -- ^ TODO
-    | Prod -- ^ TODO
-    | Quot -- ^ TODO
-    | Rem -- ^ TODO
+    = Def -- ^ Definition
+    | Inc -- ^ Increment
+    | Dec -- ^ Decrement
+    | Prod -- ^ Product
+    | Quot -- ^ Quotient
+    | Rem -- ^ Remainder
     deriving (Eq, Show)
 
--- | TODO
+-- | Statement in the IMP language.
 data Stm
-    = Skip -- ^ TODO
-    | VarDef String Dop Aexp -- ^ TODO
-    | Seq Stm Stm -- ^ TODO
-    | IfElse Bexp Stm Stm -- ^ TODO
-    | While Bexp Stm -- ^ TODO
-    | Print Aexp -- ^ TODO
-    | Read String -- ^ TODO
-    | Local String Aexp Stm -- ^ TODO
-    | Par Stm Stm -- ^ TODO
-    | NonDet Stm Stm -- ^ TODO
-    | ProcDef Proc -- ^ TODO
-    | ProcInvoc String ([Aexp], [String]) -- ^ TODO
-    | Restore ([(String, Integer)], [Proc], Bool) -- ^ TODO
-    | Return [String] [String] -- ^ TODO
-    | Break -- ^ TODO
-    | Revert Stm Bexp -- ^ TODO
-    | Match Aexp [(Integer, Stm)] Stm -- ^ TODO
-    | Havoc String -- ^ TODO
-    | Assert Bexp -- ^ TODO
-    | FlipFlop Integer Stm Stm -- ^ TODO
-    | Raise Aexp -- ^ TODO
-    | TryCatch Stm String Stm -- ^ TODO
-    | Swap String String -- ^ TODO
-    | Timeout Stm Aexp -- ^ TODO
-    | Alternate Stm Stm -- ^ TODO
+    = Skip -- ^ Do nothing
+    | VarDef String Dop Aexp -- ^ Variable definition
+    | Seq Stm Stm -- ^ Sequential composition
+    | IfElse Bexp Stm Stm -- ^ Conditional branching
+    | While Bexp Stm -- ^ While loop
+    | Print Aexp -- ^ Output evaluation of arithmetic expression
+    | Read String -- ^ Read input into variable
+    | Local String Aexp Stm -- ^ Local variable
+    | Par Stm Stm -- ^ Parallel execution
+    | NonDet Stm Stm -- ^ Non-deterministic choice
+    | ProcDef Proc -- ^ Procedure definition
+    | ProcInvoc String ([Aexp], [String]) -- ^ Procedure invocation
+    | Restore ([(String, Integer)], [Proc], Bool) -- ^ Restore state (internal use)
+    | Return [String] [String] -- ^ Return values (internal use)
+    | Break -- ^ Break loop
+    | Revert Stm Bexp -- ^ Transactional execution
+    | Match Aexp [(Integer, Stm)] Stm -- ^ Pattern match on integer values
+    | Havoc String -- ^ Random value variable definition
+    | Assert Bexp -- ^ Assert boolean condition
+    | FlipFlop Integer Stm Stm -- ^ Alternating execution
+    | Raise Aexp -- ^ Raise exception with value
+    | TryCatch Stm String Stm -- ^ Exception handling
+    | Swap String String -- ^ Swap values of two variables
+    | Timeout Stm Aexp -- ^ Execute with timeout
+    | Alternate Stm Stm -- ^ Interleaved execution
     deriving (Eq, Show)
 
--- | TODO
+-- | Instance of 'Semigroup' for 'Stm' allowing sequential composition with 'Seq'.
 instance Semigroup Stm where
     (<>) = Seq
 
--- | TODO
+-- | Instance of 'Monoid' for 'Stm', with identity element 'Skip'.
 instance Monoid Stm where
     mempty = Skip
 
--- | TODO
+-- | Procedure definition in the IMP language.
 data Proc = Procedure
-    { procname :: String -- ^ TODO
-        , procsign :: ([String], [String]) -- ^ TODO
-        , procbody :: Stm -- ^ TODO
+    { procname :: String -- ^ Name of procedure
+    , procsign :: ([String], [String]) -- ^ Parameters and return variable
+    , procbody :: Stm -- ^ Body of procedure
     }
     deriving (Eq)
 
--- | TODO
+-- | Instance of 'Show' for 'Proc'.
 instance Show Proc where
     show p = unwords ["Procedure", show $ procname p, show $ procsign p, show $ procbody p]
 
--- | TODO
+-- | Construct in the IMP language.
 data Construct
-    = Statement Stm -- ^ TODO
-    | Arithmetic Aexp -- ^ TODO
-    | Boolean Bexp -- ^ TODO
-    | Whitespace -- ^ TODO
+    = Statement Stm -- ^ Statement
+    | Arithmetic Aexp -- ^ Arithmetic expression
+    | Boolean Bexp -- ^ Boolean expression
+    | Whitespace -- ^ Whitespace, i.e. comment
     deriving (Eq, Show)
 
--- | TODO
+-- | Typeclass for extracting free variables.
 class Variables a where
-    -- | TODO
+    -- | Extract free variables.
     variables :: a -> [String]
 
--- | TODO
+-- | Extract free variables from boolean expression.
 instance Variables Bexp where
     variables bexp = nub $ case bexp of
         Or b1 b2 -> variables b1 ++ variables b2
@@ -179,7 +180,7 @@ instance Variables Bexp where
         Rel _ a1 a2 -> variables a1 ++ variables a2
         Lit _ -> []
 
--- | TODO
+-- | Extract free variables from arithmetic expression.
 instance Variables Aexp where
     variables aexp = nub $ case aexp of
         Bin _ a1 a2 -> variables a1 ++ variables a2
@@ -187,7 +188,7 @@ instance Variables Aexp where
         Val _ -> []
         Time s -> variables s
 
--- | TODO
+-- | Extract free variables from statement.
 instance Variables Stm where
     variables stm = nub $ case stm of
         Skip -> []

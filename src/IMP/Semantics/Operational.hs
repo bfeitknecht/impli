@@ -1,15 +1,20 @@
 {- |
-Module      : IMP.Semantic.Operational
-Description : TODO
+Module      : IMP.Semantics.Operational
+Description : Operational semantics for the IMP language
 Copyright   : (c) Basil Feitknecht, 2025
 License     : MIT
 Maintainer  : bfeitknecht@ethz.ch
 Stability   : stable
 Portability : portable
 
-TODO
+Implementation of operational (small-step) semantics for the IMP language.
+Allows execution of statement step by step to expose intermediate configurations.
 -}
-module IMP.Semantic.Operational where
+module IMP.Semantics.Operational (
+    step,
+    steps,
+)
+where
 
 import Control.Monad.Except (catchError, throwError)
 import Control.Monad.IO.Class (liftIO)
@@ -23,7 +28,7 @@ import IMP.Pretty
 import IMP.State
 import IMP.Syntax
 
--- | TODO
+-- | Execute first step of statement with state stack, return next configuration.
 step :: (Stm, [State]) -> IMP Conf
 step (_, []) = error "illegal configuration for step: empty state stack"
 step (stm, stack@(state : states)) = case stm of
@@ -161,7 +166,7 @@ step (stm, stack@(state : states)) = case stm of
             Nothing -> return (Just s2, stack')
             Just s1' -> return (Just $ Alternate s2 s1', stack')
 
--- | TODO
+-- | Execute statement by repeated application of step until completion, return final state.
 steps :: (Stm, [State]) -> IMP State
 steps (_, []) = error "insufficient"
 steps conf = do
