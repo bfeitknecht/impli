@@ -13,3 +13,5 @@ package impli-wasm
         -optl=-Wl,--export=execute
         -optl=-Wl,--export=release
         -fexternal-interpreter
+
+allow-newer: *:base

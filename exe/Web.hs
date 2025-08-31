@@ -16,7 +16,7 @@ import IMP.Statement
 import IMP.Syntax
 
 -- | Foreign function to log JSString to the browser console.
-foreign import javascript "console.log($1)" logger :: JS.JSString -> IO ()
+foreign import javascript unsafe "console.log($1)" logger :: JS.JSString -> IO ()
 
 -- | TODO
 newtype Store = Store {reference :: IORef State}
@@ -25,16 +25,16 @@ newtype Store = Store {reference :: IORef State}
 type Browser = StablePtr Store
 
 foreign export javascript "initialize" initialize :: IO Browser
-foreign export javascript "execute" execute :: Browser -> JS.JSString -> IO JS.JSString
+foreign export javascript "interpret" interpret :: Browser -> JS.JSString -> IO JS.JSString
 foreign export javascript "release" release :: Browser -> IO ()
 
 -- | Initialize the IMP language interpreter in the browser.
 initialize :: IO Browser
-initialize = console "Hello, World!" >> newIORef initial >>= newStablePtr . Store
+initialize = newIORef initial >>= newStablePtr . Store
 
 -- | TODO
-execute :: Browser -> JS.JSString -> IO JS.JSString
-execute ptr line = do
+interpret :: Browser -> JS.JSString -> IO JS.JSString
+interpret ptr line = do
     Store ref <- deRefStablePtr ptr
     state <- readIORef ref
     let input = JS.fromJSString line
@@ -63,7 +63,7 @@ release = freeStablePtr
 -- | TODO
 dispatch :: State -> Construct -> IMP State
 dispatch state cnstr = case cnstr of
-    Statement stm -> interpret (stm, state) >>= return
+    Statement stm -> execute (stm, state) >>= return
     Arithmetic aexp -> (liftIO . print) (evaluate state aexp) >> return state
     Boolean bexp -> (liftIO . putStrLn) (if evaluate state bexp then "true" else "false") >> return state
     Whitespace -> return state

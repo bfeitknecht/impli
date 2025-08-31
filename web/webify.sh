@@ -12,8 +12,13 @@ set -euf -o pipefail
 echo "INFO: STARTING BUILD"
 wasm32-wasi-cabal build impli-wasm --project-file=cabal.project.wasm --ghc-options=-no-hs-main
 
-BIN="$(wasm32-wasi-cabal list-bin impli-wasm -v0 | sed 's#opt/##')"
-WEB="./web"
+BIN="$(wasm32-wasi-cabal list-bin impli-wasm -v0 --project-file=cabal.project.wasm | sed 's#opt/##')"
+WASM="./web/impli.wasm"
 
-echo "INFO: COPYING TO $WEB"
-cp "$BIN" "$WEB/impli.wasm"
+echo "INFO: COPYING $BIN TO $WASM"
+cp "$BIN" "$WASM"
+
+GLUE="./web/glue.js"
+
+echo "INFO: CREATING JSFFI MODULE $GLUE"
+$(wasm32-wasi-ghc --print-libdir)/post-link.mjs -i "$WASM" -o "$GLUE"
