@@ -61,14 +61,14 @@ settings flag =
 repl :: Haskeline.Settings IO -> Env -> IO ()
 repl s env = do
     putStrLn welcome
-    Haskeline.runInputT s (Except.runExceptT (loop env))
+    Haskeline.runInputT s (Haskeline.withInterrupt $ Except.runExceptT (loop env))
         >>= either
             (\e -> print e >> exitFailure)
             (\_ -> putStrLn goodbye)
 
 -- | REPL loop that processes input and maintains interpreter state.
 loop :: Env -> REPL ()
-loop env = do
+loop env = Haskeline.handleInterrupt (loop env) $ do
     line <- lift . Haskeline.getInputLine $ prompt
     case line of
         Nothing -> return () -- ctrl-d, exit cleanly
@@ -80,7 +80,7 @@ loop env = do
                 (\c -> dispatch env c >>= loop)
                 (parser "interactive" input)
         `catchError` \e -> case e of
-            Empty -> output "" -- ctrl-d during read, flush line and exit cleanly
+            Empty -> flush -- ctrl-d during read, flush line and exit cleanly
             AssertFail _ -> throwError e -- unrecoverable, propagate
             Raised _ -> throwError e -- ''
             _ -> display e >> loop env -- mistakes happen
@@ -89,13 +89,13 @@ loop env = do
 dispatch :: Env -> Construct -> REPL Env
 dispatch env@(trace, state) cnstr = case cnstr of
     Statement stm -> do
-        state' <- liftIMP $ execute (stm, state)
+        state' <- Haskeline.handleInterrupt (flush >> return state) (liftIMP $ execute (stm, state))
         return (stm : trace, state')
     Arithmetic aexp -> display (evaluate state aexp) >> return env
     Boolean bexp -> output (if evaluate state bexp then "true" else "false") >> return env
     Whitespace -> return env
 
--- | Help message displayed when user enters @:help@ metacommand.
+-- | Help message displayed on @:help@ metacommand.
 helpMessage :: [String]
 helpMessage =
     [ ":help / :?               Show this help message"
@@ -221,9 +221,13 @@ printAST input =
 prettytrace :: [Stm] -> String
 prettytrace = prettify . mconcat -- Haskell is nice!
 
--- | Clear the terminal.
+-- | Clear the REPL.
 clear :: REPL ()
 clear = liftIO (ANSI.clearScreen >> ANSI.setCursorPosition 0 0)
+
+-- | Flush the REPL.
+flush :: REPL ()
+flush = output ""
 
 -- | 'putStrLn' inside 'REPL'.
 output :: String -> REPL ()
