@@ -1,5 +1,3 @@
-import { instantiate } from "./impli.js";
-
 const terminal = document.getElementById("terminal");
 const input = document.getElementById("input");
 function display(text) {
@@ -8,7 +6,6 @@ function display(text) {
 }
 
 async function main() {
-  const { interpret } = await instantiate("impli.wasm");
   display("Hello, World!");
 
   input.addEventListener("keydown", (event) => {
@@ -16,7 +13,7 @@ async function main() {
       const command = input.value;
       display("> " + command);
 
-      const result = JSON.parse(interpret(command));
+      // const result = JSON.parse(interpret(command));
       if (result.exception) {
         display("Error: " + result.exception);
       } else if (result.output) {
