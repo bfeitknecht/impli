@@ -46,7 +46,6 @@ The table below depicts the correspondence between semantics functions defined i
 There are some crucial points for further improvement. These include the following.
 - enable WASM compilation to host for browsers
 - improve the REPL
-    - cleanly handle interrupt (ctrl+c)
     - support tab-autocompletion
     - handle multi line input
 - ability to load source modules for interpretation
@@ -54,4 +53,3 @@ There are some crucial points for further improvement. These include the followi
 - improve documentation with examples
 - write standard library
 - extend test suite
-- rewrite everything to use `Control.Monad.State` in the transformer stack
