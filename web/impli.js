@@ -1,15 +1,15 @@
-// TODO
-
-const wasm_url = "./impli.wasm";
-const glue_url = "./glue.js";
+const wasm = "./impli.wasm";
+const glue = "./glue.js";
 const __exports = {};
 
-const { instance } = await WebAssembly.instantiateStreaming(fetch(wasm_url), {
-  ghc_wasm_jsffi: (await import(glue_url)).default(__exports),
-  // CHECK: what needs to be done here?
-  // wasi_snapshot_preview1: ...
+const { instance } = await WebAssembly.instantiateStreaming(fetch(wasm), {
+  ghc_wasm_jsffi: (await import(glue)).default(__exports),
 });
 
 Object.assign(__exports, wasm_instance.exports);
 
-// CHECK: how to export `instance`?
+// CHECK: what does this do?
+// wasi.initialize(wasm_instance);
+//
+// CHECK: and is this correct?
+// await __exports.initialize()
