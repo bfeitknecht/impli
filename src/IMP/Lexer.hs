@@ -111,11 +111,11 @@ variable = identifier <|> symbol "_" <?> "variable"
 
 -- | Parser for reserved keyword, expectation attached.
 keyword :: String -> Parser ()
-keyword x = (Token.reserved lexer) x <?> x
+keyword x = Token.reserved lexer x <?> x
 
 -- | Parser for reserved operator, expectation attached.
 operator :: String -> Parser ()
-operator x = (Token.reservedOp lexer) x <?> x
+operator x = Token.reservedOp lexer x <?> x
 
 -- | Parser for parentheses.
 parens :: Parser a -> Parser a
