@@ -11,8 +11,8 @@ import qualified GHC.Wasm.Prim as JS
 
 import IMP.Expression
 import IMP.Parser
+import IMP.Semantics.Structural
 import IMP.State
-import IMP.Statement
 import IMP.Syntax
 
 -- | Foreign function to log JSString to the browser console.
@@ -63,7 +63,7 @@ release = freeStablePtr
 -- | TODO
 dispatch :: State -> Construct -> IMP State
 dispatch state cnstr = case cnstr of
-    Statement stm -> execute (stm, state) >>= return
+    Statement stm -> run (stm, state) >>= return
     Arithmetic aexp -> (liftIO . print) (evaluate state aexp) >> return state
     Boolean bexp -> (liftIO . putStrLn) (if evaluate state bexp then "true" else "false") >> return state
     Whitespace -> return state
