@@ -1,3 +1,4 @@
+{-# LANGUAGE TupleSections #-}
 {-# LANGUAGE TypeApplications #-}
 
 {- |
@@ -88,9 +89,12 @@ loop env = Haskeline.handleInterrupt (loop env) $ do
 -- | Process construct in environment, return updated environment.
 dispatch :: Env -> Construct -> REPL Env
 dispatch env@(trace, state) cnstr = case cnstr of
-    Statement stm -> do
-        state' <- Haskeline.handleInterrupt (flush >> return state) (liftIMP $ execute (stm, state))
-        return (stm : trace, state')
+    Statement stm ->
+        -- INFO: statement isn't added to trace after interrupt
+        Haskeline.handleInterrupt
+            (flush >> return env)
+            ((stm : trace,) <$> (liftIMP $ execute (stm, state)))
+            >>= return
     Arithmetic aexp -> display (evaluate state aexp) >> return env
     Boolean bexp -> output (if evaluate state bexp then "true" else "false") >> return env
     Whitespace -> return env
