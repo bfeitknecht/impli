@@ -1,4 +1,0 @@
-project-file: cabal.project
-ignore-project: False
-with-compiler: ghc-9.10.2
-tests: True
