@@ -94,10 +94,10 @@ step (stm, stack@(state : states)) = case stm of
     ProcDef p -> return (Nothing, setProc state p : states)
     ProcInvoc name (arguments, returns) ->
         case getProc state name of
-            Nothing -> throwError . Error $ "undefined procedure: " ++ name
+            Nothing -> errata $ "undefined procedure: " ++ name
             Just (Procedure _ (params, rets) body)
-                | length arguments /= length params -> throwError . Error $ "mismatched number of arguments to parameters"
-                | length returns /= length rets -> throwError . Error $ "mismatched number of return variables"
+                | length arguments /= length params -> errata $ "mismatched number of arguments to parameters"
+                | length returns /= length rets -> errata $ "mismatched number of return variables"
                 | otherwise ->
                     let
                         vals = map (evaluate state) arguments -- evaluate arguments

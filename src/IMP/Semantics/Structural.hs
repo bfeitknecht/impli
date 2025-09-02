@@ -14,10 +14,12 @@ module IMP.Semantics.Structural (
     run,
 ) where
 
-import Control.Monad.Except (catchError, throwError)
+import Control.Concurrent.Async (concurrently)
 import Control.Monad.IO.Class (liftIO)
 import System.Random (randomIO)
 
+import qualified Control.Monad.Except as Except
+import qualified Data.List as List
 import qualified Data.Map as Map
 
 import IMP.Exception
@@ -65,7 +67,16 @@ run (stm, state) = case stm of
             local = setVar state x new
         state' <- run (s, local)
         return $ setVar state' x old
-    Par _ _ -> throwError . Error $ "parallel execution not (yet) supported in structural semantics" -- FIXME: this should be possible
+    Par s1 s2 -> do
+        let runIMP = Except.runExceptT . run
+        result <- liftIO $ concurrently (runIMP (s1, state)) (runIMP (s2, state))
+        case result of
+            (Left e, _) -> Except.throwError e
+            (_, Left e) -> Except.throwError e
+            (Right (vs1, ps1, break'), Right (vs2, ps2, _)) -> return (vars', procs', break')
+                where
+                    vars' = Map.union vs1 vs2
+                    procs' = List.union ps1 ps2
     NonDet s1 s2 -> do
         left <- randomIO :: IMP Bool
         if left
@@ -74,10 +85,10 @@ run (stm, state) = case stm of
     ProcDef p -> return $ setProc state p
     ProcInvoc name (arguments, returns) ->
         case getProc state name of
-            Nothing -> throwError . Error $ "undefined procedure: " ++ name
+            Nothing -> errata $ "undefined procedure: " ++ name
             Just (Procedure _ (params, rets) body)
-                | length arguments /= length params -> throwError . Error $ "mismatched number of arguments to parameters"
-                | length returns /= length rets -> throwError . Error $ "mismatched number of return variables"
+                | length arguments /= length params -> errata $ "mismatched number of arguments to parameters"
+                | length returns /= length rets -> errata $ "mismatched number of return variables"
                 | otherwise -> do
                     let
                         vals = map (evaluate state) arguments -- evaluate arguments
@@ -105,7 +116,7 @@ run (stm, state) = case stm of
     Assert b ->
         if evaluate state b
             then return state
-            else throwError . AssertFail $ prettify b
+            else Except.throwError . AssertFail $ prettify b
     FlipFlop i s1 s2 -> do
         if getFlip state i
             then do
@@ -114,15 +125,15 @@ run (stm, state) = case stm of
             else do
                 state' <- run (s2, state)
                 return $ setFlip state' i
-    Raise a -> throwError . Raised $ evaluate state a
-    TryCatch s1 x s2 -> catchError (run (s1, state)) $ \e -> case e of
+    Raise a -> Except.throwError . Raised $ evaluate state a
+    TryCatch s1 x s2 -> Except.catchError (run (s1, state)) $ \e -> case e of
         Raised v -> run (s2, setVar state x v) -- catch in x, continue with s2
-        _ -> throwError e -- can't catch, propagate
+        _ -> Except.throwError e -- can't catch, propagate
     Swap x y ->
         let
             v = getVar state x
             w = getVar state y
         in
             return $ setVars state [(x, w), (y, v)]
-    Timeout _ _ -> throwError . Error $ "timeout statement not (yet) supported in big-step semantics"
-    Alternate _ _ -> throwError . Error $ "alternate execution not supported in big-step semantics"
+    Timeout _ _ -> errata $ "timeout statement not supported in big-step semantics"
+    Alternate _ _ -> errata $ "alternate execution not supported in big-step semantics"
