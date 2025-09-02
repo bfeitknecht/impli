@@ -90,11 +90,9 @@ loop env = Haskeline.handleInterrupt (loop env) $ do
 dispatch :: Env -> Construct -> REPL Env
 dispatch env@(trace, state) cnstr = case cnstr of
     Statement stm ->
-        -- INFO: statement isn't added to trace after interrupt
         Haskeline.handleInterrupt
-            (flush >> return env)
-            ((stm : trace,) <$> (liftIMP $ execute (stm, state)))
-            >>= return
+            (flush >> return env) -- INFO: statement isn't added to trace after interrupt
+            ((stm : trace,) <$> liftIMP (execute (stm, state)))
     Arithmetic aexp -> display (evaluate state aexp) >> return env
     Boolean bexp -> output (if evaluate state bexp then "true" else "false") >> return env
     Whitespace -> return env
@@ -218,7 +216,7 @@ printAST :: String -> IO ()
 printAST input =
     either
         (\e -> print . ParseFail $ unlines [input, show e])
-        (\c -> print c)
+        print
         (parser @Construct "interactive" input)
 
 -- | Convert trace to valid IMP language source code.
