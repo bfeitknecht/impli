@@ -18,13 +18,12 @@ print AST of IMP language construct and save execution history to disk.
 -}
 module REPL where
 
-import Control.Monad.Except (catchError, throwError)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Class (lift)
 import System.Exit (exitFailure)
 import Text.Read (readMaybe)
 
-import qualified Control.Monad.Trans.Except as Except
+import qualified Control.Monad.Except as Except
 import qualified Data.Map as Map
 import qualified System.Console.ANSI as ANSI
 import qualified System.Console.Haskeline as Haskeline
@@ -77,13 +76,13 @@ loop env = Haskeline.handleInterrupt (loop env) $ do
         Just (':' : rest) -> handleMeta env . normalizeMeta $ words rest
         Just input ->
             either
-                (\e -> throwError . ParseFail $ unlines [input, show e])
+                (\e -> Except.throwError . ParseFail $ unlines [input, show e])
                 (\c -> dispatch env c >>= loop)
                 (parser "interactive" input)
-        `catchError` \e -> case e of
+        `Except.catchError` \e -> case e of
             Empty -> flush -- ctrl-d during read, flush line and exit cleanly
-            AssertFail _ -> throwError e -- unrecoverable, propagate
-            Raised _ -> throwError e -- ''
+            AssertFail _ -> Except.throwError e -- unrecoverable, propagate
+            Raised _ -> Except.throwError e -- ''
             _ -> display e >> loop env -- mistakes happen
 
 -- | Process construct in environment, return updated environment.
@@ -145,7 +144,7 @@ handleMeta env@(trace, state@(vars, procs, flag)) meta = case meta of
         | it `elem` ["p", "procs"] -> (display . Info) "procedures reset" >> loop (trace, (vars, [], flag))
         | it `elem` ["b", "break"] -> (display . Info) "break flag reset" >> loop (trace, (vars, procs, False))
         | it `elem` ["t", "trace"] -> (display . Info) "trace reset" >> loop ([], (vars, procs, flag))
-        | otherwise -> throwError . Error $ "unrecognized aspect to reset: " ++ it
+        | otherwise -> liftIMP . errata $ "unrecognized aspect to reset: " ++ it
     ["trace"] -> do
         -- CHECK: is there some better way to do this without reverse?
         explain
@@ -166,24 +165,24 @@ handleMeta env@(trace, state@(vars, procs, flag)) meta = case meta of
         output $ "Break: " ++ show flag ++ "\n"
         loop env
     ["load", it]
-        | null it -> throwError . Info $ "no filepath provided"
+        | null it -> Except.throwError . Info $ "no filepath provided"
         | otherwise -> loadIMP state it >>= curry loop trace
     ["write", it]
-        | null it -> throwError . Info $ "no filepath provided"
+        | null it -> Except.throwError . Info $ "no filepath provided"
         | otherwise -> writeIMP trace it >> loop env
     ["ast", it]
-        | null it -> throwError . Info $ "nothing to parse"
-        | "#" <- it -> throwError . Info $ "no index provided"
+        | null it -> Except.throwError . Info $ "nothing to parse"
+        | "#" <- it -> Except.throwError . Info $ "no index provided"
         | '#' : ds <- it -> case readMaybe ds of
-            Nothing -> throwError . ParseFail $ it
+            Nothing -> Except.throwError . ParseFail $ it
             Just i ->
                 if i <= 0 || i > length trace
-                    then throwError $ Error $ "index out of bounds: " ++ show i
+                    then Except.throwError $ Error $ "index out of bounds: " ++ show i
                     -- INFO: condition guarantees index in bounds
                     else display (trace !! (length trace - i)) >> loop env
         | otherwise -> liftIO (printAST it) >> loop env
     _ ->
-        throwError . Error $
+        liftIMP . errata $
             unlines
                 [ "not a meta command: :" ++ unwords meta
                 , "Enter :help to list available metacommands and :quit to exit."
@@ -194,9 +193,9 @@ loadIMP :: State -> FilePath -> REPL State
 loadIMP state path = do
     content <-
         liftIO (readFile path)
-            `catchError` (\e -> throwError . IOFail $ unlines ["read from: " ++ path, show e])
+            `Except.catchError` (\e -> Except.throwError . IOFail $ unlines ["read from: " ++ path, show e])
     case parser path content of
-        Left e -> throwError . ParseFail $ unlines [path, show e]
+        Left e -> Except.throwError . ParseFail $ unlines [path, show e]
         Right stm -> do
             state' <- liftIMP $ execute (stm, state)
             display . Info $ "interpreted: " ++ path
@@ -208,8 +207,8 @@ writeIMP trace path = do
     let content = prettytrace trace
     _ <-
         liftIO (writeFile path content)
-            `catchError` (\e -> throwError . IOFail $ unlines ["write trace to: " ++ path, show e])
-    throwError . Info $ "wrote trace to: " ++ path
+            `Except.catchError` (\e -> Except.throwError . IOFail $ unlines ["write trace to: " ++ path, show e])
+    Except.throwError . Info $ "wrote trace to: " ++ path
 
 -- | Parse input and print AST.
 printAST :: String -> IO ()

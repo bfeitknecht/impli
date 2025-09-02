@@ -13,12 +13,11 @@ Provides definition and manipulation of state with some QOL helpers.
 module IMP.State where
 
 import Control.Exception (IOException, try)
-import Control.Monad.Except (throwError)
 import Control.Monad.IO.Class
 import System.IO
 import Text.Read (readMaybe)
 
-import qualified Control.Monad.Trans.Except as Except
+import qualified Control.Monad.Except as Except
 import qualified Data.List as List
 import qualified Data.Map as Map
 
@@ -51,7 +50,7 @@ getVal x = do
     liftIO $ putStr (x ++ " := ") >> hFlush stdout
     input <-
         liftIO (try getLine :: IO (Either IOException String))
-            >>= either (\_ -> throwError Empty) return
+            >>= either (\_ -> Except.throwError Empty) return
     case readMaybe input of
         Nothing -> do
             liftIO . print . Info $ "invalid input, please enter an integer"
@@ -125,3 +124,6 @@ setFlop state i = setVar state (flipvar i) 1
 (%%) :: Integer -> Integer -> Integer
 (%%) v1 0 = v1
 (%%) v1 v2 = mod v1 v2
+
+errata :: String -> IMP a
+errata = Except.throwError . Error

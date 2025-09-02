@@ -4,10 +4,8 @@ column-limit: 120
 function-arrows: trailing
 comma-style: leading
 import-export-style: diff-friendly
-# HLS format with fourmolu does not recognize option "by-scope-then-qualified"
-# instead "by-qualified" is applied
-import-grouping: by-scope-then-qualified
-# import-grouping: legacy
+# import-grouping: by-scope-then-qualified
+import-grouping: legacy
 indent-wheres: true
 record-brace-space: true
 newlines-between-decls: 1
