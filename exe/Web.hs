@@ -15,18 +15,22 @@ import IMP.Semantics.Structural
 import IMP.State
 import IMP.Syntax
 
--- | Foreign function to log JSString to the browser console.
-foreign import javascript unsafe "console.log($1)" logger :: JS.JSString -> IO ()
-
 -- | TODO
 newtype Store = Store {reference :: IORef State}
 
 -- | TODO
 type Browser = StablePtr Store
 
+-- | Foreign function to log JSString to the browser console.
+foreign import javascript unsafe "console.log($1)" logger :: JS.JSString -> IO ()
+
 foreign export javascript "initialize" initialize :: IO Browser
 foreign export javascript "interpret" interpret :: Browser -> JS.JSString -> IO JS.JSString
 foreign export javascript "release" release :: Browser -> IO ()
+
+foreign export javascript "hello" hello :: IO JS.JSString
+hello :: IO JS.JSString
+hello = return $ JS.toJSString "Hello from Haskell!"
 
 -- | Initialize the IMP language interpreter in the browser.
 initialize :: IO Browser

@@ -1,0 +1,17 @@
+{
+  "version": "5",
+  "specifiers": {
+    "npm:@bjorn3/browser_wasi_shim@*": "0.4.2",
+    "npm:@bjorn3/browser_wasi_shim@~0.4.2": "0.4.2"
+  },
+  "npm": {
+    "@bjorn3/browser_wasi_shim@0.4.2": {
+      "integrity": "sha512-/iHkCVUG3VbcbmEHn5iIUpIrh7a7WPiwZ3sHy4HZKZzBdSadwdddYDZAII2zBvQYV0Lfi8naZngPCN7WPHI/hA=="
+    }
+  },
+  "workspace": {
+    "dependencies": [
+      "npm:@bjorn3/browser_wasi_shim@~0.4.2"
+    ]
+  }
+}

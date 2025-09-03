@@ -85,6 +85,14 @@ executable impli-wasm
     ghc-experimental,
     impli,
 
+  ghc-options:
+    -no-hs-main
+    -optl-mexec-model=reactor
+    "-optl=-Wl,--allow-undefined"
+    "-optl=-Wl,--export=initialize"
+    "-optl=-Wl,--export=execute"
+    "-optl=-Wl,--export=release"
+
 test-suite impli-test
   import: shared-settings
   type: exitcode-stdio-1.0

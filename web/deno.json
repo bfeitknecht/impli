@@ -1,0 +1,5 @@
+{
+  "imports": {
+    "@bjorn3/browser_wasi_shim": "npm:@bjorn3/browser_wasi_shim@^0.4.2"
+  }
+}

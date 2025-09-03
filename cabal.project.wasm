@@ -6,12 +6,6 @@ package impli-wasm
         -split-sections
         -funbox-strict-fields
         -fPIC
-        -no-hs-main
-        -optl-mexec-model=reactor
-        -optl=-Wl,--allow-undefined
-        -optl=-Wl,--export=initialize
-        -optl=-Wl,--export=execute
-        -optl=-Wl,--export=release
         -fexternal-interpreter
 
 allow-newer: *:base
