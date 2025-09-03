@@ -1,4 +1,4 @@
-import { create } from "./impli.js";
+import { IMPLI } from "./impli.js";
 
 const terminal = document.getElementById("terminal");
 const input = document.getElementById("input");
@@ -9,8 +9,8 @@ function display(text) {
 
 async function main() {
   display("Hello, World!");
-  const impli = await create("./impli.wasm");
-  console.log(await impli.hello());
+  const impli = await new IMPLI().initialize();
+  console.log(await impli.exports.hello());
 }
 
 main();

@@ -25,7 +25,7 @@ type Browser = StablePtr Store
 foreign import javascript unsafe "console.log($1)" logger :: JS.JSString -> IO ()
 
 foreign export javascript "initialize" initialize :: IO Browser
-foreign export javascript "interpret" interpret :: Browser -> JS.JSString -> IO JS.JSString
+foreign export javascript "execute" execute :: Browser -> JS.JSString -> IO JS.JSString
 foreign export javascript "release" release :: Browser -> IO ()
 
 foreign export javascript "hello" hello :: IO JS.JSString
@@ -37,15 +37,15 @@ initialize :: IO Browser
 initialize = newIORef initial >>= newStablePtr . Store
 
 -- | TODO
-interpret :: Browser -> JS.JSString -> IO JS.JSString
-interpret ptr line = do
+execute :: Browser -> JS.JSString -> IO JS.JSString
+execute ptr line = do
     Store ref <- deRefStablePtr ptr
     state <- readIORef ref
     let input = JS.fromJSString line
-    console $ "Executing: " ++ input
+    -- console $ "Executing: " ++ input
     case parser "browser" input of
         Left _ -> do
-            console $ "Parse error: Not a valid Construct"
+            -- console $ "Parse error: Not a valid Construct"
             return $ JS.toJSString "{\"exception\": \"Not a valid Construct\"}"
         Right c ->
             runExceptT (dispatch state c)

@@ -821,9 +821,9 @@ var setImmediate = await (async () => {
   }
   return (cb, ...args) => setTimeout(cb, 0, ...args);
 })();
-var ghc_wasm_jsffi_default = (__exports2) => {
+var ghc_wasm_jsffi_default = (__exports) => {
   const __ghc_wasm_jsffi_jsval_manager = new JSValManager();
-  const __ghc_wasm_jsffi_finalization_registry = globalThis.FinalizationRegistry ? new FinalizationRegistry((sp) => __exports2.rts_freeStablePtr(sp)) : {
+  const __ghc_wasm_jsffi_finalization_registry = globalThis.FinalizationRegistry ? new FinalizationRegistry((sp) => __exports.rts_freeStablePtr(sp)) : {
     register: () => {
     },
     unregister: () => true
@@ -832,7 +832,7 @@ var ghc_wasm_jsffi_default = (__exports2) => {
     newJSVal: (v) => __ghc_wasm_jsffi_jsval_manager.newJSVal(v),
     getJSVal: (k) => __ghc_wasm_jsffi_jsval_manager.getJSVal(k),
     freeJSVal: (k) => __ghc_wasm_jsffi_jsval_manager.freeJSVal(k),
-    scheduleWork: () => setImmediate(__exports2.rts_schedulerLoop),
+    scheduleWork: () => setImmediate(__exports.rts_schedulerLoop),
     ZC4ZCimplizm3zi0zi0zi0zminplacezmimplizmwasmZCMainZC: ($1) => console.log($1),
     ZC0ZCghczminternalZCGHCziInternalziWasmziPrimziExportsZC: ($1, $2) => $1.reject(new WebAssembly.RuntimeError($2)),
     ZC2ZCghczminternalZCGHCziInternalziWasmziPrimziExportsZC: ($1, $2) => $1.resolve($2),
@@ -843,7 +843,7 @@ var ghc_wasm_jsffi_default = (__exports2) => {
       };
     },
     ZC21ZCghczminternalZCGHCziInternalziWasmziPrimziExportsZC: ($1, $2) => {
-      $1.throwTo = (err) => __exports2.rts_promiseThrowTo($2, err);
+      $1.throwTo = (err) => __exports.rts_promiseThrowTo($2, err);
     },
     ZC22ZCghczminternalZCGHCziInternalziWasmziPrimziExportsZC: () => {
       let res, rej;
@@ -858,8 +858,8 @@ var ghc_wasm_jsffi_default = (__exports2) => {
     ZC0ZCghczminternalZCGHCziInternalziWasmziPrimziTypesZC: ($1) => `${$1.stack ? $1.stack : $1}`,
     ZC1ZCghczminternalZCGHCziInternalziWasmziPrimziTypesZC: ($1, $2) => new TextDecoder("utf-8", {
       fatal: true
-    }).decode(new Uint8Array(__exports2.memory.buffer, $1, $2)),
-    ZC2ZCghczminternalZCGHCziInternalziWasmziPrimziTypesZC: ($1, $2, $3) => new TextEncoder().encodeInto($1, new Uint8Array(__exports2.memory.buffer, $2, $3)).written,
+    }).decode(new Uint8Array(__exports.memory.buffer, $1, $2)),
+    ZC2ZCghczminternalZCGHCziInternalziWasmziPrimziTypesZC: ($1, $2, $3) => new TextEncoder().encodeInto($1, new Uint8Array(__exports.memory.buffer, $2, $3)).written,
     ZC3ZCghczminternalZCGHCziInternalziWasmziPrimziTypesZC: ($1) => $1.length,
     ZC4ZCghczminternalZCGHCziInternalziWasmziPrimziTypesZC: ($1) => {
       try {
@@ -867,23 +867,31 @@ var ghc_wasm_jsffi_default = (__exports2) => {
       } catch {
       }
     },
-    ZC18ZCghczminternalZCGHCziInternalziWasmziPrimziImportsZC: ($1, $2) => $1.then(() => __exports2.rts_promiseResolveUnit($2), (err) => __exports2.rts_promiseReject($2, err)),
+    ZC18ZCghczminternalZCGHCziInternalziWasmziPrimziImportsZC: ($1, $2) => $1.then(() => __exports.rts_promiseResolveUnit($2), (err) => __exports.rts_promiseReject($2, err)),
     ZC0ZCghczminternalZCGHCziInternalziWasmziPrimziConcziInternalZC: async ($1) => new Promise((res) => setTimeout(res, $1 / 1e3))
   };
 };
 
 // web/src/impli.js
-var __exports = {};
-async function create(source) {
-  const wasi = new WASI([], [], []);
-  const instance = await WebAssembly.instantiateStreaming(fetch(source), {
-    wasi_snapshot_preview1: wasi.wasiImport,
-    ghc_wasm_jsffi: ghc_wasm_jsffi_default(__exports)
-  });
-  Object.assign(__exports, instance.exports);
-  wasi.initialize(instance);
-  return instance;
-}
+var IMPLI = class {
+  constructor() {
+  }
+  async initialize() {
+    this.exports = {};
+    const wasi = new WASI([], [], []);
+    const wasm = await WebAssembly.instantiateStreaming(fetch("./impli.wasm"), {
+      wasi_snapshot_preview1: wasi.wasiImport,
+      ghc_wasm_jsffi: ghc_wasm_jsffi_default(this.exports)
+    });
+    wasi.initialize(wasm.instance);
+    Object.assign(this.exports, wasm.instance.exports);
+    this.pointer = this.exports.initialize();
+    return this;
+  }
+  async interpret(input2) {
+    await this.exports.execute(this.pointer, input2);
+  }
+};
 
 // web/src/index.js
 var terminal = document.getElementById("terminal");
@@ -894,7 +902,7 @@ function display(text) {
 }
 async function main() {
   display("Hello, World!");
-  const impli = await create("./impli.wasm");
-  console.log(await impli.hello());
+  const impli = await new IMPLI().initialize();
+  console.log(await impli.exports.hello());
 }
 main();
