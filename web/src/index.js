@@ -10,7 +10,15 @@ function display(text) {
 async function main() {
   display("Hello, World!");
   const impli = await new IMPLI().initialize();
-  console.log(await impli.exports.hello());
+
+  input.addEventListener("keypress", async (e) => {
+    if (e.key === "Enter") {
+      const command = input.value;
+      display("> " + command);
+      input.value = "";
+      await impli.interpret(command);
+    }
+  });
 }
 
 main();

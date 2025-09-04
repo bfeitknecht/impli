@@ -1,26 +1,14 @@
 #!/usr/bin/env bash
-#
-# DEPENDENCIES:
-# - wasm32-wasi
-# - wizer
-# - binaryen
-# - deno
-#
-# RUN WITH
-#
-# (orb -m nixe nix shell
-#     'gitlab:haskell-wasm/ghc-wasm-meta?host=gitlab.haskell.org'
-#     nixpkgs#wizer
-#     nixpkgs#binaryen
-#     nixpkgs#deno
-#     --extra-experimental-features nix-command
-#     --extra-experimental-features flakes)
+### DEPENDENCIES
+# ghc-wasm-meta
+# wizer
+# binaryen
+# deno
 
 set -euf -o pipefail
 
-echo "+++ INFO: update and clean build environment"
-# cabal clean -v0
-# wasm32-wasi-cabal --project-file=cabal.project.wasm update
+echo "+++ INFO: update cabal"
+wasm32-wasi-cabal --project-file=cabal.project.wasm update
 
 echo "+++ INFO: start build and copy WASM"
 wasm32-wasi-cabal --project-file=cabal.project.wasm build impli-wasm
@@ -38,8 +26,12 @@ wizer \
     --allow-wasi \
     --wasm-bulk-memory true \
     --init-func _initialize \
-    "$BIN" -o "$WASM"
-# wasm-opt "$WASM-init" -o "$WASM" -Oz
+    "$BIN" -o "$WASM-init"
+wasm-opt "$WASM-init" -o "$WASM" -Oz
 
-# echo "+++ INFO: bundle Javascript"
-# deno bundle --minify --platform=browser --format=esm web/src/index.js -o web/static/mod.js
+echo "+++ INFO: bundle Javascript"
+deno bundle --minify --platform=browser --format=esm web/src/index.js -o web/static/mod.js
+
+echo "+++ INFO: clean up artifacts"
+rm "$JSFFI"
+rm "$WASM-init"
