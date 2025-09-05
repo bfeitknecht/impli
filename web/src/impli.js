@@ -41,14 +41,16 @@ class Terminal extends globalThis.Terminal {
         this.input = "";
         this.cursor = 0;
         this.writeln("");
-        line.trim() !== "" && this.writeln(line);
-        this.onInputSubmit() && this.onInputSubmit(line);
+        if (line.trim() != "" && this.onInputSubmit) {
+          this.onInputSubmit(line);
+        }
         this.prompt();
       }
       // BS
       else if (ev.keyCode === 8) {
         if (this.cursorPos > 0) {
           this.input = this.input.substring(0, this.cursor - 1);
+          this.writeln(this.input);
           this.cursor--;
         }
       }
@@ -83,7 +85,7 @@ class IMPLI {
     const encoder = new TextEncoder("utf-8");
     const fds = [
       new OpenFile(new File([])), // stdin
-      ConsoleStdout.lineBuffered(this.terminal.writeln), // stdout
+      ConsoleStdout.lineBuffered((msg) => this.terminal.writeln(msg)), // stdout
       ConsoleStdout.lineBuffered((msg) => console.warn(`[WASI stderr] ${msg}`)), // stderr
       new PreopenDirectory(
         ".",
@@ -107,9 +109,9 @@ class IMPLI {
   }
 
   async interpret(input) {
-    const response = setTimeout(await this.exports.execute(this.pointer, input), 10_000);
-    const result = JSON.parse(response);
-    console.log(result);
+    // const response = setTimeout(await this.exports.execute(this.pointer, input), 0);
+    const response = await this.exports.execute(this.pointer, input);
+    console.log(response);
   }
 }
 

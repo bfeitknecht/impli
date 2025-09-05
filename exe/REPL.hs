@@ -18,7 +18,7 @@ print AST of IMP language construct and save execution history to disk.
 module REPL where
 
 import Control.Monad.Except (catchError, throwError)
-import Control.Monad.IO.Class (MonadIO, liftIO)
+import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Class (lift)
 import System.Exit (exitFailure)
 import Text.Read (readMaybe)
@@ -176,7 +176,7 @@ handleMeta env@(trace, state@(vars, procs, flag)) meta = case meta of
             Nothing -> throwError . ParseFail $ it
             Just i ->
                 if i <= 0 || i > length trace
-                    then throwError $ Error $ "index out of bounds: " ++ show i
+                    then throwError . Error $ "index out of bounds: " ++ show i
                     -- INFO: condition guarantees index in bounds
                     else display (trace !! (length trace - i)) >> loop env
         | otherwise -> liftIO (printAST it) >> loop env
@@ -215,7 +215,7 @@ printAST input =
     either
         (\e -> print . ParseFail $ unlines [input, show e])
         (\c -> print c)
-        (parser @Construct "interactive" input)
+        (parser @Construct "AST" input)
 
 -- | Convert trace to valid IMP language source code.
 prettytrace :: [Stm] -> String

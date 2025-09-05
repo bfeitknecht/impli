@@ -87,7 +87,6 @@ executable impli-wasm
 
   other-modules:
     Paths_impli
-    Web
 
   autogen-modules:
     Paths_impli
@@ -99,6 +98,7 @@ executable impli-wasm
     "-optl=-Wl,--export=initialize"
     "-optl=-Wl,--export=execute"
     "-optl=-Wl,--export=release"
+    "-optl=-Wl,--export=impli"
 
 test-suite impli-test
   import: shared-settings

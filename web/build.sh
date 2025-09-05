@@ -33,5 +33,5 @@ echo "+++ INFO: bundle Javascript"
 deno bundle --minify --platform=browser --format=esm web/src/impli.js -o web/static/impli.js
 
 echo "+++ INFO: clean up artifacts"
-# rm "$JSFFI"
+rm "$JSFFI"
 rm "$WASM-init"
