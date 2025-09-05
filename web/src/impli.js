@@ -1,14 +1,17 @@
-import { WASI, File, OpenFile, ConsoleStdout } from "npm:@bjorn3/browser_wasi_shim";
+import { WASI, ConsoleStdout } from "npm:@bjorn3/browser_wasi_shim";
 import ghc_wasm_jsffi from "./ghc_wasm_jsffi.js";
+import { Terminal } from "./term.js";
 
-export class IMPLI {
-  constructor() {}
-
-  async initialize() {
+class IMPLI {
+  constructor() {
+    this.terminal = new Terminal();
     this.exports = {};
+  }
+
+  async init() {
     const fds = [
-      new OpenFile(new File([])), // stdin
-      ConsoleStdout.lineBuffered((msg) => console.log(`[WASI stdout] ${msg}`)), // stdout
+      [], // stdin
+      ConsoleStdout.lineBuffered(this.terminal.write), // stdout
       ConsoleStdout.lineBuffered((msg) => console.warn(`[WASI stderr] ${msg}`)), // stderr
     ];
     const wasi = new WASI([], [], fds);
@@ -29,3 +32,5 @@ export class IMPLI {
     return result;
   }
 }
+
+async () => await new IMPLI().init();

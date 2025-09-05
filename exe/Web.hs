@@ -1,5 +1,22 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 
+{- |
+Module      : Web
+Description : Web capability for the IMP language interpreter
+Copyright   : (c) Basil Feitknecht, 2025
+License     : MIT
+Maintainer  : bfeitknecht@ethz.ch
+Stability   : stable
+Portability : portable
+
+Provides web capabilities for the IMP language interpreter.
+
+TODO
+- use WASI stdout redirection and pray it allows for streams
+    - ERROR: when condition of while loop evaluates:
+        - Unhandled Promise Rejection: RuntimeError: call_indirect to a null table entry (evaluating 'this.exports.execute(this.pointer,t)')
+- lazily generate stdout and return each line separate (huge IO)
+-}
 module Main where
 
 import Control.Monad.Except (runExceptT)
@@ -67,7 +84,7 @@ release = freeStablePtr
 -- | TODO
 dispatch :: State -> Construct -> IMP State
 dispatch state cnstr = case cnstr of
-    Statement stm -> run (stm, state) >>= return
+    Statement stm -> run (stm, state) >>= return -- interrupt after ~10s
     Arithmetic aexp -> (liftIO . print) (evaluate state aexp) >> return state
     Boolean bexp -> (liftIO . putStrLn) (if evaluate state bexp then "true" else "false") >> return state
     Whitespace -> return state

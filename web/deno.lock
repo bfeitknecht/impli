@@ -2,16 +2,21 @@
   "version": "5",
   "specifiers": {
     "npm:@bjorn3/browser_wasi_shim@*": "0.4.2",
-    "npm:@bjorn3/browser_wasi_shim@~0.4.2": "0.4.2"
+    "npm:@bjorn3/browser_wasi_shim@~0.4.2": "0.4.2",
+    "npm:@xterm/xterm@^5.5.0": "5.5.0"
   },
   "npm": {
     "@bjorn3/browser_wasi_shim@0.4.2": {
       "integrity": "sha512-/iHkCVUG3VbcbmEHn5iIUpIrh7a7WPiwZ3sHy4HZKZzBdSadwdddYDZAII2zBvQYV0Lfi8naZngPCN7WPHI/hA=="
+    },
+    "@xterm/xterm@5.5.0": {
+      "integrity": "sha512-hqJHYaQb5OptNunnyAnkHyM8aCjZ1MEIDTQu1iIbbTD/xops91NB5yq1ZK/dC2JDbVWtF23zUtl9JE2NqwT87A=="
     }
   },
   "workspace": {
     "dependencies": [
-      "npm:@bjorn3/browser_wasi_shim@~0.4.2"
+      "npm:@bjorn3/browser_wasi_shim@~0.4.2",
+      "npm:@xterm/xterm@^5.5.0"
     ]
   }
 }

@@ -1,32 +1,22 @@
 body {
     margin: 0;
-    font-family: monospace;
+    padding: 0;
+    height: 100vh;
+    overflow: hidden;
     background: #222;
     color: #eee;
+    font-family: monospace;
+    display: flex;
+    flex-direction: column;
 }
+
 #terminal {
-    height: calc(100vh - 3rem);
-    overflow-y: auto;
-    padding: 1rem;
-    background: #000;
-    color: #0f0;
-    white-space: pre-wrap;
-}
-#input {
-    position: fixed;
-    bottom: 0;
-    left: 0;
+    flex: 1;
     width: 100%;
-    box-sizing: border-box;
-    padding: 0.75rem;
-    border: none;
-    border-top: 1px solid #555;
-    background: #111;
-    color: #0f0;
-    font-family: inherit;
-    font-size: 1rem;
-    outline: none;
+    height: 100%;
+    overflow: hidden;
 }
-#input::placeholder {
-    color: #555;
+
+.xterm {
+    height: 100%;
 }

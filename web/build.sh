@@ -30,8 +30,8 @@ wizer \
 wasm-opt "$WASM-init" -o "$WASM" -Oz
 
 echo "+++ INFO: bundle Javascript"
-deno bundle --minify --platform=browser --format=esm web/src/index.js -o web/static/mod.js
+deno bundle --minify --platform=browser --format=esm web/src/impli.js -o web/static/impli.js
 
 echo "+++ INFO: clean up artifacts"
-rm "$JSFFI"
+# rm "$JSFFI"
 rm "$WASM-init"
