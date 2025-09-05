@@ -40,13 +40,25 @@ import IMP.Semantics.Structural
 import IMP.State
 import IMP.Syntax
 
-foreign export javascript "impli" impli :: IO ()
-impli :: IO ()
-impli = repl start
+foreign import javascript unsafe "console.log($1)" conslog :: JS.JSString -> IO ()
+foreign import javascript unsafe "console.warn($1)" conswarn :: JS.JSString -> IO ()
 
--- | Dummy stub to satisfy Cabal.
+-- | Communicate with browser console from Haskell String.
+warner, logger :: String -> IMP ()
+logger = liftIO . conslog . JS.toJSString
+warner = liftIO . conswarn . JS.toJSString
+
+foreign export javascript "hello" hello :: IO ()
+
+-- | TODO
+hello :: IO ()
+hello = conslog $ JS.toJSString "Hello, From Haskell!"
+
+foreign export javascript "serve" main :: IO ()
+
+-- | Web-Entrypoint for the IMP language interpreter.
 main :: IO ()
-main = return ()
+main = repl start
 
 -- | Environment in 'loop' as 2-tuple of trace (list of 'IMP.Syntax.Stm') and 'IMP.State.State'.
 type Env = ([Stm], State)
@@ -64,7 +76,7 @@ repl env =
 -- | REPL loop that processes input and maintains interpreter state.
 loop :: Env -> IMP ()
 loop env = do
-    output welcome
+    output wwwelcome
     line <- liftIO $ getLine
     case line of
         "" -> loop env -- empty line, loop

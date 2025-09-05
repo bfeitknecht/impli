@@ -17,7 +17,7 @@ class Terminal extends globalThis.Terminal {
   constructor() {
     super({
       cursorBlink: true,
-      fontFamily: '"CommitMono", "Courier New Bold"',
+      fontFamily: '"CommitMono", "Courier New Bold", monospace',
       fontSize: 13,
     });
     this.input = "";
@@ -78,13 +78,16 @@ class IMPLI {
   constructor() {
     this.exports = {};
     this.terminal = new Terminal();
-    this.terminal.setInputHandler((input) => this.interpret(input));
+    this.stdin = new File([]);
+    this.terminal.setInputHandler((input) => {
+      this.stdin.data += new TextEncoder("utf-8").encode(input);
+    });
   }
 
   async init() {
     const encoder = new TextEncoder("utf-8");
     const fds = [
-      new OpenFile(new File([])), // stdin
+      new OpenFile(this.stdin), // stdin
       ConsoleStdout.lineBuffered((msg) => this.terminal.writeln(msg)), // stdout
       ConsoleStdout.lineBuffered((msg) => console.warn(`[WASI stderr] ${msg}`)), // stderr
       new PreopenDirectory(
@@ -104,14 +107,7 @@ class IMPLI {
     wasi.initialize(wasm.instance);
     Object.assign(this.exports, wasm.instance.exports);
 
-    this.pointer = this.exports.initialize();
     return this;
-  }
-
-  async interpret(input) {
-    // const response = setTimeout(await this.exports.execute(this.pointer, input), 0);
-    const response = await this.exports.execute(this.pointer, input);
-    console.log(response);
   }
 }
 

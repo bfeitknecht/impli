@@ -94,11 +94,8 @@ executable impli-wasm
   ghc-options:
     -no-hs-main
     -optl-mexec-model=reactor
+    "-optl=-Wl,--export=hello"
     "-optl=-Wl,--allow-undefined"
-    "-optl=-Wl,--export=initialize"
-    "-optl=-Wl,--export=execute"
-    "-optl=-Wl,--export=release"
-    "-optl=-Wl,--export=impli"
 
 test-suite impli-test
   import: shared-settings
