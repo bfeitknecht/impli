@@ -17,7 +17,6 @@ module IMP.Semantics.Operational (
 where
 
 import Control.Monad.Except (catchError, throwError)
-import Control.Monad.IO.Class (liftIO)
 import System.Random (randomIO)
 
 import qualified Data.Map as Map
@@ -62,7 +61,7 @@ step (stm, stack@(state : states)) = case stm of
                     then return (Just $ s <> While b s, stack)
                     else return (Nothing, resetBreak state : states)
             else return (Nothing, stack)
-    Print a -> liftIO (print $ evaluate state a) >> return (Nothing, stack)
+    Print a -> (display $ evaluate state a) >> return (Nothing, stack)
     Read x -> do
         v <- getVal x
         return (Nothing, setVar state x v : states)

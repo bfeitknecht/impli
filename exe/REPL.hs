@@ -18,7 +18,7 @@ print AST of IMP language construct and save execution history to disk.
 module REPL where
 
 import Control.Monad.Except (catchError, throwError)
-import Control.Monad.IO.Class (liftIO)
+import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.Trans.Class (lift)
 import System.Exit (exitFailure)
 import Text.Read (readMaybe)
@@ -224,14 +224,6 @@ prettytrace = prettify . mconcat -- Haskell is nice!
 -- | Clear the terminal.
 clear :: REPL ()
 clear = liftIO (ANSI.clearScreen >> ANSI.setCursorPosition 0 0)
-
--- | 'putStrLn' inside 'REPL'.
-output :: String -> REPL ()
-output = liftIO . putStrLn
-
--- | 'print' inside 'REPL'.
-display :: (Show a) => a -> REPL ()
-display = liftIO . print
 
 -- | Nicely format 'output' with heading and indented body.
 explain :: String -> [String] -> REPL ()

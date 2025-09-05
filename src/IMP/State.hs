@@ -54,7 +54,7 @@ getVal x = do
             >>= either (\_ -> throwError Empty) return
     case readMaybe input of
         Nothing -> do
-            liftIO . print . Info $ "invalid input, please enter an integer"
+            display . Info $ "invalid input, please enter an integer"
             getVal x
         Just i -> return i
 
@@ -115,6 +115,14 @@ setFlip state i = setVar state (flipvar i) 0
 -- | Set branch to flop.
 setFlop :: State -> Integer -> State
 setFlop state i = setVar state (flipvar i) 1
+
+-- | 'putStrLn' inside some IO Monad.
+output :: (MonadIO m) => String -> m ()
+output = liftIO . putStrLn
+
+-- | 'print' inside some IO Monad.
+display :: (MonadIO m, Show a) => a -> m ()
+display = liftIO . print
 
 -- | Safe division, zero if divisor is zero.
 (//) :: Integer -> Integer -> Integer
