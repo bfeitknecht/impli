@@ -1,6 +1,22 @@
 import { WASI, ConsoleStdout } from "npm:@bjorn3/browser_wasi_shim";
 import ghc_wasm_jsffi from "./ghc_wasm_jsffi.js";
-import { Terminal } from "./term.js";
+
+const config = {
+  prompt: "IMP> ",
+  welcome: "Welcome to the IMP REPL! Enter :help to list available metacommands.",
+};
+
+class Terminal extends globalThis.Terminal {
+  constructor() {
+    super({
+      cursorBlink: true,
+    });
+    this.config = config;
+    this.open(document.getElementById("terminal"));
+    this.writeln(this.config.welcome);
+    this.write(config.prompt);
+  }
+}
 
 class IMPLI {
   constructor() {
@@ -11,7 +27,7 @@ class IMPLI {
   async init() {
     const fds = [
       [], // stdin
-      ConsoleStdout.lineBuffered(this.terminal.write), // stdout
+      ConsoleStdout.lineBuffered(this.terminal.writeln), // stdout
       ConsoleStdout.lineBuffered((msg) => console.warn(`[WASI stderr] ${msg}`)), // stderr
     ];
     const wasi = new WASI([], [], fds);
@@ -33,4 +49,6 @@ class IMPLI {
   }
 }
 
-async () => await new IMPLI().init();
+(async () => {
+  globalThis.impli = await new IMPLI().init();
+})();
