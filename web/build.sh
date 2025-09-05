@@ -8,7 +8,7 @@
 set -euf -o pipefail
 
 echo "+++ INFO: update cabal"
-wasm32-wasi-cabal --project-file=cabal.project.wasm update
+# wasm32-wasi-cabal --project-file=cabal.project.wasm update
 
 echo "+++ INFO: start build and copy WASM"
 wasm32-wasi-cabal --project-file=cabal.project.wasm build impli-wasm
@@ -33,5 +33,5 @@ echo "+++ INFO: bundle Javascript"
 deno bundle --minify --platform=browser --format=esm web/src/impli.js -o web/static/impli.js
 
 echo "+++ INFO: clean up artifacts"
-rm "$JSFFI"
+# rm "$JSFFI"
 rm "$WASM-init"

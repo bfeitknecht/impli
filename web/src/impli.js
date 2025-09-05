@@ -109,8 +109,14 @@ class IMPLI {
 
     return this;
   }
+
+  async serve() {
+    this.exports.serve();
+  }
 }
 
 (async () => {
-  globalThis.impli = await new IMPLI().init();
+  const impli = await new IMPLI().init();
+  globalThis.impli = impli;
+  impli.serve();
 })();

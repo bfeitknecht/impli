@@ -77,7 +77,7 @@ repl env =
 loop :: Env -> IMP ()
 loop env = do
     output wwwelcome
-    line <- liftIO $ getLine
+    line <- liftIO $ getContents
     case line of
         "" -> loop env -- empty line, loop
         (':' : rest) -> handleMeta env . normalizeMeta $ words rest
@@ -112,7 +112,7 @@ helpMessage =
     , ":trace                   Show trace (executed statements)"
     , ":state                   Show state (defined variables and procedures, break flag)"
     , ":load FILE               Interpret file and load resulting state"
-    , ":write FILE              Write trace to file (relative to $PWD)"
+    , ":write                   Write trace to file (opens in new tab)"
     , ":ast (INPUT | #n)        Parse and display AST of input or n-th statement in trace"
     ]
 
@@ -171,9 +171,7 @@ handleMeta env@(trace, state@(vars, procs, flag)) meta = case meta of
     ["load", it]
         | null it -> throwError . Info $ "no filepath provided"
         | otherwise -> loadIMP state it >>= curry loop trace
-    ["write", it]
-        | null it -> throwError . Info $ "no filepath provided"
-        | otherwise -> writeIMP trace it >> loop env
+    ["write"] -> writeIMP trace >> loop env
     ["ast", it]
         | null it -> throwError . Info $ "nothing to parse"
         | "#" <- it -> throwError . Info $ "no index provided"
@@ -205,7 +203,7 @@ loadIMP state path = do
             display . Info $ "interpreted: " ++ path
             return state'
 
-writeIMP :: [Stm] -> FilePath -> IMP ()
+writeIMP :: [Stm] -> IMP ()
 writeIMP = undefined
 
 -- | Parse input and print AST.
