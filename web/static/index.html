@@ -3,17 +3,24 @@
     <head>
         <meta charset="utf-8" />
         <title>impli.js</title>
-        <script type="importmap">
+        <!--<script type="importmap">
             {
                 "imports": {
                     "xterm": "https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/+esm",
                     "shims": "https://cdn.jsdelivr.net/npm/@candlecorp/browser_wasi_shim@0.2/+esm"
                 }
             }
-        </script>
+        </script>-->
         <!--
         CHECK: use importmap
         -->
+        <link
+            rel="preload"
+            href="./CommitMonoV143-VF.woff2"
+            as="font"
+            type="font/woff2"
+            crossorigin
+        />
         <script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5/lib/xterm.min.js"></script>
         <link
             rel="stylesheet"

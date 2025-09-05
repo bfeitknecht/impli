@@ -10,6 +10,8 @@ class Terminal extends globalThis.Terminal {
   constructor() {
     super({
       cursorBlink: true,
+      fontFamily: '"CommitMono", "Courier New Bold"',
+      fontSize: 13,
     });
     this.config = config;
     this.open(document.getElementById("terminal"));
