@@ -79,11 +79,18 @@ executable impli
 
 executable impli-wasm
   import: shared-settings
-  main-is: Web.hs
-  hs-source-dirs: exe
+  main-is: Main.hs
+  hs-source-dirs: web/src
   build-depends:
     ghc-experimental,
     impli,
+
+  other-modules:
+    Paths_impli
+    Web
+
+  autogen-modules:
+    Paths_impli
 
   ghc-options:
     -no-hs-main
