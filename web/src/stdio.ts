@@ -1,6 +1,7 @@
-import { Terminal } from "xterm";
+// import { Terminal } from "xterm";
+// import { WASI, File, OpenFile, ConsoleStdout, PreopenDirectory, Fd } from "shim";
+import { Terminal } from "npm:@xterm/xterm";
 import { WASI, File, OpenFile, ConsoleStdout, Fd } from "npm:@bjorn3/browser_wasi_shim";
-// import { WASI, File, OpenFile, ConsoleStdout, PreopenDirectory, Fd } from "shims";
 
 export class Stdio extends ConsoleStdout {
   pty: Terminal;
