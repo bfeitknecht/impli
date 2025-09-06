@@ -1,22 +1,29 @@
+import { File } from "npm:@bjorn3/browser_wasi_shim";
+
+const encoder = new TextEncoder();
+function imp(source: string) {
+  return new File(encoder.encode(source));
+}
+
 export default {
-  "countdown.imp": `// count down from ten
+  "countdown.imp": imp(`// count down from ten
 
 n := 10;
 while n >= 0 do
     print n;
     n := n-1
-end`,
+end`),
 
-  "factorial.imp": `// compute the 10-th factorial (10!)
+  "factorial.imp": imp(`// compute the 10-th factorial (10!)
 
 fac := 1;
 while n <= 10 do
     n := n+1;
     fac := fac * n
 end;
-print fac`,
+print fac`),
 
-  "divmod.imp": `// compute the quotient and remainder of d divided by v
+  "divmod.imp": imp(`// compute the quotient and remainder of d divided by v
 procedure divmod(d, v; q, r) begin
     q := 0;
     r := d;
@@ -32,9 +39,9 @@ procedure divmod(d, v; q, r) begin
             q := q + tmpq
         end
     end
-end`,
+end`),
 
-  "fibonacci.imp": `// linearly compute and print the first 100 fibonacci numbers
+  "fibonacci.imp": imp(`// linearly compute and print the first 100 fibonacci numbers
 
 f0 := 0;
 f1 := 1;
@@ -44,34 +51,34 @@ while n < 100 do
     f0 := f1;
     f1 := f0 + t;
     n := n + 1
-end`,
+end`),
 
-  "gauss.imp": `// compute the sum from 0 to 100
+  "gauss.imp": imp(`// compute the sum from 0 to 100
 
 while n < 100 do
     s := s + n;
     n := n + 1
 end;
-print s`,
+print s`),
 
-  "local.imp": `// local variable definition
+  "local.imp": imp(`// local variable definition
 
 x := 42;
 var x := x + 17 in
     print x
 end;
-print x`,
+print x`),
 
-  "nondeterminism.imp": `// random execution
+  "nondeterminism.imp": imp(`// random execution
 
-print 1 [] print 2`,
+    print 1 [] print 2`),
 
-  "parallel.imp": `// parallel execution
+  "parallel.imp": imp(`// parallel execution
 
 x := 10;
-(x := x+1; print x par x := x-1; print x)`,
+(x := x+1; print x par x := x-1; print x)`),
 
-  "primes.imp": `// compute the n-th prime number
+  "primes.imp": imp(`// compute the n-th prime number
 procedure prime(n; p) begin
     // compute the floored square root
     procedure sqrtfloor(n; r) begin
@@ -114,9 +121,9 @@ procedure prime(n; p) begin
         end
     end;
     p := candidate
-end`,
+end`),
 
-  "procedure.imp": `// procedure definition and invocation
+  "procedure.imp": imp(`// procedure definition and invocation
 
 procedure fib(n; x) begin
     f0 := 0;
@@ -131,9 +138,9 @@ procedure fib(n; x) begin
 end;
 
 fib(10; x);
-print x`,
+print x`),
 
-  "turing.imp": `// register machine implemented in IMP to prove its turing completeness
+  "turing.imp": imp(`// register machine implemented in IMP to prove its turing completeness
 
 // increment
 procedure inc(pc, reg, next; pc, reg) begin
@@ -170,5 +177,5 @@ while halt = 0 do
         3: halt := 1,
         default: skip
     end
-end`,
+end`),
 };

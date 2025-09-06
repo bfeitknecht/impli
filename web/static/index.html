@@ -3,17 +3,15 @@
     <head>
         <meta charset="utf-8" />
         <title>impli.js</title>
-        <!--<script type="importmap">
+        <script type="importmap">
             {
                 "imports": {
-                    "xterm": "https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/+esm",
-                    "shims": "https://cdn.jsdelivr.net/npm/@candlecorp/browser_wasi_shim@0.2/+esm"
+                    "shim": "https://cdn.jsdelivr.net/combine/npm/@bjorn3/browser_wasi_shim@0.4.2/dist/fd.min.js,npm/@bjorn3/browser_wasi_shim@0.4.2/dist/fs_mem.min.js,npm/@bjorn3/browser_wasi_shim@0.4.2/dist/fs_opfs.min.js,npm/@bjorn3/browser_wasi_shim@0.4.2/dist/index.min.js,npm/@bjorn3/browser_wasi_shim@0.4.2/dist/strace.min.js,npm/@bjorn3/browser_wasi_shim@0.4.2/dist/wasi.min.js,npm/@bjorn3/browser_wasi_shim@0.4.2/dist/wasi_defs.min.js",
+                    "xterm": "https://unpkg.com/@xterm/xterm@5.5/lib/xterm.js",
+                    "pty": "https://unpkg.com/xterm-pty@0.11/index.js"
                 }
             }
-        </script>-->
-        <!--
-        CHECK: use importmap
-        -->
+        </script>
         <link
             rel="preload"
             href="./CommitMonoV143-VF.woff2"
@@ -21,7 +19,6 @@
             type="font/woff2"
             crossorigin
         />
-        <script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5/lib/xterm.min.js"></script>
         <link
             rel="stylesheet"
             href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5/css/xterm.min.css"
@@ -30,6 +27,6 @@
     </head>
     <body>
         <div id="terminal"></div>
-        <script type="module" src="impli.js"></script>
+        <script type="module" src="main.js"></script>
     </body>
 </html>

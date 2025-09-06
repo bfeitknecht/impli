@@ -1,6 +1,10 @@
 {
   "imports": {
     "@bjorn3/browser_wasi_shim": "npm:@bjorn3/browser_wasi_shim@^0.4.2",
-    "@xterm/xterm": "npm:@xterm/xterm@^5.5.0"
+    "@xterm/xterm": "npm:@xterm/xterm@^5.5.0",
+    "xterm-pty": "npm:xterm-pty@^0.11.1"
+  },
+  "compilerOptions": {
+    "lib": ["esnext", "dom", "dom.iterable"]
   }
 }

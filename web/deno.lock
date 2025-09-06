@@ -3,7 +3,8 @@
   "specifiers": {
     "npm:@bjorn3/browser_wasi_shim@*": "0.4.2",
     "npm:@bjorn3/browser_wasi_shim@~0.4.2": "0.4.2",
-    "npm:@xterm/xterm@^5.5.0": "5.5.0"
+    "npm:@xterm/xterm@^5.5.0": "5.5.0",
+    "npm:xterm-pty@~0.11.1": "0.11.1"
   },
   "npm": {
     "@bjorn3/browser_wasi_shim@0.4.2": {
@@ -11,12 +12,19 @@
     },
     "@xterm/xterm@5.5.0": {
       "integrity": "sha512-hqJHYaQb5OptNunnyAnkHyM8aCjZ1MEIDTQu1iIbbTD/xops91NB5yq1ZK/dC2JDbVWtF23zUtl9JE2NqwT87A=="
+    },
+    "xterm-pty@0.11.1": {
+      "integrity": "sha512-vQISyzSgO+Cud8lOOFNbHI37s0AG/Mpsf2HmILgGHvsJI7hzq2qfEoLWD+fpNkJbICJ9yMoIdZ7u3czDtZQKWg==",
+      "dependencies": [
+        "@xterm/xterm"
+      ]
     }
   },
   "workspace": {
     "dependencies": [
       "npm:@bjorn3/browser_wasi_shim@~0.4.2",
-      "npm:@xterm/xterm@^5.5.0"
+      "npm:@xterm/xterm@^5.5.0",
+      "npm:xterm-pty@~0.11.1"
     ]
   }
 }

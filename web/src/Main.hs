@@ -22,6 +22,7 @@ module Main where
 
 import Control.Monad.IO.Class (liftIO)
 import Data.Version (showVersion)
+import System.IO (BufferMode (..), hSetBuffering, stderr, stdin, stdout)
 import Text.Read (readMaybe)
 
 import qualified Control.Monad.Trans.Except as Except
@@ -58,7 +59,11 @@ foreign export javascript "serve" main :: IO ()
 
 -- | Web-Entrypoint for the IMP language interpreter.
 main :: IO ()
-main = repl start
+main = do
+    hSetBuffering stdin NoBuffering
+    hSetBuffering stdout NoBuffering
+    hSetBuffering stderr LineBu ffering
+    repl start
 
 -- | Environment in 'loop' as 2-tuple of trace (list of 'IMP.Syntax.Stm') and 'IMP.State.State'.
 type Env = ([Stm], State)
@@ -77,7 +82,7 @@ repl env =
 loop :: Env -> IMP ()
 loop env = do
     output wwwelcome
-    line <- liftIO $ getContents
+    line <- liftIO $ getLine
     case line of
         "" -> loop env -- empty line, loop
         (':' : rest) -> handleMeta env . normalizeMeta $ words rest
