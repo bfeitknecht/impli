@@ -29,7 +29,7 @@ export class Impli {
       new Stdio(this.slave), // stdin
       new Stdio(this.slave), // stdout
       ConsoleStdout.lineBuffered(console.warn), // stderr // CHECK: better option?
-      new PreopenDirectory(".", inodes), // ./
+      new PreopenDirectory(".", inodes), // .
     ];
 
     const wasi = new WASI([], [], fds);

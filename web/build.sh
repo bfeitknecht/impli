@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 ### DEPENDENCIES
-# ghc-wasm-meta
-# wizer
-# binaryen
-# deno
+# - ghc-wasm-meta
+# - wizer
+# - binaryen
+# - deno
 
 set -euf -o pipefail
 
@@ -12,7 +12,7 @@ echo "+++ INFO: update cabal"
 
 echo "+++ INFO: start build and copy WASM"
 wasm32-wasi-cabal --project-file=cabal.project.wasm build impli-wasm
-BIN="$(wasm32-wasi-cabal --project-file=cabal.project.wasm list-bin impli-wasm)"
+BIN="$(wasm32-wasi-cabal --project-file=cabal.project.wasm -v0 list-bin impli-wasm)"
 
 echo "+++ INFO: create JSFFI pseudo ES-module"
 JSFFI="./web/src/jsffi.js"
@@ -26,19 +26,18 @@ wizer \
     --allow-wasi \
     --wasm-bulk-memory true \
     --init-func _initialize \
-    "$BIN" -o "$WASM-init"
-wasm-opt "$WASM-init" -o "$WASM" -Oz
+    "$BIN" -o "$WASM"
+wasm-opt "$WASM" -o "$WASM" -Oz
 
 echo "+++ INFO: bundle Javascript"
 deno bundle \
     --minify \
     --platform=browser \
     --format=esm \
-    --external="shim" \
     --external="xterm" \
     --external="pty" \
+    --external="shim" \
     web/src/main.ts -o web/static/main.js
 
 echo "+++ INFO: clean up artifacts"
 rm "$JSFFI"
-rm "$WASM-init"
