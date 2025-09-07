@@ -62,7 +62,7 @@ main :: IO ()
 main = do
     hSetBuffering stdin NoBuffering
     hSetBuffering stdout NoBuffering
-    hSetBuffering stderr LineBu ffering
+    hSetBuffering stderr LineBuffering
     repl start
 
 -- | Environment in 'loop' as 2-tuple of trace (list of 'IMP.Syntax.Stm') and 'IMP.State.State'.

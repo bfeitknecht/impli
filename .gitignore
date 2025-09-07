@@ -6,4 +6,5 @@ cabal.project.wasm.local
 .imp_history
 
 web/src/ghc_wasm_jsffi.js
-web/static
+web/static/main.js
+web/static/impli.wasm

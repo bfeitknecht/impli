@@ -1,11 +1,11 @@
-// import { Terminal } from "xterm";
-// import { WASI, File, OpenFile, ConsoleStdout, PreopenDirectory, Fd } from "shim";
-import { Terminal } from "npm:@xterm/xterm";
-import { WASI, File, OpenFile, ConsoleStdout, Fd } from "npm:@bjorn3/browser_wasi_shim";
+import { Terminal } from "xterm";
+import { WASI, File, OpenFile, ConsoleStdout, PreopenDirectory, Fd } from "shim";
+// import { Terminal } from "npm:@xterm/xterm";
+// import { WASI, File, OpenFile, ConsoleStdout, Fd } from "npm:@bjorn3/browser_wasi_shim";
 
 export class Stdio extends ConsoleStdout {
   pty: Terminal;
-  file_pos = 0;
+
   constructor(pty: Terminal) {
     super(pty.write);
     this.pty = pty;
