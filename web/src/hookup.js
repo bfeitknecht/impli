@@ -1,12 +1,14 @@
-// wasiHack patches wasi object for integrating it to xterm-pty.
-function hack(wasi, pty) {
+import { wasi } from "shim";
+const ERRNO_INVAL = wasi.ERRNO_INVAL;
+
+export function hookup(wasi, pty) {
   const _fd_read = wasi.wasiImport.fd_read;
   wasi.wasiImport.fd_read = (fd, iovs_ptr, iovs_len, nread_ptr) => {
     if (fd == 0) {
       const buffer = new DataView(wasi.inst.exports.memory.buffer);
       const buffer8 = new Uint8Array(wasi.inst.exports.memory.buffer);
       const iovecs = Iovec.read_bytes_array(buffer, iovs_ptr, iovs_len);
-      const nread = 0;
+      let nread = 0;
       for (i = 0; i < iovecs.length; i++) {
         const iovec = iovecs[i];
         if (iovec.buf_len == 0) {
@@ -29,7 +31,7 @@ function hack(wasi, pty) {
       const buffer = new DataView(wasi.inst.exports.memory.buffer);
       const buffer8 = new Uint8Array(wasi.inst.exports.memory.buffer);
       const iovecs = Ciovec.read_bytes_array(buffer, iovs_ptr, iovs_len);
-      const wtotal = 0;
+      let wtotal = 0;
       for (i = 0; i < iovecs.length; i++) {
         const iovec = iovecs[i];
         const buf = buffer8.slice(iovec.buf, iovec.buf + iovec.buf_len);
@@ -85,7 +87,7 @@ function hack(wasi, pty) {
     }
     const events = [];
     if (isReadPollStdin || isReadPollConn || isClockPoll) {
-      const readable = false;
+      let readable = false;
       if (isReadPollStdin || (isClockPoll && timeout > 0)) {
         readable = pty.onWaitForReadable(timeout / 1000000000);
       }

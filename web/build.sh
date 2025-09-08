@@ -7,7 +7,7 @@
 
 set -euf -o pipefail
 
-echo "+++ INFO: update cabal"
+# echo "+++ INFO: update cabal"
 # wasm32-wasi-cabal --project-file=cabal.project.wasm update
 
 echo "+++ INFO: start build and copy WASM"
@@ -37,7 +37,7 @@ deno bundle \
     --external="xterm" \
     --external="pty" \
     --external="shim" \
-    web/src/main.ts -o web/static/main.js
+    web/src/main.js -o web/static/main.js
 
-echo "+++ INFO: clean up artifacts"
-rm "$JSFFI"
+# echo "+++ INFO: clean up artifacts"
+# rm "$JSFFI"

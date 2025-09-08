@@ -41,29 +41,49 @@ import IMP.Semantics.Structural
 import IMP.State
 import IMP.Syntax
 
-foreign import javascript unsafe "console.log($1)" conslog :: JS.JSString -> IO ()
-foreign import javascript unsafe "console.warn($1)" conswarn :: JS.JSString -> IO ()
+foreign import javascript unsafe "console.log($1)" logger :: JS.JSString -> IO ()
+foreign import javascript unsafe "console.warn($1)" warner :: JS.JSString -> IO ()
+foreign import javascript safe "impli.slave.onReadable(() => {const str = impli.slave.read(); return str})"
+    reader :: IO JS.JSString -- called twice on input, likely once on initial and again due to write in JS
 
 -- | Communicate with browser console from Haskell String.
-warner, logger :: String -> IMP ()
-logger = liftIO . conslog . JS.toJSString
-warner = liftIO . conswarn . JS.toJSString
+js_log, js_warn :: String -> IO ()
+js_log = logger . JS.toJSString
+js_warn = warner . JS.toJSString
 
 foreign export javascript "hello" hello :: IO ()
 
--- | TODO
+-- | Greetings from Haskell.
 hello :: IO ()
-hello = conslog $ JS.toJSString "Hello, From Haskell!"
+hello = js_log "Hello, From Haskell!"
+
+-- | Get input line from Javascript.
+js_getInput :: IO String
+js_getInput = reader >>= return . JS.fromJSString
+
+foreign export javascript "foo" foo :: IO ()
+
+foo :: IO ()
+foo = do
+    {-
+    line <- getLine
+    hello
+    js_log line
+    -}
+    input <- js_getInput
+    js_log input
+    hello
 
 foreign export javascript "serve" main :: IO ()
 
 -- | Web-Entrypoint for the IMP language interpreter.
 main :: IO ()
 main = do
-    hSetBuffering stdin NoBuffering
-    hSetBuffering stdout NoBuffering
-    hSetBuffering stderr LineBuffering
-    repl start
+    -- hSetBuffering stdin NoBuffering
+    -- hSetBuffering stdout NoBuffering
+    -- hSetBuffering stderr NoBuffering
+    -- repl start
+    foo
 
 -- | Environment in 'loop' as 2-tuple of trace (list of 'IMP.Syntax.Stm') and 'IMP.State.State'.
 type Env = ([Stm], State)
@@ -82,7 +102,7 @@ repl env =
 loop :: Env -> IMP ()
 loop env = do
     output wwwelcome
-    line <- liftIO $ getLine
+    line <- liftIO $ js_getInput
     case line of
         "" -> loop env -- empty line, loop
         (':' : rest) -> handleMeta env . normalizeMeta $ words rest

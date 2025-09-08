@@ -1,8 +1,7 @@
 import { File } from "shim";
-// import { File } from "npm:@bjorn3/browser_wasi_shim";
 
 const encoder = new TextEncoder();
-function imp(source: string) {
+function imp(source) {
   return new File(encoder.encode(source));
 }
 

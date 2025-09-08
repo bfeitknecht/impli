@@ -96,6 +96,7 @@ executable impli-wasm
     -optl-mexec-model=reactor
     "-optl=-Wl,--export=hello"
     "-optl=-Wl,--export=serve"
+    "-optl=-Wl,--export=foo"
     "-optl=-Wl,--allow-undefined"
 
 test-suite impli-test
