@@ -80,7 +80,7 @@ loop env = do
                 (\c -> dispatch env c >>= loop)
                 (parser "interactive" input)
         `catchError` \e -> case e of
-            Empty -> output "" -- ctrl-d during read, flush line and exit cleanly
+            Empty -> outputln "" -- ctrl-d during read, flush line and exit cleanly
             AssertFail _ -> throwError e -- unrecoverable, propagate
             Raised _ -> throwError e -- ''
             _ -> display e >> loop env -- mistakes happen
@@ -92,7 +92,7 @@ dispatch env@(trace, state) cnstr = case cnstr of
         state' <- liftIMP $ execute (stm, state)
         return (stm : trace, state')
     Arithmetic aexp -> display (evaluate state aexp) >> return env
-    Boolean bexp -> output (if evaluate state bexp then "true" else "false") >> return env
+    Boolean bexp -> outputln (if evaluate state bexp then "true" else "false") >> return env
     Whitespace -> return env
 
 -- | Help message displayed when user enters @:help@ metacommand.
@@ -129,7 +129,7 @@ normalizeMeta rest = rest
 -- | Process metacommand in environment, continue loop or exit.
 handleMeta :: Env -> [String] -> REPL ()
 handleMeta env@(trace, state@(vars, procs, flag)) meta = case meta of
-    [")"] -> output "You look good today!" >> loop env
+    [")"] -> outputln "You look good today!" >> loop env
     ["help"] -> do
         explain
             "All meta commands can be abbreviated by their first letter."
@@ -161,7 +161,7 @@ handleMeta env@(trace, state@(vars, procs, flag)) meta = case meta of
             -- INFO: invariant of IMP.State.setVar guarantees no empty string key
             [k ++ " = " ++ show v | (k, v) <- Map.toList vars, head k /= '_']
         explain "Procedures:" [prettify p | p <- procs]
-        output $ "Break: " ++ show flag ++ "\n"
+        outputln $ "Break: " ++ show flag ++ "\n"
         loop env
     ["load", it]
         | null it -> throwError . Info $ "no filepath provided"
@@ -225,10 +225,10 @@ prettytrace = prettify . mconcat -- Haskell is nice!
 clear :: REPL ()
 clear = liftIO (ANSI.clearScreen >> ANSI.setCursorPosition 0 0)
 
--- | Nicely format 'output' with heading and indented body.
+-- | Nicely format 'outputln' with heading and indented body.
 explain :: String -> [String] -> REPL ()
-explain heading [] = output heading
-explain heading body = output $ heading ++ '\n' : indent 4 (unlines body)
+explain heading [] = outputln heading
+explain heading body = outputln $ heading ++ '\n' : indent 4 (unlines body)
 
 -- | Indent every line by @n@ space characters.
 indent :: Int -> String -> String

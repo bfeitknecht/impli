@@ -23,10 +23,15 @@ export class Impli {
   async init() {
     const inodes = new Map(Object.entries(files));
     const fds = [
+      /*
       new Stdio(this.slave), // stdin
       new Stdio(this.slave), // stdout
       ConsoleStdout.lineBuffered((str) => console.warn(str)), // stderr // CHECK: better option?
       new PreopenDirectory(".", inodes), // .
+      */
+      new Stdio(this.slave),
+      new Stdio(this.slave),
+      // ConsoleStdout.lineBuffered((str) => this.slave.write(str + "\n")),
     ];
 
     const wasi = new WASI([], [], fds);

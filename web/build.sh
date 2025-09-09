@@ -28,6 +28,7 @@ wizer \
     --init-func _initialize \
     "$BIN" -o "$WASM"
 wasm-opt "$WASM" -o "$WASM" -Oz
+du -ahx "$WASM"
 
 echo "+++ INFO: bundle Javascript"
 deno bundle \

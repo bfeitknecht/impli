@@ -8,3 +8,5 @@ cabal.project.wasm.local
 web/src/ghc_wasm_jsffi.js
 web/static/main.js
 web/static/impli.wasm
+
+web/src/lib

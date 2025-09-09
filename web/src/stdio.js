@@ -2,19 +2,44 @@ import { ConsoleStdout, wasi } from "shim";
 
 export class Stdio extends ConsoleStdout {
   constructor(pty) {
-    super(pty.write);
+    const decoder = new TextDecoder("utf-8", { fatal: false });
+    let line_buf = "";
+    const write = (buffer) => {
+      line_buf += decoder.decode(buffer, { stream: true });
+      const lines = line_buf.split("\n");
+      console.log(lines.entries());
+      for (const [i, line] of lines.entries()) {
+        if (i != lines.length - 1) {
+          pty.write(line + "\n");
+        } else {
+          line_buf = line;
+          pty.write(line);
+        }
+      }
+    };
+    super(write);
     this.pty = pty;
-    this.read = () => new Uint8Array();
-    this.write = pty.write;
   }
 
   fd_read(size) {
+    console.log("fd_read: called");
+
+    const data = new Uint8Array();
     this.pty.onReadable(() => {
-      const input = Uint8Array.from(this.pty.read());
-      if (size <= input.length) {
-        return { ret: 0, data: input.subarray(0, size) };
-      } else return { ret: wasi.ERRNO_2BIG, data: new Uint8Array() };
+      console.log("fd_read: pty.onReadable()");
+      const input = this.pty.read();
+      const view8 = Uint8Array.from(input);
+
+      console.log("fd_read: pty.read() -> " + input);
+      console.log("fd_read: view8.length = " + view8.length);
+      console.log("fd_read: size = " + size);
+
+      // this.pty.write(input);
+
+      if (view8.length <= size) {
+        return { ret: 0, data: view8.subarray(0, size) };
+      }
     });
-    return { ret: wasi.ERRNO_2BIG, data: new Uint8Array() };
+    return { ret: wasi.ERRNO_2BIG, data: data };
   }
 }

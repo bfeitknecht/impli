@@ -48,7 +48,7 @@ initial = (zero, [], False)
 -- | Get value for provided variable with prompt.
 getVal :: String -> IMP Integer
 getVal x = do
-    liftIO $ putStr (x ++ " := ") >> hFlush stdout
+    output (x ++ " := ") >> flush
     input <-
         liftIO (try getLine :: IO (Either IOException String))
             >>= either (\_ -> throwError Empty) return
@@ -57,6 +57,8 @@ getVal x = do
             display . Info $ "invalid input, please enter an integer"
             getVal x
         Just i -> return i
+    where
+        flush = liftIO $ hFlush stdout
 
 -- | Get defined variables.
 getVars :: State -> Vars
@@ -116,9 +118,13 @@ setFlip state i = setVar state (flipvar i) 0
 setFlop :: State -> Integer -> State
 setFlop state i = setVar state (flipvar i) 1
 
--- | 'putStrLn' inside some IO Monad.
+-- | 'putStr' inside some IO Monad.
 output :: (MonadIO m) => String -> m ()
-output = liftIO . putStrLn
+output = liftIO . putStr
+
+-- | 'putStrLn' inside some IO Monad.
+outputln :: (MonadIO m) => String -> m ()
+outputln = liftIO . putStrLn
 
 -- | 'print' inside some IO Monad.
 display :: (MonadIO m, Show a) => a -> m ()

@@ -43,8 +43,6 @@ import IMP.Syntax
 
 foreign import javascript unsafe "console.log($1)" logger :: JS.JSString -> IO ()
 foreign import javascript unsafe "console.warn($1)" warner :: JS.JSString -> IO ()
-foreign import javascript safe "impli.slave.onReadable(() => {const str = impli.slave.read(); return str})"
-    reader :: IO JS.JSString -- called twice on input, likely once on initial and again due to write in JS
 
 -- | Communicate with browser console from Haskell String.
 js_log, js_warn :: String -> IO ()
@@ -57,33 +55,15 @@ foreign export javascript "hello" hello :: IO ()
 hello :: IO ()
 hello = js_log "Hello, From Haskell!"
 
--- | Get input line from Javascript.
-js_getInput :: IO String
-js_getInput = reader >>= return . JS.fromJSString
-
-foreign export javascript "foo" foo :: IO ()
-
-foo :: IO ()
-foo = do
-    {-
-    line <- getLine
-    hello
-    js_log line
-    -}
-    input <- js_getInput
-    js_log input
-    hello
-
 foreign export javascript "serve" main :: IO ()
 
 -- | Web-Entrypoint for the IMP language interpreter.
 main :: IO ()
 main = do
-    -- hSetBuffering stdin NoBuffering
+    hSetBuffering stdin NoBuffering
     -- hSetBuffering stdout NoBuffering
     -- hSetBuffering stderr NoBuffering
-    -- repl start
-    foo
+    repl start
 
 -- | Environment in 'loop' as 2-tuple of trace (list of 'IMP.Syntax.Stm') and 'IMP.State.State'.
 type Env = ([Stm], State)
@@ -101,8 +81,9 @@ repl env =
 -- | REPL loop that processes input and maintains interpreter state.
 loop :: Env -> IMP ()
 loop env = do
-    output wwwelcome
-    line <- liftIO $ js_getInput
+    outputln wwwelcome
+    output prompt
+    line <- liftIO $ getLine
     case line of
         "" -> loop env -- empty line, loop
         (':' : rest) -> handleMeta env . normalizeMeta $ words rest
@@ -112,7 +93,7 @@ loop env = do
                 (\c -> dispatch env c >>= loop)
                 (parser "browser" input)
         `catchError` \e -> case e of
-            Empty -> output "" -- ctrl-d during read, flush line and exit cleanly
+            Empty -> outputln "" -- ctrl-d during read, flush line and exit cleanly
             AssertFail _ -> throwError e -- unrecoverable, propagate
             Raised _ -> throwError e -- ''
             _ -> display e >> loop env -- mistakes happen
@@ -124,7 +105,7 @@ dispatch env@(trace, state) cnstr = case cnstr of
         state' <- run (stm, state)
         return (stm : trace, state')
     Arithmetic aexp -> display (evaluate state aexp) >> return env
-    Boolean bexp -> output (if evaluate state bexp then "true" else "false") >> return env
+    Boolean bexp -> outputln (if evaluate state bexp then "true" else "false") >> return env
     Whitespace -> return env
 
 -- | Help message displayed when user enters @:help@ metacommand.
@@ -160,13 +141,13 @@ normalizeMeta rest = rest
 -- | Process metacommand in environment, continue loop or exit.
 handleMeta :: Env -> [String] -> IMP ()
 handleMeta env@(trace, state@(vars, procs, flag)) meta = case meta of
-    [")"] -> output "You look good today!" >> loop env
+    [")"] -> outputln "You look good today!" >> loop env
     ["help"] -> do
         explain
             "All meta commands can be abbreviated by their first letter."
             helpMessage
         loop env
-    ["version"] -> output ("impli " ++ showVersion Paths.version) >> loop env
+    ["version"] -> outputln ("impli " ++ showVersion Paths.version) >> loop env
     ["reset", it]
         | null it -> (display . Info) "environment reset" >> loop start
         | it `elem` ["v", "vars"] -> (display . Info) "variables reset" >> loop (trace, (zero, procs, flag))
@@ -191,7 +172,7 @@ handleMeta env@(trace, state@(vars, procs, flag)) meta = case meta of
             -- INFO: invariant of IMP.State.setVar guarantees no empty string key
             [k ++ " = " ++ show v | (k, v) <- Map.toList vars, head k /= '_']
         explain "Procedures:" [prettify p | p <- procs]
-        output $ "Break: " ++ show flag ++ "\n"
+        outputln $ "Break: " ++ show flag ++ "\n"
         loop env
     ["load", it]
         | null it -> throwError . Info $ "no filepath provided"
@@ -243,10 +224,10 @@ printAST input =
 prettytrace :: [Stm] -> String
 prettytrace = prettify . mconcat -- Haskell is nice!
 
--- | Nicely format 'output' with heading and indented body.
+-- | Nicely format 'outputln' with heading and indented body.
 explain :: String -> [String] -> IMP ()
-explain heading [] = output heading
-explain heading body = output $ heading ++ '\n' : indent 4 (unlines body)
+explain heading [] = outputln heading
+explain heading body = outputln $ heading ++ '\n' : indent 4 (unlines body)
 
 -- | Indent every line by @n@ space characters.
 indent :: Int -> String -> String
