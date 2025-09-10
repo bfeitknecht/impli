@@ -5,3 +5,7 @@ package *
     ghc-options:
         -split-sections
         -funbox-strict-fields
+
+package impli-web
+    ghc-options:
+        -fforce-recomp

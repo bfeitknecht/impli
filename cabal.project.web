@@ -1,8 +1,0 @@
-packages: .
-
-package *
-    optimization: 2
-    ghc-options:
-        -split-sections
-        -funbox-strict-fields
-        -fforce-recomp

@@ -11,12 +11,9 @@ Stability   : stable
 Portability : portable
 
 Provides web capabilities for the IMP language interpreter.
-
 ---
-- use WASI stdout redirection and pray it allows for streams
-    - ERROR: when condition of while loop evaluates:
-        - Unhandled Promise Rejection: RuntimeError: call_indirect to a null table entry (evaluating 'this.exports.execute(this.pointer,t)')
-- lazily generate stdout and return each line separate (huge IO)
+emcc arguments:
+    -s FORCE_FILESYSTEM -s ASYNCIFY --js-library=./lib/emscripten-pty.js -o main.js
 -}
 module Main where
 
