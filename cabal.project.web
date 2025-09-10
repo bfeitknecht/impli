@@ -1,11 +1,8 @@
 packages: .
 
-package impli-wasm
+package *
     optimization: 2
     ghc-options:
         -split-sections
         -funbox-strict-fields
-        -fPIC
-        -fexternal-interpreter
-
-allow-newer: *:base
+        -fforce-recomp
