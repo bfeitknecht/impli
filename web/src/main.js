@@ -21,7 +21,6 @@ terminal.loadAddon(fitter);
 new ResizeObserver(() => fitter.fit()).observe(div);
 fitter.fit();
 
-const worker = new Worker("./worker.js");
 const inodes = new Map(Object.entries(files));
 const fds = [
   undefined, // stdin
@@ -38,3 +37,5 @@ const wasm = await WebAssembly.instantiateStreaming(fetch("./impli.wasm"), {
 
 wasi.initialize(wasm.instance);
 Object.assign(this.exports, wasm.instance.exports);
+
+const worker = new Worker(new URL("worker.js", import.meta.url));
