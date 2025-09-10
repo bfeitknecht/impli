@@ -85,3 +85,54 @@ export class Stdout extends ConsoleStdout {
     super(write);
   }
 }
+
+export function overrideWasiPoller(wasiInstance) {
+  const original_poll_oneoff = wasiInstance.wasiImport.poll_oneoff;
+
+  wasiInstance.wasiImport.poll_oneoff = (in_ptr, out_ptr, nsubscriptions, nevents_ptr) => {
+    const memory = new DataView(wasiInstance.inst.exports.memory.buffer);
+    const subscriptions = [];
+    for (let i = 0; i < nsubscriptions; i++) {
+      subscriptions.push(
+        wasi.Subscription.read_bytes(memory, in_ptr + i * 48 /* sizeof(subscription) */),
+      );
+    }
+
+    // Group subscriptions by file descriptor
+    const subsByFd = new Map();
+    for (const sub of subscriptions) {
+      const fd = sub.u.fd_readwrite.fd;
+      if (!subsByFd.has(fd)) {
+        subsByFd.set(fd, []);
+      }
+      subsByFd.get(fd).push(sub);
+    }
+
+    let allEvents = [];
+    let totalNsubscriptions = 0;
+
+    // Delegate to each Fd object's poll_oneoff method
+    for (const [fd, subs] of subsByFd.entries()) {
+      const fd_obj = wasiInstance.fds[fd];
+      if (fd_obj && typeof fd_obj.poll_oneoff === "function") {
+        const { ret, nsubscriptions: count, events } = fd_obj.poll_oneoff(subs);
+        if (ret === wasi.ERRNO_SUCCESS) {
+          totalNsubscriptions += count;
+          allEvents.push(...events);
+        }
+      }
+    }
+
+    // Write events back to memory
+    if (totalNsubscriptions > 0) {
+      memory.setUint32(nevents_ptr, totalNsubscriptions, true);
+      for (let i = 0; i < totalNsubscriptions; i++) {
+        allEvents[i].write_bytes(memory, out_ptr + i * 32 /* sizeof(event) */);
+      }
+    } else {
+      memory.setUint32(nevents_ptr, 0, true);
+    }
+
+    return wasi.ERRNO_SUCCESS;
+  };
+}
