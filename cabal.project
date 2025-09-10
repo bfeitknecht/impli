@@ -5,3 +5,12 @@ package *
     ghc-options:
         -split-sections
         -funbox-strict-fields
+
+package impli-web
+    optimization: 2
+    ghc-options:
+        -fPIC
+        -fexternal-interpreter
+
+
+allow-newer: *:base

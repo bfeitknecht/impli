@@ -55,7 +55,7 @@ foreign export javascript "hello" hello :: IO ()
 hello :: IO ()
 hello = js_log "Hello, From Haskell!"
 
-foreign export javascript "serve" main :: IO ()
+-- foreign export javascript "serve" main :: IO ()
 
 -- | Web-Entrypoint for the IMP language interpreter.
 main :: IO ()
