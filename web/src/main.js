@@ -19,4 +19,4 @@ terminal.loadAddon(fitter);
 new ResizeObserver(() => fitter.fit()).observe(div);
 fitter.fit();
 
-return new Module({ pty: slave });
+Module.pty = slave;
