@@ -11,8 +11,8 @@ set -euf -o pipefail
 # wasm32-wasi-cabal --project-file=cabal.project.wasm update
 
 echo "+++ INFO: start build and copy WASM"
-wasm32-wasi-cabal --project-file=cabal.project.wasm build impli-wasm
-BIN="$(wasm32-wasi-cabal --project-file=cabal.project.wasm -v0 list-bin impli-wasm)"
+wasm32-wasi-cabal --project-file=cabal.project.wasm build exe:impli-wasm
+BIN="$(wasm32-wasi-cabal --project-file=cabal.project.wasm -v0 list-bin exe:impli-wasm)"
 
 echo "+++ INFO: create JSFFI pseudo ES-module"
 JSFFI="./web/src/jsffi.js"
