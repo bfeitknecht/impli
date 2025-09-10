@@ -8,11 +8,11 @@
 set -euf -o pipefail
 
 # echo "+++ INFO: update cabal"
-# wasm32-wasi-cabal --project-file=cabal.project.wasm update
+# wasm32-wasi-cabal --project-file=cabal.project.web update
 
 echo "+++ INFO: start build and copy WASM"
-wasm32-wasi-cabal --project-file=cabal.project.wasm build exe:impli-wasm
-BIN="$(wasm32-wasi-cabal --project-file=cabal.project.wasm -v0 list-bin exe:impli-wasm)"
+wasm32-wasi-cabal --project-file=cabal.project.web build exe:impli-web
+BIN="$(wasm32-wasi-cabal --project-file=cabal.project.web -v0 list-bin exe:impli-web)"
 
 echo "+++ INFO: create JSFFI pseudo ES-module"
 JSFFI="./web/src/jsffi.js"
@@ -35,9 +35,10 @@ deno bundle \
     --minify \
     --platform=browser \
     --format=esm \
+    --external="shim" \
     --external="xterm" \
     --external="pty" \
-    --external="shim" \
+    --external="fit" \
     web/src/main.js -o web/static/main.js
 
 # echo "+++ INFO: clean up artifacts"

@@ -77,7 +77,7 @@ executable impli
   autogen-modules:
     Paths_impli
 
-executable impli-wasm
+executable impli-web
   import: shared-settings
   main-is: Main.hs
   hs-source-dirs: web/src
@@ -92,12 +92,12 @@ executable impli-wasm
     Paths_impli
 
   ghc-options:
-    -no-hs-main
     -optl-mexec-model=reactor
     "-optl=-Wl,--export=hello"
     "-optl=-Wl,--export=serve"
     "-optl=-Wl,--export=foo"
     "-optl=-Wl,--allow-undefined"
+    "-with-rtsopts=-N,-T,-I0,--event-manager=js"
 
 test-suite impli-test
   import: shared-settings
