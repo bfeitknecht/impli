@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 ### DEPENDENCIES
+# - emscripten
 # - ghc-wasm-meta
 # - wizer
 # - binaryen

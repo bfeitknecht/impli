@@ -20,6 +20,7 @@
     {
       devShells.${system}.default = pkgs.mkShell {
         buildInputs = with pkgs; [
+          emscripten
           ghcWasmMeta.packages.${system}.default
           wizer
           binaryen
