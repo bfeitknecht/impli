@@ -20,10 +20,10 @@
     {
       devShells.${system}.default = pkgs.mkShell {
         buildInputs = with pkgs; [
-          deno
+          ghcWasmMeta.packages.${system}.default
           wizer
           binaryen
-          ghcWasmMeta.packages.${system}.default
+          deno
         ];
       };
     };
