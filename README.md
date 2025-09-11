@@ -44,12 +44,11 @@ The table below depicts the correspondence between semantics functions defined i
 ## Roadmap
 
 There are some crucial points for further improvement. These include the following.
-- enable WASM compilation to host for browsers
+- host REPL on the web
 - improve the REPL
     - support tab-autocompletion
     - handle multi line input
 - ability to load source modules for interpretation
 - distribute package (homebrew, AUR, nixpkgs, hackage ..)
 - improve documentation with examples
-- write standard library
 - extend test suite
