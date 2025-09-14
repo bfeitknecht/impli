@@ -1,7 +1,7 @@
 import { Terminal } from "xterm";
 import { openpty } from "pty";
 import { FitAddon } from "fit";
-import { Module } from "./module.js";
+// import { Module } from "./module.js";
 
 const div = document.getElementById("terminal");
 const terminal = new Terminal({
@@ -19,4 +19,6 @@ terminal.loadAddon(fitter);
 new ResizeObserver(() => fitter.fit()).observe(div);
 fitter.fit();
 
-Module.pty = slave;
+// Module.pty = slave;
+
+// mount directory with example IMP files

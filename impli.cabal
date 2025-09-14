@@ -79,11 +79,22 @@ executable impli
 
 executable impli-web
   import: shared-settings
-  main-is: Main.hs
-  hs-source-dirs: web/src
+  main-is: Web.hs
+  hs-source-dirs: exe
   build-depends:
-    ghc-experimental,
     impli,
+    jsaddle >=0.9 && <0.10,
+
+  -- js-sources:
+  --   web/src/ffi.js
+  ld-options:
+    -Os
+    -sWASM=1
+    -sEXPORT_ES6
+    -sENVIRONMENT=web
+    -sFORCE_FILESYSTEM
+    -sASYNCIFY
+    "--js-library=./web/src/lib/emscripten-pty.js"
 
   other-modules:
     Paths_impli

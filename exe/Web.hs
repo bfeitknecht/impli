@@ -11,9 +11,6 @@ Stability   : stable
 Portability : portable
 
 Provides web capabilities for the IMP language interpreter.
----
-emcc arguments:
-    -s FORCE_FILESYSTEM -s ASYNCIFY --js-library=./lib/emscripten-pty.js -o main.js
 -}
 module Main where
 
@@ -25,7 +22,6 @@ import Text.Read (readMaybe)
 import qualified Control.Monad.Trans.Except as Except
 import qualified Data.Map as Map
 
--- import qualified GHC.Wasm.Prim as JS
 import qualified Paths_impli as Paths
 
 import Control.Monad.Except (catchError, throwError)
@@ -40,13 +36,13 @@ import IMP.State
 import IMP.Syntax
 
 {-
-foreign import javascript unsafe "console.log($1)" logger :: JS.JSString -> IO ()
-foreign import javascript unsafe "console.warn($1)" warner :: JS.JSString -> IO ()
+foreign import javascript unsafe "console.log($1)" logger :: JSString -> IO ()
+foreign import javascript unsafe "console.warn($1)" warner :: JSString -> IO ()
 
 -- | Communicate with browser console from Haskell String.
 js_log, js_warn :: String -> IO ()
-js_log = logger . JS.toJSString
-js_warn = warner . JS.toJSString
+js_log = logger . toJSString
+js_warn = warner . toJSString
 
 foreign export javascript "hello" hello :: IO ()
 

@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 ### DEPENDENCIES
 # - emscripten
-# - ghc-wasm-meta
 # - wizer
 # - binaryen
 # - deno
@@ -11,9 +10,9 @@ set -euf -o pipefail
 # echo "+++ INFO: update cabal"
 # wasm32-wasi-cabal --project-file=cabal.project.wasm update
 
-echo "+++ INFO: start build and copy WASM"
-wasm32-wasi-cabal --project-file=cabal.project.wasm build exe:impli-wasm
-BIN="$(wasm32-wasi-cabal --project-file=cabal.project.wasm -v0 list-bin exe:impli-wasm)"
+# echo "+++ INFO: start build and copy WASM"
+# wasm32-wasi-cabal --project-file=cabal.project.wasm build exe:impli-wasm
+# BIN="$(wasm32-wasi-cabal --project-file=cabal.project.wasm -v0 list-bin exe:impli-wasm)"
 
 echo "+++ INFO: create JSFFI pseudo ES-module"
 JSFFI="./web/src/jsffi.js"
@@ -26,7 +25,7 @@ WASM="./web/static/impli.wasm"
 wizer \
     --allow-wasi \
     --wasm-bulk-memory true \
-    --init-func _initialize \
+    # --init-func _initialize \
     "$BIN" -o "$WASM"
 wasm-opt "$WASM" -o "$WASM" -Oz
 du -ahx "$WASM"
@@ -36,10 +35,11 @@ deno bundle \
     --minify \
     --platform=browser \
     --format=esm \
+    --external="shim" \
     --external="xterm" \
     --external="pty" \
-    --external="shim" \
-    web/src/main.js -o web/static/main.js
+    --external="fit" \
+    web/src/main.js -o web/static/module.mjs
 
 # echo "+++ INFO: clean up artifacts"
 # rm "$JSFFI"

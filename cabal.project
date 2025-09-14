@@ -8,4 +8,8 @@ package *
 
 package impli-web
     ghc-options:
+        -split-sections
+        -funbox-strict-fields
         -fforce-recomp
+    with-compiler: javascript-unknown-ghjs-ghc
+    with-hc-pkg: javascript-unknown-ghcjs-ghc-pkg

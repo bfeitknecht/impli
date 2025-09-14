@@ -5,5 +5,4 @@ cabal.project.local
 cabal.project.web.local
 .imp_history
 
-web/static/main.js
-web/src/lib
+web/static/module.mjs
