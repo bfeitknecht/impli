@@ -1,4 +1,4 @@
-cabal-version: 3.12
+cabal-version: 3.8
 name: impli
 version: 3.0.0.0
 build-type: Simple
@@ -77,6 +77,10 @@ executable impli
 
   autogen-modules:
     Paths_impli
+
+  -- https://gitlab.haskell.org/ghc/ghc/-/merge_requests/14362
+  if arch(javascript)
+      ld-options: -sEXPORTED_RUNTIME_METHODS=HEAP8
 
 test-suite impli-test
   import: shared-settings
