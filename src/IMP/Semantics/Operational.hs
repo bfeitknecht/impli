@@ -167,7 +167,7 @@ step (stm, stack@(state : states)) = case stm of
 
 -- | Execute statement by repeated application of step until completion, return final state.
 steps :: (Stm, [State]) -> IMP State
-steps (_, []) = error "insufficient"
+steps (_, []) = error "illegal configuration for steps: empty state stack"
 steps conf = do
     (rest, stack'@(state' : _)) <- step conf
     case rest of

@@ -7,7 +7,7 @@
 
   outputs = { self, nixpkgs }:
   let
-    system = "aarch64-linux";
+    system = "aarch64-darwin";
     version = "ghc912";
 
     custom = final: prev:
