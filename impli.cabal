@@ -85,11 +85,11 @@ executable impli-web
     impli,
     jsaddle >=0.9 && <0.10,
 
-  -- js-sources:
-  --   web/src/ffi.js
+  js-sources:
+    web/src/ffi.js
+
   ld-options:
     -Os
-    -sWASM=1
     -sEXPORT_ES6
     -sENVIRONMENT=web
     -sFORCE_FILESYSTEM

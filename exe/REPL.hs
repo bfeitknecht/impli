@@ -214,7 +214,7 @@ printAST :: String -> IO ()
 printAST input =
     either
         (\e -> print . ParseFail $ unlines [input, show e])
-        (\c -> print c)
+        print
         (parser @Construct "AST" input)
 
 -- | Convert trace to valid IMP language source code.

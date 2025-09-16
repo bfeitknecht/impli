@@ -79,7 +79,7 @@ loop :: Env -> IMP ()
 loop env = do
     outputln wwwelcome
     output prompt
-    line <- liftIO $ getLine
+    line <- liftIO getLine
     case line of
         "" -> loop env -- empty line, loop
         (':' : rest) -> handleMeta env . normalizeMeta $ words rest
@@ -213,7 +213,7 @@ printAST :: String -> IMP ()
 printAST input =
     either
         (\e -> display . ParseFail $ unlines [input, show e])
-        (\c -> display c)
+        display
         (parser @Construct "browser" input)
 
 -- | Convert trace to valid IMP language source code.

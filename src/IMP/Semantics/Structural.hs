@@ -53,7 +53,7 @@ run (stm, state) = case stm of
                     then run (s <> While b s, state)
                     else return $ resetBreak state
             else return state
-    Print e -> (display $ evaluate state e) >> return state
+    Print e -> display (evaluate state e) >> return state
     Read x -> do
         v <- getVal x
         return $ setVar state x v
