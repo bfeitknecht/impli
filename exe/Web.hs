@@ -16,7 +16,8 @@ module Main where
 
 import Control.Monad.IO.Class (liftIO)
 import Data.Version (showVersion)
-import System.IO (BufferMode (..), hSetBuffering, stderr, stdin, stdout)
+
+-- import System.IO (BufferMode (..), hSetBuffering, stderr, stdin, stdout)
 import Text.Read (readMaybe)
 
 import qualified Control.Monad.Trans.Except as Except
@@ -45,10 +46,14 @@ js_log = logger . toJSString
 js_warn = warner . toJSString
 -}
 
--- | Web-Entrypoint for the IMP language interpreter.
+-- | Export
+js_export :: String -> IO ()
+js_export = undefined
+
+-- | Entrypoint for the IMP language interpreter in the web.
 main :: IO ()
 main = do
-    hSetBuffering stdin NoBuffering
+    -- hSetBuffering stdin NoBuffering
     -- hSetBuffering stdout NoBuffering
     -- hSetBuffering stderr NoBuffering
     repl start
@@ -199,6 +204,13 @@ loadIMP state path = do
 
 writeIMP :: [Stm] -> IMP ()
 writeIMP = undefined
+
+exportIMP :: FilePath -> IMP ()
+exportIMP path = do
+    content <-
+        liftIO (readFile path)
+            `catchError` (\e -> throwError . IOFail $ unlines ["read from: " ++ path, show e])
+    liftIO $ js_export content
 
 -- | Parse input and print AST.
 printAST :: String -> IMP ()

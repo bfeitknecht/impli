@@ -1,5 +1,5 @@
 {
-  description = "Build impli for the web via GHC-JS";
+  description = "Build impli for the web via GHC's JS bachend";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/1779f9e0d8b45d88d7525665dd4d2a5b65041248";
@@ -8,32 +8,24 @@
   outputs = { self, nixpkgs }:
   let
     system = "aarch64-linux";
+    version = "ghc912";
 
-    src = ./.;
-
-    pkgs = import nixpkgs {
-      inherit system;
-      overlays = [
-        (final: prev:
-          let lib = prev.haskell.lib; in {
-            haskell = prev.haskell // {
-              packageOverrides = self: super: with lib; {
-                impli = doJailbreak
-                  (self.callCabal2nix "impli" src {});
-              };
-            };
-          })
-      ];
+    custom = final: prev:
+      let lib = prev.haskell.lib; in {
+      haskell = prev.haskell // {
+        packageOverrides = self: super: with lib; {
+          impli = doJailbreak (self.callCabal2nix "impli" ./. {});
+        };
+      };
     };
 
-    jsPkgs = pkgs.pkgsCross.ghcjs.haskell.packages.ghc912;
+    pkgs = import nixpkgs { inherit system; overlays = [ custom ]; };
+    jsPkgs = pkgs.pkgsCross.ghcjs.haskell.packages.${version};
 
   in {
     defaultPackage = jsPkgs.impli;
     packages = {
-      "${system}" = {
-        default = jsPkgs.impli;
-      };
+      "${system}" = { default = jsPkgs.impli; };
     };
   };
 }
