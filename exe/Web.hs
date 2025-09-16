@@ -43,14 +43,6 @@ foreign import javascript unsafe "console.warn($1)" warner :: JSString -> IO ()
 js_log, js_warn :: String -> IO ()
 js_log = logger . toJSString
 js_warn = warner . toJSString
-
-foreign export javascript "hello" hello :: IO ()
-
--- | Greetings from Haskell.
-hello :: IO ()
-hello = js_log "Hello, From Haskell!"
-
-foreign export javascript "serve" main :: IO ()
 -}
 
 -- | Web-Entrypoint for the IMP language interpreter.
