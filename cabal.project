@@ -5,3 +5,6 @@ package *
     ghc-options:
         -split-sections
         -funbox-strict-fields
+
+package haskeline
+    flags: -terminfo
