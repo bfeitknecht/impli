@@ -56,7 +56,7 @@ liftIMP = Except.ExceptT . lift . Except.runExceptT
 -- FIXME: handle this via state
 settings :: Bool -> Haskeline.Settings IO
 settings flag =
-    Haskeline.defaultSettings {Haskeline.historyFile = if flag then Nothing else historyFile}
+    Haskeline.defaultSettings {Haskeline.historyFile = if flag then Nothing else history}
 
 -- | REPL entrypoint with custom settings and environment.
 repl :: Haskeline.Settings IO -> Env -> IO ()

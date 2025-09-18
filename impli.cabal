@@ -1,4 +1,4 @@
-cabal-version: 3.8
+cabal-version: 3.12
 -- ^ FIXME: revert to 3.12 after bump of nixpkgs pin in `flake.nix`
 name: impli
 version: 3.0.0.0
@@ -36,7 +36,7 @@ common shared-settings
 
   build-depends:
     base >=4.14 && <5,
-    containers >=0.6 && <0.7,
+    containers >=0.6 && <0.9,
     mtl >=2.2 && <3,
     parsec >=3.1 && <3.2,
     prettyprinter >=1.7 && <2,
