@@ -15,21 +15,26 @@ import IMP.Statement
 import IMP.Syntax
 
 -- | Encapsulation of computation in 'IMP.REPL'.
-type REPL = StateT Store (InputT IMP) -- CHECK: does this make sense?
+type REPL = StateT Store (InputT IMP)
 
+-- | TODO
 data Setup = Setup
     { settings :: Settings IMP
     , prefs :: Prefs -- TODO: link documentation
     }
 
-normal :: Setup
-normal =
-    Setup
-        { settings = defaultSettings {historyFile = history}
-        , prefs = defaultPrefs
-        }
+-- | TODO
+setup :: FilePath -> IO Setup
+setup path = do
+    prefs' <- readPrefs path
+    return
+        Setup
+            { settings = defaultSettings {historyFile = history}
+            , prefs = prefs'
+            }
 
-data Config
+-- | TODO
+data Option
     = Welcome String
     | Prompt String
     | Goodbye String
@@ -37,7 +42,8 @@ data Config
     | Profile
     deriving (Eq, Ord, Show)
 
-defaults :: [Config]
+-- | TODO
+defaults :: [Option]
 defaults =
     [ Welcome welcome
     , Prompt prompt
@@ -49,53 +55,64 @@ defaults =
 data Store = Store
     { _state :: State
     , _trace :: [Stm]
-    , configs :: [Config] -- CHECK: handle invariants (contradicting configs, etc.)
-    , multiline :: Maybe Int
+    , _defaults :: [Option]
+    , _welcome :: String
+    , _prompt :: String
+    , _goodbye :: String
+    , _verbose :: Int -- TODO: explain meaning of value here
+    , _multiline :: Maybe Int
     }
 
+-- | TODO
 start :: Store
 start =
     Store
         { _state = initial
         , _trace = []
-        , configs = defaults
-        , multiline = Nothing
+        , _defaults = defaults
+        , _welcome = welcome
+        , _prompt = prompt
+        , _goodbye = goodbye
+        , _verbose = 1
+        , _multiline = Nothing
         }
 
+-- | TODO
 repl :: Setup -> Store -> IO ()
 repl (Setup s p) store =
     do
-        putStrLn welcome
+        putStrLn $ _welcome store
         runExceptT $
             runInputTWithPrefs p s $
                 execStateT loop store
         >>= either (\e -> print e >> exitFailure) (\_ -> putStrLn goodbye)
 
--- prepend new configs, always use first found value
---
-
 -- | REPL loop that processes input and maintains interpreter state.
 loop :: REPL ()
 loop = do
-    -- TODO:
-    -- - use display
-    -- - use prompt
-    -- - use indent, handle multiline
-    line <- lift . getInputLine $ ">" -- TODO: you'll know
+    prompt' <- gets _prompt
+    multi <- gets _multiline
+    line <- lift . getInputLine $ case multi of
+        Nothing -> prompt' ++ ">"
+        Just i -> replicate (length prompt') '.' ++ replicate i '>'
     case line of
         Nothing -> return () -- ctrl-d, exit cleanly
         Just "" -> loop -- empty line, loop
         Just (':' : rest) -> handleMeta . normalizeMeta $ words rest
-        Just input ->
-            either
-                (\e -> throwError . ParseFail $ unlines [input, show e])
-                dispatch
-                (parser "interactive" input)
-        `catchError` \e -> case e of
-            Empty -> outputln "" -- ctrl-d during read, flush line and exit cleanly
-            AssertFail _ -> throwError e -- unrecoverable, propagate
-            Raised _ -> throwError e -- ''
-            _ -> display e >> loop -- mistakes happen
+        Just input -> do
+            cnstr <-
+                liftIMP $
+                    either
+                        (\e -> throwError . ParseFail $ unlines [input, show e])
+                        return
+                        (parser "interactive" input)
+                        `catchError` \e -> case e of
+                            Empty -> return Whitespace -- ctrl-d during read, flush line and exit cleanly
+                            AssertFail _ -> throwError e -- unrecoverable, propagate
+                            Raised _ -> throwError e -- ''
+                            _ -> display e >> return Whitespace -- mistakes happen
+            dispatch cnstr
+            loop
 
 -- | Lift computation from 'IMP.State.IMP' into 'REPL'.
 liftIMP :: IMP a -> REPL a

@@ -23,6 +23,7 @@ extensions = True
 welcome :: String
 welcome = "Welcome to the IMP REPL! Enter :help to list available metacommands and :quit to exit."
 
+-- | Default message displayed on entry of 'IMP.REPL.repl' in the web.
 wwwelcome :: String
 wwwelcome = "Welcome to the IMP REPL! Enter :help to list available metacommands."
 
