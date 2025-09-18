@@ -37,3 +37,7 @@ goodbye = "Goodbye!"
 -- | Default 'FilePath' to save history to.
 historyFile :: Maybe FilePath
 historyFile = Just ".imp_history"
+
+-- | TODO: rename the above to the below.
+history :: Maybe FilePath
+history = historyFile

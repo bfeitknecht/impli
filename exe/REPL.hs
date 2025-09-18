@@ -52,7 +52,8 @@ liftIMP :: IMP a -> REPL a
 liftIMP = Except.ExceptT . lift . Except.runExceptT
 
 -- | Default settings for 'repl'.
--- CHECK: custom `complete` function here.
+-- CHECK: custom `complete` function here
+-- FIXME: handle this via state
 settings :: Bool -> Haskeline.Settings IO
 settings flag =
     Haskeline.defaultSettings {Haskeline.historyFile = if flag then Nothing else historyFile}
@@ -103,7 +104,7 @@ helpMessage =
     , ":clear                   Clear screen"
     , ":reset [ASPECT]          Reset environment or specific aspect (vars, procs, break, trace)"
     , ":trace                   Show trace (executed statements)"
-    , ":state                   Show state (defined variables and procedures, break flag)"
+    , ":defs                    Show state definitions (variables, procedures, break flag)" -- CHECK: change in manpages
     , ":load FILE               Interpret file and load resulting state"
     , ":write FILE              Write trace to file (relative to $PWD)"
     , ":ast (INPUT | #n)        Parse and display AST of input or n-th statement in trace"
@@ -116,7 +117,8 @@ normalizeMeta ["h"] = ["help"]
 normalizeMeta ["q"] = ["quit"]
 normalizeMeta ["c"] = ["clear"]
 normalizeMeta ["t"] = ["trace"]
-normalizeMeta ["s"] = ["state"]
+normalizeMeta ["d"] = ["defs"]
+normalizeMeta ["definitions"] = ["defs"]
 normalizeMeta (w : ws)
     | w `elem` ["l", "load"] = ["load", it]
     | w `elem` ["w", "write"] = ["write", it]
