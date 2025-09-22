@@ -15,6 +15,7 @@ import IMP.Statement
 import IMP.Syntax
 
 -- | Encapsulation of computation in 'IMP.REPL'.
+-- type REPL = StateT Store (ExceptT Exception (InputT IMP))
 type REPL = StateT Store (InputT IMP)
 
 -- | TODO
