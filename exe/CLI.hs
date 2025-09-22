@@ -47,7 +47,7 @@ parseMode =
         , Command <$> strOption (long "command" <> short 'c' <> metavar "COMMAND" <> help "Interpret command")
         , AST <$> strOption (long "ast" <> short 'a' <> metavar "CONSTRUCT" <> help "Print AST")
         , flag' STDIN (long "stdin" <> help "Interpret from standard input")
-        , flag' Version (long "version" <> short 'v' <> help "Print version")
+        , flag' Version (long "version" <> help "Print version")
         ]
 
 -- | Parser for the CLI options and information.
@@ -59,7 +59,7 @@ cli = info modifier description
                 <**> helper
         description =
             fullDesc
-                <> header "impli - IMP language interpreter"
+                <> header "impli - The IMP Language Interpreter"
                 <> progDesc "An interpreter and REPL for the imperative toy language IMP"
                 <> footer "For more information visit https://github.com/bfeitknecht/impli"
 
@@ -71,7 +71,7 @@ parseCLI = customExecParser defaultPrefs {prefColumns = 120} cli
 runCLI :: Mode -> IO ()
 runCLI mode =
     case mode of
-        REPL nohist -> repl (settings nohist) start
+        REPL nohist -> repl upset start
         File path -> runFile path
         Command cmd -> runProgram "command" cmd
         AST input -> printAST input

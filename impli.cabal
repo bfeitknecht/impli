@@ -74,7 +74,6 @@ executable impli
     CLI
     Paths_impli
     REPL
-    StREPL
 
   autogen-modules:
     Paths_impli

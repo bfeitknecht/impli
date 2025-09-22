@@ -29,7 +29,7 @@ wwwelcome = "Welcome to the IMP REPL! Enter :help to list available metacommands
 
 -- | Default prompt displayed during execution of the REPL.
 prompt :: String
-prompt = "IMP> "
+prompt = "IMP"
 
 -- | Default message displayed after clean exit.
 goodbye :: String

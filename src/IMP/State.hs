@@ -147,3 +147,7 @@ display = liftIO . print
 (%%) :: Integer -> Integer -> Integer
 (%%) v1 0 = v1
 (%%) v1 v2 = mod v1 v2
+
+-- TODO:
+-- errata = throwError . Error
+-- inform = throwError . Info
