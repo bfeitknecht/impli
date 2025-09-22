@@ -15,24 +15,28 @@ import IMP.Statement
 import IMP.Syntax
 
 -- | Encapsulation of computation in 'IMP.REPL'.
--- type REPL = StateT Store (ExceptT Exception (InputT IMP))
-type REPL = StateT Store (InputT IMP)
+-- type REPL = StateT Store (InputT IMP)
+type REPL = StateT Store (ExceptT Exception (InputT IO))
 
 -- | TODO
 data Setup = Setup
-    { settings :: Settings IMP
+    { settings :: Settings IO
     , prefs :: Prefs -- TODO: link documentation
     }
+
+-- | TODO
+upset :: Setup
+upset =
+    Setup
+        { settings = defaultSettings {historyFile = history}
+        , prefs = defaultPrefs
+        }
 
 -- | TODO
 setup :: FilePath -> IO Setup
 setup path = do
     prefs' <- readPrefs path
-    return
-        Setup
-            { settings = defaultSettings {historyFile = history}
-            , prefs = prefs'
-            }
+    return upset {prefs = prefs'}
 
 -- | TODO
 data Option
@@ -40,7 +44,9 @@ data Option
     | Prompt String
     | Goodbye String
     | Verbose Int -- INFO: non-negative integer!
-    | Profile
+    -- 0: normal
+    -- 1: info (time, space)
+    -- 2: debug (parse, execution, ...)
     deriving (Eq, Ord, Show)
 
 -- | TODO
@@ -60,7 +66,7 @@ data Store = Store
     , _welcome :: String
     , _prompt :: String
     , _goodbye :: String
-    , _verbose :: Int -- TODO: explain meaning of value here
+    , _verbose :: Int
     , _multiline :: Maybe Int
     }
 
@@ -74,18 +80,15 @@ start =
         , _welcome = welcome
         , _prompt = prompt
         , _goodbye = goodbye
-        , _verbose = 1
+        , _verbose = 0
         , _multiline = Nothing
         }
 
 -- | TODO
 repl :: Setup -> Store -> IO ()
-repl (Setup s p) store =
-    do
-        putStrLn $ _welcome store
-        runExceptT $
-            runInputTWithPrefs p s $
-                execStateT loop store
+repl (Setup s p) store = do
+    putStrLn $ _welcome store
+    runInputTWithPrefs p s (runExceptT (execStateT loop store))
         >>= either (\e -> print e >> exitFailure) (\_ -> putStrLn goodbye)
 
 -- | REPL loop that processes input and maintains interpreter state.
@@ -93,31 +96,27 @@ loop :: REPL ()
 loop = do
     prompt' <- gets _prompt
     multi <- gets _multiline
-    line <- lift . getInputLine $ case multi of
+    line <- lift . lift . getInputLine $ case multi of
         Nothing -> prompt' ++ ">"
         Just i -> replicate (length prompt') '.' ++ replicate i '>'
     case line of
         Nothing -> return () -- ctrl-d, exit cleanly
         Just "" -> loop -- empty line, loop
         Just (':' : rest) -> handleMeta . normalizeMeta $ words rest
-        Just input -> do
-            cnstr <-
-                liftIMP $
-                    either
-                        (\e -> throwError . ParseFail $ unlines [input, show e])
-                        return
-                        (parser "interactive" input)
-                        `catchError` \e -> case e of
-                            Empty -> return Whitespace -- ctrl-d during read, flush line and exit cleanly
-                            AssertFail _ -> throwError e -- unrecoverable, propagate
-                            Raised _ -> throwError e -- ''
-                            _ -> display e >> return Whitespace -- mistakes happen
-            dispatch cnstr
-            loop
+        Just input ->
+            either
+                (\e -> throwError . ParseFail $ unlines [input, show e])
+                (\c -> dispatch c >> loop)
+                (parser "interactive" input)
+        `catchError` \e -> case e of
+            Empty -> display Whitespace -- ctrl-d during read, flush line and exit cleanly
+            AssertFail _ -> throwError e -- unrecoverable, propagate
+            Raised _ -> throwError e -- ''
+            _ -> display e >> loop -- mistakes happen
 
 -- | Lift computation from 'IMP.State.IMP' into 'REPL'.
 liftIMP :: IMP a -> REPL a
-liftIMP = lift . lift
+liftIMP m = (lift . liftIO . runExceptT) m >>= either throwError return
 
 -- | Process construct in environment, return updated environment.
 dispatch :: Construct -> REPL ()

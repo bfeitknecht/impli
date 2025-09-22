@@ -80,7 +80,7 @@ loop env = do
                 (\c -> dispatch env c >>= loop)
                 (parser "interactive" input)
         `catchError` \e -> case e of
-            Empty -> outputln "" -- ctrl-d during read, flush line and exit cleanly
+            Empty -> display Whitespace -- ctrl-d during read, flush line and exit cleanly
             AssertFail _ -> throwError e -- unrecoverable, propagate
             Raised _ -> throwError e -- ''
             _ -> display e >> loop env -- mistakes happen
