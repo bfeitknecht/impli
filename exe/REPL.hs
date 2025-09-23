@@ -46,18 +46,16 @@ data Setup = Setup
     }
 
 -- | TODO
-upset :: Setup
-upset =
-    Setup
-        { settings = defaultSettings {historyFile = history}
-        , prefs = defaultPrefs
-        }
+defaultSetup :: Setup
+defaultSetup = Setup {settings = defaultSettings, prefs = defaultPrefs}
 
 -- | TODO
-setup :: FilePath -> IO Setup
-setup path = do
-    prefs' <- readPrefs path
-    return upset {prefs = prefs'}
+setup :: Maybe FilePath -> Maybe FilePath -> IO Setup
+setup Nothing Nothing = return defaultSetup
+setup hist conf = do
+    let settings' = defaultSettings {historyFile = hist}
+    prefs' <- maybe (return defaultPrefs) readPrefs conf
+    return Setup {settings = settings', prefs = prefs'}
 
 -- | TODO
 data Option

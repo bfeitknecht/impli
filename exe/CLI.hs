@@ -30,19 +30,26 @@ import qualified Paths_impli as Paths
 -- | Mode to run the CLI.
 {- FOURMOLU_DISABLE -}
 data Mode
-    = REPL Bool         -- ^ Start interactive REPL with option to toggle history.
-    | File FilePath     -- ^ Interpret IMP source file.
-    | Command String    -- ^ Interpret IMP command passed as string.
-    | AST String        -- ^ Print the AST of a construct.
-    | STDIN             -- ^ Interpret from standard input.
-    | Version           -- ^ Print the version.
+    = REPL (Maybe FilePath) (Maybe FilePath)    -- ^ Start interactive REPL with customization
+    | File FilePath                             -- ^ Interpret IMP source file.
+    | Command String                            -- ^ Interpret IMP command passed as string.
+    | AST String                                -- ^ Print the AST of a construct.
+    | STDIN                                     -- ^ Interpret from standard input.
+    | Version                                   -- ^ Print the version.
 {- FOURMOLU_ENABLE -}
 
 -- | Parser for the CLI mode.
 parseMode :: Parser Mode
 parseMode =
     asum
-        [ REPL <$> switch (long "no-history" <> help "Disable REPL history")
+        [ REPL
+            -- TODO: update mandocs
+            <$> option
+                (Just <$> str)
+                (long "history" <> metavar "FILE" <> help "Save REPL history" <> value Nothing)
+            <*> option
+                (Just <$> str)
+                (long "config" <> metavar "FILE" <> help "Read Haskeline configuration" <> value Nothing)
         , File <$> strArgument (metavar "FILE" <> help "Interpret source file")
         , Command <$> strOption (long "command" <> short 'c' <> metavar "COMMAND" <> help "Interpret command")
         , AST <$> strOption (long "ast" <> short 'a' <> metavar "CONSTRUCT" <> help "Print AST")
@@ -65,13 +72,13 @@ cli = info modifier description
 
 -- | Parse CLI options and return 'Mode' for execution.
 parseCLI :: IO Mode
-parseCLI = customExecParser defaultPrefs {prefColumns = 120} cli
+parseCLI = customExecParser defaultPrefs {prefColumns = maxBound} cli
 
 -- | Entrypoint for the CLI.
 runCLI :: Mode -> IO ()
 runCLI mode =
     case mode of
-        REPL nohist -> repl upset start
+        REPL hist conf -> setup hist conf >>= flip repl start
         File path -> runFile path
         Command cmd -> runProgram "command" cmd
         AST input -> printAST input
