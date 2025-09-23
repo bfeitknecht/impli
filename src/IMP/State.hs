@@ -1,3 +1,5 @@
+{-# LANGUAGE FlexibleContexts #-}
+
 {- |
 Module      : IMP.State
 Description : State for the IMP language
@@ -13,7 +15,7 @@ Provides definition and manipulation of state with some QOL helpers.
 module IMP.State where
 
 import Control.Exception (IOException, try)
-import Control.Monad.Except (throwError)
+import Control.Monad.Except (MonadError, throwError)
 import Control.Monad.IO.Class
 import System.IO
 import Text.Read (readMaybe)
@@ -148,6 +150,7 @@ display = liftIO . print
 (%%) v1 0 = v1
 (%%) v1 v2 = mod v1 v2
 
--- TODO:
--- errata = throwError . Error
--- inform = throwError . Info
+-- | Convenience function for error and information passing.
+errata, inform :: (MonadError Exception m) => String -> m a
+errata = throwError . Error
+inform = throwError . Info

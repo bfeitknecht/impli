@@ -14,9 +14,12 @@ module IMP.Semantics.Structural (
     run,
 ) where
 
-import Control.Monad.Except (catchError, throwError)
+import Control.Concurrent.Async (concurrently)
+import Control.Monad.Except (catchError, runExceptT, throwError)
+import Control.Monad.IO.Class (liftIO)
 import System.Random (randomIO)
 
+import qualified Data.List as List
 import qualified Data.Map as Map
 
 import IMP.Exception
@@ -64,7 +67,14 @@ run (stm, state) = case stm of
             local = setVar state x new
         state' <- run (s, local)
         return $ setVar state' x old
-    Par _ _ -> throwError . Error $ "parallel execution not (yet) supported in structural semantics" -- FIXME: this should be possible
+    Par s1 s2 -> do
+        let runIMP = runExceptT . run
+        result <- liftIO $ concurrently (runIMP (s1, state)) (runIMP (s2, state))
+        case result of
+            (Left e, _) -> throwError e
+            (_, Left e) -> throwError e
+            (Right (vs1', ps1', flag'), Right (vs2', ps2', _)) ->
+                return (Map.union vs1' vs2', List.union ps1' ps2', flag')
     NonDet s1 s2 -> do
         left <- randomIO :: IMP Bool
         if left

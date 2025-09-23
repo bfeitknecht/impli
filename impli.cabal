@@ -35,6 +35,7 @@ common shared-settings
     -Wextra
 
   build-depends:
+    async >=2.2 && <2.3,
     base >=4.14 && <5,
     containers >=0.6 && <0.9,
     mtl >=2.2 && <3,
