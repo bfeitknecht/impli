@@ -80,7 +80,7 @@ setVar (vars, procs, flag) var val = (Map.insert var val vars, procs, flag)
 setVars :: State -> [(String, Integer)] -> State
 setVars = foldl $ uncurry . setVar
 
--- | TODO
+-- | Reset variable definitions.
 resetVars :: State -> State
 resetVars (_, procs, flag) = (Map.empty, procs, flag)
 
@@ -96,7 +96,7 @@ getProc (_, procs, _) name = List.find ((name ==) . procname) procs
 setProc :: State -> Proc -> State
 setProc (vars, procs, flag) proc = (vars, proc : procs, flag)
 
--- | TODO
+-- | Reset procedure definitions.
 resetProcs :: State -> State
 resetProcs (vars, _, flag) = (vars, [], flag)
 

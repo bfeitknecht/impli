@@ -39,17 +39,16 @@ import qualified System.Console.ANSI as ANSI
 -- type REPL = StateT Store (InputT IMP)
 type REPL = StateT Store (ExceptT Exception (InputT IO))
 
--- | TODO
+-- | Encapsulation of REPL customization.
 data Setup = Setup
     { settings :: Settings IO
-    , prefs :: Prefs -- TODO: link documentation
+    , prefs :: Prefs -- INFO: for more information visit https://github.com/haskell/haskeline/wiki/UserPreferences
     }
 
--- | TODO
 defaultSetup :: Setup
 defaultSetup = Setup {settings = defaultSettings, prefs = defaultPrefs}
 
--- | TODO
+-- | Setup with arguments.
 setup :: Maybe FilePath -> Maybe FilePath -> IO Setup
 setup Nothing Nothing = return defaultSetup
 setup hist conf = do
@@ -57,7 +56,7 @@ setup hist conf = do
     prefs' <- maybe (return defaultPrefs) readPrefs conf
     return Setup {settings = settings', prefs = prefs'}
 
--- | TODO
+-- | Modifiable options in 'repl' through @:set@ and @:unset@.
 data Option
     = Welcome String
     | Prompt String
@@ -68,7 +67,7 @@ data Option
     -- 2: debug (parse, execution, ...)
     deriving (Eq, Ord, Show)
 
--- | TODO
+-- | Default options.
 defaults :: [Option]
 defaults =
     [ Welcome welcome
@@ -89,7 +88,7 @@ data Store = Store
     , _multiline :: Maybe Int
     }
 
--- | TODO
+-- | Starting data store for 'repl'.
 start :: Store
 start =
     Store
@@ -103,7 +102,7 @@ start =
         , _multiline = Nothing
         }
 
--- | TODO
+-- | Read-Evaluate-Print-Loop function in the 'REPL' monad.
 repl :: Setup -> Store -> IO ()
 repl (Setup s p) store = do
     putStrLn $ _welcome store
@@ -234,7 +233,7 @@ handleMeta meta = case meta of
                 , "Enter :help to list available metacommands and :quit to exit."
                 ]
 
--- | TODO
+-- | Reset specific aspect of the environment.
 reset :: String -> REPL ()
 reset it = do
     state <- gets _state
@@ -246,7 +245,7 @@ reset it = do
         "trace" -> modify (\st -> st {_trace = []}) >> (throwError . Info) "trace reset"
         _ -> throwError . Error $ "unrecognized aspect to reset: " ++ it
 
--- | TODO
+-- | Print AST of specific construct.
 ast :: String -> REPL ()
 ast "" = throwError . Info $ "nothing to parse"
 ast "#" = throwError . Info $ "no index provided"
