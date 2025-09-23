@@ -14,18 +14,15 @@ Provides web capabilities for the IMP language interpreter.
 -}
 module Main where
 
+-- import System.IO (BufferMode (..), hSetBuffering, stderr, stdin, stdout)
+
+import Control.Monad.Except (catchError, throwError)
 import Control.Monad.IO.Class (liftIO)
 import Data.Version (showVersion)
-
--- import System.IO (BufferMode (..), hSetBuffering, stderr, stdin, stdout)
 import Text.Read (readMaybe)
 
 import qualified Control.Monad.Trans.Except as Except
 import qualified Data.Map as Map
-
-import qualified Paths_impli as Paths
-
-import Control.Monad.Except (catchError, throwError)
 
 import Config
 import IMP.Exception
@@ -35,6 +32,8 @@ import IMP.Pretty
 import IMP.Semantics.Structural
 import IMP.State
 import IMP.Syntax
+
+import qualified Paths_impli as Paths
 
 {-
 foreign import javascript unsafe "console.log($1)" logger :: JSString -> IO ()

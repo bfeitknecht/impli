@@ -16,15 +16,17 @@ module CLI where
 
 import Control.Monad.Except (catchError)
 import Data.Version (showVersion)
+import Options.Applicative
+import System.Exit (exitFailure)
+
+import qualified Control.Monad.Trans.Except as Except
+
 import IMP.Exception
 import IMP.Parser
 import IMP.State
 import IMP.Statement
-import Options.Applicative
 import REPL
-import System.Exit (exitFailure)
 
-import qualified Control.Monad.Trans.Except as Except
 import qualified Paths_impli as Paths
 
 -- | Mode to run the CLI.

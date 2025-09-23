@@ -23,6 +23,9 @@ import System.Console.Haskeline hiding (display)
 import System.Exit (exitFailure)
 import Text.Read (readMaybe)
 
+import qualified Data.Map as Map
+import qualified System.Console.ANSI as ANSI
+
 import Config
 import IMP.Exception
 import IMP.Expression
@@ -31,9 +34,6 @@ import IMP.Pretty
 import IMP.State
 import IMP.Statement
 import IMP.Syntax
-
-import qualified Data.Map as Map
-import qualified System.Console.ANSI as ANSI
 
 -- | Encapsulation of computation in 'IMP.REPL'.
 -- type REPL = StateT Store (InputT IMP)
