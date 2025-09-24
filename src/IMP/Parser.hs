@@ -22,7 +22,7 @@ import Text.Parsec
 import Text.Parsec.Expr
 import Text.Parsec.String
 
-import Config
+import IMP.Config
 import IMP.Lexer
 import IMP.Syntax
 

@@ -54,9 +54,9 @@ parseMode =
                 (long "config" <> metavar "FILE" <> help "Read Haskeline configuration" <> value Nothing)
         , File <$> strArgument (metavar "FILE" <> help "Interpret source file")
         , Command <$> strOption (long "command" <> short 'c' <> metavar "COMMAND" <> help "Interpret command")
-        , AST <$> strOption (long "ast" <> short 'a' <> metavar "CONSTRUCT" <> help "Print AST")
         , flag' STDIN (long "stdin" <> help "Interpret from standard input")
-        , flag' Version (long "version" <> help "Print version")
+        , AST <$> strOption (long "ast" <> short 'a' <> metavar "CONSTRUCT" <> help "Show abstract syntax tree")
+        , flag' Version (long "version" <> help "Show version")
         ]
 
 -- | Parser for the CLI options and information.

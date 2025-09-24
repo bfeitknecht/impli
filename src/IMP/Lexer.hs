@@ -132,3 +132,21 @@ whitespace = Token.whiteSpace lexer <?> "whitespace"
 -- | Parser for symbol, expectation attached.
 symbol :: String -> Parser String
 symbol x = Token.symbol lexer x <?> x
+
+-- | Parser for a single word (unreserved identifier).
+word :: Parser String
+word = Token.lexeme lexer (many1 (noneOf " \t\n\r\f\v")) <?> "word"
+
+-- | Parser for multiple words separated by spaces.
+sentence :: Parser String
+sentence = Token.lexeme lexer (mconcat <$> sepBy1 word spaces) <?> "sentence"
+
+-- | Parser for a file path (either quoted or without spaces)
+filepath :: Parser FilePath
+filepath = try quoted <|> unquoted <?> "file path"
+    where
+        quoted = Token.lexeme lexer (single <|> double) <?> "quoted file path"
+        single = between (char '"') (char '"') (many (noneOf "\""))
+        double = between (char '\'') (char '\'') (many (noneOf "'"))
+        unquoted = Token.lexeme lexer (many1 valid) <?> "unquoted file path"
+        valid = satisfy (\c -> (c `notElem` " \t\n\r\f\v") && c > '\31')

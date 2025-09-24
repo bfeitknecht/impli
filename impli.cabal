@@ -54,6 +54,7 @@ common runnable
 
   other-modules:
     CLI
+    Config
     Meta
     Paths_impli
     REPL
@@ -66,7 +67,7 @@ library
   hs-source-dirs: src
   -- cabal-gild: discover src
   exposed-modules:
-    Config
+    IMP.Config
     IMP.Exception
     IMP.Expression
     IMP.Lexer

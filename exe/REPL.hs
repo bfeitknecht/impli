@@ -120,6 +120,7 @@ loop = handleInterrupt loop $ do
     case line of
         Nothing -> return () -- ctrl-d, exit cleanly
         Just "" -> loop -- empty line, loop
+        Just ":)" -> outputln "You look good today!" >> loop -- it's true
         Just (':' : rest) -> handleMeta . normalizeMeta $ words rest
         Just input ->
             either
