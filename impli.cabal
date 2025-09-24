@@ -43,6 +43,11 @@ common shared-settings
     random >=1.1 && <1.3,
     transformers >=0.5 && <0.7,
 
+common runnable
+  -- https://gitlab.haskell.org/ghc/ghc/-/merge_requests/14362
+  if arch(javascript)
+      ld-options: -sEXPORTED_RUNTIME_METHODS=HEAP8
+
 library
   import: shared-settings
   hs-source-dirs: src
@@ -61,7 +66,7 @@ library
     IMP.Syntax
 
 executable impli
-  import: shared-settings
+  import: shared-settings, runnable
   main-is: Main.hs
   hs-source-dirs: exe
   build-depends:
@@ -78,12 +83,8 @@ executable impli
   autogen-modules:
     Paths_impli
 
-  -- https://gitlab.haskell.org/ghc/ghc/-/merge_requests/14362
-  if arch(javascript)
-      ld-options: -sEXPORTED_RUNTIME_METHODS=HEAP8
-
 test-suite impli-test
-  import: shared-settings
+  import: shared-settings, runnable
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   hs-source-dirs: test
