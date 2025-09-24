@@ -36,7 +36,6 @@ import IMP.Statement
 import IMP.Syntax
 
 -- | Encapsulation of computation in 'IMP.REPL'.
--- type REPL = StateT Store (InputT IMP)
 type REPL = StateT Store (ExceptT Exception (InputT IO))
 
 -- | Encapsulation of REPL customization.
@@ -45,6 +44,7 @@ data Setup = Setup
     , prefs :: Prefs -- INFO: for more information visit https://github.com/haskell/haskeline/wiki/UserPreferences
     }
 
+-- | Default REPL customization.
 defaultSetup :: Setup
 defaultSetup = Setup {settings = defaultSettings, prefs = defaultPrefs}
 
