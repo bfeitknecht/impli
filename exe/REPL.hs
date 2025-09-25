@@ -144,7 +144,7 @@ instance Dispatches Command where
     dispatch Quit = return ()
     dispatch command =
         case command of
-            Help -> output . unlines $ helpMessage
+            Help -> explain "All metacommands unrelated to settings can be abbreviated by their first letter" helpMessage
             Clear -> clear
             Reset aspect -> reset aspect
             Show aspect -> shower aspect

@@ -82,7 +82,11 @@ instance Parses Aspect where
 
 -- | TODO
 instance Parses Element where
-    parses = choice [Index . fromInteger <$ char '#' <*> integer, Input <$> parses]
+    parses =
+        choice
+            [ try (Index . fromInteger <$ char '#' <*> integer)
+            , Input <$> parses
+            ]
 
 -- | TODO
 instance Parses Option where
@@ -100,7 +104,7 @@ instance Parses Level where
     parses =
         choice
             [ Normal <$ string "normal"
-            , Profile <$ string "info"
+            , Profile <$ string "profile"
             , Debug <$ string "debug"
             ]
 
@@ -108,20 +112,20 @@ instance Parses Level where
 instance Parses Command where
     parses =
         choice
-            [ Help <$ (string "help" <|> string "?")
-            , Quit <$ string "quit"
-            , Clear <$ string "clear"
-            , Reset <$ string "reset" <*> parses
-            , Show <$ string "show" <*> parses
-            , Load <$ string "load" <*> filepath
-            , Write <$ string "write" <*> filepath
-            , AST <$ string "ast" <*> parses
+            [ Help <$ (command "help" <|> command "?")
+            , Quit <$ command "quit"
+            , Clear <$ command "clear"
+            , Reset <$ command "reset" <*> parses
+            , Show <$ command "show" <*> parses
+            , Load <$ command "load" <*> filepath
+            , Write <$ command "write" <*> filepath
+            , AST <$ command "ast" <*> parses
             , Set <$> (set <|> unset)
             ]
         where
-            set = string "set" *> parses
+            set = command "set" *> parses
             unset =
-                string "unset"
+                command "unset"
                     *> choice
                         [ Welcome <$ string "welcome" <*> return welcome
                         , Prompt <$ string "prompt" <*> return prompt

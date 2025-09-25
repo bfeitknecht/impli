@@ -153,3 +153,6 @@ filepath = try quoted <|> unquoted <?> "file path"
         single = between (char '"') (char '"') (many (noneOf "\""))
         double = between (char '\'') (char '\'') (many (noneOf "'"))
         unquoted = Token.lexeme lexer (many1 printable) <?> "unquoted file path"
+
+command :: String -> Parser ()
+command cmd = string cmd *> spaces <?> cmd

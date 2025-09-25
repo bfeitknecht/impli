@@ -5,7 +5,7 @@ module Preset where
 
 -- | Default message displayed on entry of 'IMP.REPL.repl'.
 welcome :: String
-welcome = "Welcome to the IMP REPL!" ++ hint
+welcome = unwords ["Welcome to the IMP REPL!", hint]
 
 -- | TODO
 hint :: String
