@@ -1,3 +1,5 @@
+{-# LANGUAGE TypeApplications #-}
+
 {- |
 Module      : CLI
 Description : Commandline interface for the IMP language interpreter
@@ -25,6 +27,7 @@ import IMP.Exception
 import IMP.Parser
 import IMP.State
 import IMP.Statement
+import IMP.Syntax
 import REPL
 
 import qualified Paths_impli as Paths
@@ -111,3 +114,11 @@ runProgram channel input =
         Right stm ->
             Except.runExceptT (execute (stm, initial))
                 >>= either (\e -> print e >> exitFailure) (\_ -> return ())
+
+-- | Parse input and print AST.
+printAST :: String -> IO ()
+printAST input =
+    either
+        (\e -> print . ParseFail $ unlines [input, show e])
+        print
+        (parser @Construct "AST" input)

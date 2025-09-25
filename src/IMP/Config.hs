@@ -7,7 +7,7 @@ Maintainer  : bfeitknecht@ethz.ch
 Stability   : stable
 Portability : portable
 
-Configuration settings for the IMP language interpreter, REPL and CLI.
+Configuration settings for 'IMP.Parser' and 'IMP.Statement'.
 -}
 module IMP.Config where
 

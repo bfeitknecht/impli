@@ -1,8 +1,11 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 
+{- |
+TODO
+-}
 module Meta where
 
-import Config
+import Preset
 import Text.Parsec
 
 import IMP.Lexer
@@ -15,12 +18,12 @@ data Command
     | Quit
     | Clear
     | Reset Aspect
-    | Show (Either Aspect Option)
+    | Show Aspect
     | Load FilePath
     | Write FilePath
     | AST Element
     | Set Option
-    | Unset Option
+    deriving (Eq, Show)
 
 -- | TODO
 data Aspect
@@ -29,26 +32,42 @@ data Aspect
     | Flag
     | Trace
     | All
+    deriving (Eq, Show)
 
 -- | TODO
 data Element
     = Index Int
     | Input Construct
+    deriving (Eq, Show)
 
 -- | Modifiable option in 'IMP.REPL.repl' through @:set@ and @:unset@.
 data Option
     = Welcome String
     | Prompt String
+    | Separator Char
     | Goodbye String
     | Verbose Level
+    deriving (Eq, Show)
 
 -- | TODO
-data Defaults = Defaults
-    { _welcome :: String
-    , _prompt :: String
-    , _goodbye :: String
-    , _verbose :: Level
+data Defaults = Default
+    { __welcome :: String
+    , __prompt :: String
+    , __separator :: Char
+    , __goodbye :: String
+    , __verbose :: Level
     }
+
+-- | TODO
+defaults :: Defaults
+defaults =
+    Default
+        { __welcome = welcome
+        , __prompt = prompt
+        , __separator = separator
+        , __goodbye = goodbye
+        , __verbose = verbosity
+        }
 
 -- | TODO
 instance Parses Aspect where
@@ -58,12 +77,12 @@ instance Parses Aspect where
             , Procs <$ string "procs"
             , Flag <$ (string "break" <|> string "flag")
             , Trace <$ string "trace"
-            , All <$ string "all"
+            , All <$ string ""
             ]
 
 -- | TODO
 instance Parses Element where
-    parses = Index . fromInteger <$> integer <|> Input <$> parses
+    parses = choice [Index . fromInteger <$ char '#' <*> integer, Input <$> parses]
 
 -- | TODO
 instance Parses Option where
@@ -71,6 +90,7 @@ instance Parses Option where
         choice
             [ Welcome <$ string "welcome" <*> sentence
             , Prompt <$ string "prompt" <*> word
+            , Separator <$ string "separator" <*> satisfy (`elem` ":?!-+*#%&$=>")
             , Goodbye <$ string "goodbye" <*> sentence
             , Verbose <$ string "verbose" <*> parses
             ]
@@ -92,7 +112,7 @@ instance Parses Command where
             , Quit <$ string "quit"
             , Clear <$ string "clear"
             , Reset <$ string "reset" <*> parses
-            , Show <$ string "show" <*> (Left <$> try parses <|> Right <$> parses)
+            , Show <$ string "show" <*> parses
             , Load <$ string "load" <*> filepath
             , Write <$ string "write" <*> filepath
             , AST <$ string "ast" <*> parses
@@ -103,8 +123,9 @@ instance Parses Command where
             unset =
                 string "unset"
                     *> choice
-                        [ Welcome <$ string "welcome" <*> string welcome
-                        , Prompt <$ string "prompt" <*> string prompt
-                        , Goodbye <$ string "prompt" <*> string goodbye
+                        [ Welcome <$ string "welcome" <*> return welcome
+                        , Prompt <$ string "prompt" <*> return prompt
+                        , Separator <$ string "separator" <*> return separator
+                        , Goodbye <$ string "prompt" <*> return goodbye
                         , Verbose <$ string "prompt" <*> return verbosity
                         ]

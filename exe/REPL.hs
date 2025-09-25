@@ -1,3 +1,4 @@
+{-# LANGUAGE ConstrainedClassMethods #-}
 {-# LANGUAGE TypeApplications #-}
 
 {- |
@@ -21,12 +22,10 @@ import Control.Monad.Except
 import Control.Monad.State hiding (State, state)
 import System.Console.Haskeline hiding (display)
 import System.Exit (exitFailure)
-import Text.Read (readMaybe)
 
 import qualified Data.Map as Map
 import qualified System.Console.ANSI as ANSI
 
-import Config
 import IMP.Exception
 import IMP.Expression
 import IMP.Parser
@@ -34,6 +33,8 @@ import IMP.Pretty
 import IMP.State
 import IMP.Statement
 import IMP.Syntax
+import Meta
+import Preset
 
 -- | Encapsulation of computation in 'IMP.REPL'.
 type REPL = StateT Store (ExceptT Exception (InputT IO))
@@ -56,36 +57,16 @@ setup hist conf = do
     prefs' <- maybe (return defaultPrefs) readPrefs conf
     return Setup {settings = settings', prefs = prefs'}
 
--- | Modifiable options in 'repl' through @:set@ and @:unset@.
-data Option
-    = Welcome String
-    | Prompt String
-    | Goodbye String
-    | Verbose Int -- INFO: non-negative integer!
-    -- 0: normal
-    -- 1: info (time, space)
-    -- 2: debug (parse, execution, ...)
-    deriving (Eq, Ord, Show)
-
--- | Default options.
-defaults :: [Option]
-defaults =
-    [ Welcome welcome
-    , Prompt prompt
-    , Goodbye goodbye
-    , Verbose 1
-    ]
-
 -- | Encapsulation of state in 'IMP.REPL'.
 data Store = Store
     { _state :: State
     , _trace :: [Stm]
-    , _defaults :: [Option]
+    , _defaults :: Defaults
     , _welcome :: String
     , _prompt :: String
+    , _separator :: Char
     , _goodbye :: String
-    , _verbose :: Int
-    , _multiline :: Maybe Int
+    , _verbose :: Level
     }
 
 -- | Starting data store for 'repl'.
@@ -97,9 +78,9 @@ start =
         , _defaults = defaults
         , _welcome = welcome
         , _prompt = prompt
+        , _separator = separator
         , _goodbye = goodbye
-        , _verbose = 0
-        , _multiline = Nothing
+        , _verbose = verbosity
         }
 
 -- | Read-Evaluate-Print-Loop function in the 'REPL' monad.
@@ -113,19 +94,20 @@ repl (Setup s p) store = do
 loop :: REPL ()
 loop = handleInterrupt loop $ do
     prompt' <- gets _prompt
-    multi <- gets _multiline
-    line <- lift . lift . getInputLine $ case multi of
-        Nothing -> prompt' ++ "> "
-        Just i -> replicate (length prompt') '.' ++ replicate i '>' ++ " "
+    separator' <- gets _separator
+    line <- lift . lift . getInputLine $ prompt' ++ separator' : " "
     case line of
         Nothing -> return () -- ctrl-d, exit cleanly
-        Just "" -> loop -- empty line, loop
         Just ":)" -> outputln "You look good today!" >> loop -- it's true
-        Just (':' : rest) -> handleMeta . normalizeMeta $ words rest
+        Just (':' : meta) ->
+            either
+                (const . throwError . Error $ unlines ["not a meta command: :" ++ meta, hint])
+                (dispatch @Command)
+                (parser "meta" meta)
         Just input ->
             either
                 (\e -> throwError . ParseFail $ unlines [input, show e])
-                (\c -> dispatch c >> loop)
+                (\c -> dispatch @Construct c >> loop)
                 (parser "interactive" input)
         `catchError` \e -> case e of
             Empty -> display Whitespace -- ctrl-d during read, flush line and exit cleanly
@@ -137,128 +119,75 @@ loop = handleInterrupt loop $ do
 liftIMP :: IMP a -> REPL a
 liftIMP m = (lift . liftIO . runExceptT) m >>= either throwError return
 
--- | Process construct in environment, return updated environment.
-dispatch :: Construct -> REPL ()
-dispatch construct = do
+-- | TODO
+class Dispatches a where
+    -- | TODO
+    dispatch :: (Parses a) => a -> REPL ()
+
+-- | TODO
+instance Dispatches Construct where
+    -- \| TODO
+    dispatch construct = do
+        trace <- gets _trace
+        state <- gets _state
+        case construct of
+            Statement stm -> handleInterrupt loop $ do
+                state' <- liftIMP $ execute (stm, state)
+                modify $ \st -> st {_state = state', _trace = stm : trace}
+            Arithmetic aexp -> display (evaluate state aexp)
+            Boolean bexp -> outputln (if evaluate state bexp then "true" else "false")
+            Whitespace -> return ()
+
+-- | TODO
+instance Dispatches Command where
+    -- \| TODO
+    dispatch Quit = return ()
+    dispatch command =
+        case command of
+            Help -> output . unlines $ helpMessage
+            Clear -> clear
+            Reset aspect -> reset aspect
+            Show aspect -> shower aspect
+            Load path -> loadIMP path
+            Write path -> writeIMP path
+            AST element -> ast element
+            Set option -> set option
+            >> loop
+
+-- | TODO
+reset :: Aspect -> REPL ()
+reset aspect = do
+    state <- gets _state
+    case aspect of
+        All -> modify (\st -> st {_state = initial, _trace = []}) >> (throwError . Info) "environment reset"
+        Vars -> modify (\st -> st {_state = resetVars state}) >> (throwError . Info) "variables reset"
+        Procs -> modify (\st -> st {_state = resetProcs state}) >> (throwError . Info) "procedures reset"
+        Flag -> modify (\st -> st {_state = resetBreak state}) >> (throwError . Info) "break flag reset"
+        Trace -> modify (\st -> st {_trace = []}) >> (throwError . Info) "trace reset"
+
+-- | TODO
+shower :: Aspect -> REPL ()
+shower aspect = do
+    (vars, procs, flag) <- gets _state
     trace <- gets _trace
-    state <- gets _state
-    case construct of
-        Statement stm -> handleInterrupt loop $ do
-            state' <- liftIMP $ execute (stm, state)
-            modify $ \st -> st {_state = state', _trace = stm : trace}
-        Arithmetic aexp -> display (evaluate state aexp)
-        Boolean bexp -> outputln (if evaluate state bexp then "true" else "false")
-        Whitespace -> return ()
-
--- | Help message displayed when user enters @:help@ metacommand.
-helpMessage :: [String]
-helpMessage =
-    [ ":help / :?               Show this help message"
-    , ":quit                    Quit REPL"
-    , ":clear                   Clear screen"
-    , ":reset [ASPECT]          Reset environment or specific aspect (vars, procs, break, trace)"
-    , ":trace                   Show trace (executed statements)"
-    , ":state                   Show state definitions (variables, procedures, break flag)"
-    , ":load FILE               Interpret file and load resulting state"
-    , ":write FILE              Write trace to file (relative to $PWD)"
-    , ":ast (INPUT | #n)        Parse and display AST of input or n-th statement in trace"
-    ]
-
--- | Expand metacommand abbreviations.
-normalizeMeta :: [String] -> [String]
-normalizeMeta ["?"] = ["help"]
-normalizeMeta ["h"] = ["help"]
-normalizeMeta ["q"] = ["quit"]
-normalizeMeta ["c"] = ["clear"]
-normalizeMeta ["t"] = ["trace"]
-normalizeMeta ["s"] = ["state"]
-normalizeMeta (w : ws)
-    | w `elem` ["l", "load"] = ["load", it]
-    | w `elem` ["w", "write"] = ["write", it]
-    | w `elem` ["a", "ast"] = ["ast", it]
-    | w `elem` ["r", "reset"] = ["reset", aspect]
-    where
-        it = unwords ws
-        aspect
-            | it `elem` ["v", "vars", "variables"] = "vars"
-            | it `elem` ["p", "procs", "procedures"] = "procs"
-            | it `elem` ["b", "break"] = "break"
-            | it `elem` ["t", "trace"] = "trace"
-            | otherwise = it
-normalizeMeta rest = rest
-
--- | Process metacommand in environment, continue loop or exit.
-handleMeta :: [String] -> REPL ()
-handleMeta meta = case meta of
-    [")"] -> outputln "You look good today!" >> loop
-    ["help"] -> do
-        explain
-            "All meta commands can be abbreviated by their first letter."
-            helpMessage
-        loop
-    ["quit"] -> return ()
-    ["clear"] -> clear >> loop
-    ["reset", it] -> reset it
-    ["trace"] -> do
-        -- CHECK: is there some better way to do this without reverse?
-        trace <- gets _trace
-        explain
-            "Trace:"
-            [ init . unlines $ zipWith (++) (indx : bufs) (lines s)
-            | (i, s) <- zip [1 :: Int ..] (reverse . map prettify $ trace)
-            , let
-                indx = '#' : show i ++ space 2
-                bufs = repeat . space $ length (show i) + 3
-            ]
-        loop
-    ["state"] -> do
-        (vars, procs, flag) <- gets _state
-        explain
-            "Variables:"
-            -- INFO: invariant of IMP.State.setVar guarantees no empty string key
-            [k ++ " = " ++ show v | (k, v) <- Map.toList vars, head k /= '_']
-        explain "Procedures:" [prettify p | p <- procs]
-        outputln $ "Break: " ++ show flag ++ "\n"
-        loop
-    ["load", path]
-        | null path -> throwError . Info $ "no filepath provided"
-        | otherwise -> loadIMP path >> loop
-    ["write", path]
-        | null path -> throwError . Info $ "no filepath provided"
-        | otherwise -> writeIMP path >> loop
-    ["ast", it] -> ast it
-    _ ->
-        throwError . Error $
-            unlines
-                [ "not a meta command: :" ++ unwords meta
-                , "Enter :help to list available metacommands and :quit to exit."
+    case aspect of
+        All -> shower Vars >> shower Procs >> shower Flag >> shower Trace
+        Vars ->
+            explain
+                "Variables:"
+                -- INFO: invariant of IMP.State.setVar guarantees no empty string key
+                [k ++ " = " ++ show v | (k, v) <- Map.toList vars, head k /= '_']
+        Procs -> explain "Procedures:" [prettify p | p <- procs]
+        Flag -> outputln $ "Break: " ++ show flag ++ "\n"
+        Trace ->
+            explain
+                "Trace:"
+                [ init . unlines $ zipWith (++) (indx : bufs) (lines s)
+                | (i, s) <- zip [1 :: Int ..] (reverse . map prettify $ trace)
+                , let
+                    indx = '#' : show i ++ space 2
+                    bufs = repeat . space $ length (show i) + 3
                 ]
-
--- | Reset specific aspect of the environment.
-reset :: String -> REPL ()
-reset it = do
-    state <- gets _state
-    case it of
-        "" -> modify (\st -> st {_state = initial, _trace = []}) >> (throwError . Info) "environment reset"
-        "vars" -> modify (\st -> st {_state = resetVars state}) >> (throwError . Info) "variables reset"
-        "procs" -> modify (\st -> st {_state = resetProcs state}) >> (throwError . Info) "procedures reset"
-        "break" -> modify (\st -> st {_state = resetBreak state}) >> (throwError . Info) "break flag reset"
-        "trace" -> modify (\st -> st {_trace = []}) >> (throwError . Info) "trace reset"
-        _ -> throwError . Error $ "unrecognized aspect to reset: " ++ it
-
--- | Print AST of specific construct.
-ast :: String -> REPL ()
-ast "" = throwError . Info $ "nothing to parse"
-ast "#" = throwError . Info $ "no index provided"
-ast ('#' : ds) = case readMaybe ds of
-    Nothing -> throwError . ParseFail $ unwords ["index", '#' : ds]
-    Just i -> do
-        trace <- gets _trace
-        if i <= 0 || i > length trace
-            then throwError . Error $ "index out of bounds: " ++ show i
-            -- INFO: condition guarantees index in bounds
-            else display (trace !! (length trace - i)) >> loop
-ast it = liftIO (printAST it) >> loop
 
 -- | Interpret IMP language source file, return updated state.
 loadIMP :: FilePath -> REPL ()
@@ -283,17 +212,24 @@ writeIMP path = do
             `catchError` (\e -> throwError . IOFail $ unlines ["write trace to: " ++ path, show e])
     throwError . Info $ "wrote trace to: " ++ path
 
--- | Parse input and print AST.
-printAST :: String -> IO ()
-printAST input =
-    either
-        (\e -> print . ParseFail $ unlines [input, show e])
-        print
-        (parser @Construct "AST" input)
+-- | TODO
+ast :: Element -> REPL ()
+ast (Input construct) = display construct
+ast (Index n) = do
+    trace <- gets _trace
+    if n <= 0 || n > length trace
+        then throwError . Error $ "index out of bounds: " ++ show n
+        -- INFO: condition guarantees index in bounds
+        else display (trace !! (length trace - n))
 
--- | Convert trace to valid IMP language source code.
-prettytrace :: [Stm] -> String
-prettytrace = prettify . mconcat -- Haskell is nice!
+-- | TODO
+set :: Option -> REPL ()
+set option = case option of
+    Welcome w -> modify $ \st -> st {_welcome = w}
+    Prompt p -> modify $ \st -> st {_prompt = p}
+    Separator s -> modify $ \st -> st {_separator = s}
+    Goodbye g -> modify $ \st -> st {_goodbye = g}
+    Verbose v -> modify $ \st -> st {_verbose = v}
 
 -- | Nicely format 'outputln' with heading and indented body.
 explain :: String -> [String] -> REPL ()

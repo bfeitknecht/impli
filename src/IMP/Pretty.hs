@@ -14,6 +14,7 @@ Pretty-print implementation for constructs of the IMP language.
 module IMP.Pretty (
     prettify,
     stringify,
+    prettytrace,
 ) where
 
 import Prettyprinter
@@ -162,3 +163,7 @@ commas = hsep . punctuate comma
 -- | Format signature with commas and semicolon separator.
 semmicommas :: (Pretty a, Pretty b) => [a] -> [b] -> Doc ann
 semmicommas xs ys = commas (map pretty xs) <> semi <+> commas (map pretty ys)
+
+-- | Convert trace to valid IMP language source code.
+prettytrace :: [Stm] -> String
+prettytrace = prettify . mconcat -- Haskell is nice!

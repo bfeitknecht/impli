@@ -54,7 +54,7 @@ common runnable
 
   other-modules:
     CLI
-    Config
+    Preset
     Meta
     Paths_impli
     REPL
