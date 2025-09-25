@@ -87,7 +87,7 @@ start =
 repl :: Setup -> Store -> IO ()
 repl (Setup s p) store = do
     putStrLn $ _welcome store
-    runInputTWithPrefs p s (runExceptT (execStateT loop store))
+    runInputTWithPrefs p s (withInterrupt (runExceptT (execStateT loop store)))
         >>= either (\e -> print e >> exitFailure) (\_ -> putStrLn goodbye)
 
 -- | REPL loop that processes input and maintains interpreter state.
@@ -101,7 +101,7 @@ loop = handleInterrupt loop $ do
         Just ":)" -> outputln "You look good today!" >> loop -- it's true
         Just (':' : meta) ->
             either
-                (const . throwError . Error $ unlines ["not a meta command: :" ++ meta, hint])
+                (const . throwError . Error $ unlines ["unrecognized meta command: :" ++ meta, hint])
                 (dispatch @Command)
                 (parser "meta" meta)
         Just input ->
@@ -110,7 +110,7 @@ loop = handleInterrupt loop $ do
                 (\c -> dispatch @Construct c >> loop)
                 (parser "interactive" input)
         `catchError` \e -> case e of
-            Empty -> display Whitespace -- ctrl-d during read, flush line and exit cleanly
+            Empty -> output "" -- ctrl-d during read, flush line and exit cleanly
             AssertFail _ -> throwError e -- irrecoverable, propagate
             Raised _ -> throwError e -- ''
             _ -> display e >> loop -- mistakes happen
@@ -131,7 +131,7 @@ instance Dispatches Construct where
         trace <- gets _trace
         state <- gets _state
         case construct of
-            Statement stm -> handleInterrupt loop $ do
+            Statement stm -> do
                 state' <- liftIMP $ execute (stm, state)
                 modify $ \st -> st {_state = state', _trace = stm : trace}
             Arithmetic aexp -> display (evaluate state aexp)
@@ -144,7 +144,10 @@ instance Dispatches Command where
     dispatch Quit = return ()
     dispatch command =
         case command of
-            Help -> explain "All metacommands unrelated to settings can be abbreviated by their first letter" helpMessage
+            Help ->
+                explain
+                    "All metacommands unrelated to settings can be abbreviated by their first letter" -- FIXME
+                    helpMessage
             Clear -> clear
             Reset aspect -> reset aspect
             Show aspect -> shower aspect
@@ -159,11 +162,11 @@ reset :: Aspect -> REPL ()
 reset aspect = do
     state <- gets _state
     case aspect of
-        All -> modify (\st -> st {_state = initial, _trace = []}) >> (throwError . Info) "environment reset"
-        Vars -> modify (\st -> st {_state = resetVars state}) >> (throwError . Info) "variables reset"
-        Procs -> modify (\st -> st {_state = resetProcs state}) >> (throwError . Info) "procedures reset"
-        Flag -> modify (\st -> st {_state = resetBreak state}) >> (throwError . Info) "break flag reset"
-        Trace -> modify (\st -> st {_trace = []}) >> (throwError . Info) "trace reset"
+        All -> modify (\st -> st {_state = initial, _trace = []}) >> (display . Info) "environment reset"
+        Vars -> modify (\st -> st {_state = resetVars state}) >> (display . Info) "variables reset"
+        Procs -> modify (\st -> st {_state = resetProcs state}) >> (display . Info) "procedures reset"
+        Flag -> modify (\st -> st {_state = resetBreak state}) >> (display . Info) "break flag reset"
+        Trace -> modify (\st -> st {_trace = []}) >> (display . Info) "trace reset"
 
 -- | TODO
 shower :: Aspect -> REPL ()
@@ -201,7 +204,7 @@ loadIMP path = do
             state <- gets _state
             state' <- liftIMP $ execute (stm, state)
             modify $ \st -> st {_state = state'}
-            throwError . Info $ "interpreted: " ++ path
+            display . Info $ "interpreted: " ++ path
 
 -- | Write trace to specified file.
 writeIMP :: FilePath -> REPL ()

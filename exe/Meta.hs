@@ -5,12 +5,12 @@ TODO
 -}
 module Meta where
 
-import Preset
 import Text.Parsec
 
 import IMP.Lexer
 import IMP.Parser
 import IMP.Syntax
+import Preset
 
 -- | TODO
 data Command

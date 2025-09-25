@@ -16,6 +16,7 @@ module Main where
 
 -- import System.IO (BufferMode (..), hSetBuffering, stderr, stdin, stdout)
 
+import Config
 import Control.Monad.Except (catchError, throwError)
 import Control.Monad.IO.Class (liftIO)
 import Data.Version (showVersion)
@@ -24,7 +25,6 @@ import Text.Read (readMaybe)
 import qualified Control.Monad.Trans.Except as Except
 import qualified Data.Map as Map
 
-import Config
 import IMP.Exception
 import IMP.Expression
 import IMP.Parser
