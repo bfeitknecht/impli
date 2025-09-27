@@ -48,7 +48,6 @@ parseMode :: Parser Mode
 parseMode =
     asum
         [ REPL
-            -- TODO: update mandocs
             <$> option
                 (Just <$> str)
                 (long "history" <> metavar "FILE" <> help "Save REPL history" <> value Nothing)

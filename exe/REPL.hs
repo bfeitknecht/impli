@@ -66,7 +66,7 @@ data Store = Store
     , _prompt :: String
     , _separator :: Char
     , _goodbye :: String
-    , _verbose :: Level -- TODO: implement usage of verbosity
+    , _verbose :: Level
     }
 
 -- | Starting data store for 'repl'.
@@ -110,7 +110,7 @@ loop = handleInterrupt loop $ do
                 (\c -> dispatch @Construct c >> loop)
                 (parser "interactive" input)
         `catchError` \e -> case e of
-            Empty -> output "" -- ctrl-d during read, flush line and exit cleanly
+            Empty -> return () -- ctrl-d during read, flush line and exit cleanly
             AssertFail _ -> throwError e -- irrecoverable, propagate
             Raised _ -> throwError e -- ''
             _ -> display e >> loop -- mistakes happen

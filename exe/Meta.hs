@@ -101,17 +101,18 @@ instance Parses Level where
 instance Parses Command where
     parses =
         choice
-            [ Help <$ (symbol "help" <|> symbol "?")
-            , Quit <$ symbol "quit"
-            , Clear <$ symbol "clear"
-            , Reset <$ symbol "reset" <*> parses
-            , try $ Show <$ symbol "show" <*> parses
-            , Load <$ symbol "load" <*> filepath
-            , Write <$ symbol "write" <*> filepath
-            , AST <$ symbol "ast" <*> parses
+            [ Help <$ (command "help" <|> symbol "?")
+            , Quit <$ command "quit"
+            , Clear <$ command "clear"
+            , Reset <$ command "reset" <*> parses
+            , try $ Show <$ command "show" <*> parses
+            , Load <$ command "load" <*> filepath
+            , Write <$ command "write" <*> filepath
+            , AST <$ command "ast" <*> parses
             , Set <$> (set <|> unset)
             ]
         where
+            command cmd = symbol cmd <|> symbol [head cmd] -- INFO: case "" does not exist
             set = symbol "set" *> parses
             unset =
                 symbol "unset"
