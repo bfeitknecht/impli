@@ -3,33 +3,38 @@
 impli \- Interpreter and REPL for the imperative toy language IMP
 .SH SYNOPSIS
 .B impli
+[\fB--history\fR \fIFILE\fR] [\fB--config\fR \fIFILE\fR]
+.br
+.B impli
 [\fIFILE\fR]
 .br
 .B impli
-[\fB-c\fR \fICOMMAND\fR]
+[\fB-c\fR|\fB--command\fR \fICOMMAND\fR]
 .br
 .B impli
-[\fB-a\fR \fICONSTRUCT\fR]
+[\fB-a\fR|\fB--ast\fR \fICONSTRUCT\fR]
 .br
 .B impli
 [\fB--stdin\fR]
 .br
 .B impli
-[\fB-v\fR|\fB--version\fR]
+[\fB--version\fR]
 .br
 .B impli
-[\fB--no-history\fR]
+[\fB-h\fR|\fB--help\fR]
 .SH DESCRIPTION
 .B impli
 is an interpreter and interactive REPL for the imperative toy language IMP. It supports evaluating IMP source files, executing commands, printing abstract syntax trees, and more.
-
-.TP
-.B \-\-no-history
-Do not load or save the REPL history file.
 .SH MODES OF OPERATION
 .TP
 .B No arguments
 Start the interactive REPL.
+.TP
+.BR --history " " FILE
+Save REPL history to the specified file.
+.TP
+.BR --config " " FILE
+Read Haskeline configuration from the specified file.
 .TP
 .B FILE
 Interpret the specified IMP source file.
@@ -43,8 +48,11 @@ Parse and print the abstract syntax tree (AST) of the given construct.
 .B --stdin
 Interpret IMP program from standard input.
 .TP
-.BR -v ", " --version
+.B --version
 Print the version of the impli interpreter.
+.TP
+.BR -h ", " --help
+Show this help text.
 
 .SH REPL META COMMANDS
 Within the REPL, the following meta commands are available (all can be abbreviated by their first letter):
@@ -59,13 +67,10 @@ Exit the REPL.
 Clear the screen.
 .TP
 .B :reset [ASPECT]
-Reset the environment or one specific aspect of it (vars, procs, break, trace).
+Reset the environment or one specific aspect of it (vars, procs, break, trace). If no aspect is given, all are reset.
 .TP
-.B :trace
-Show the trace of executed statements.
-.TP
-.B :state
-Show the current state (variables, procedures, break flag).
+.B :show [ASPECT]
+Show the current state of the interpreter or one specific aspect of it (vars, procs, break, trace). If no aspect is given, all are shown.
 .TP
 .B :load FILE
 Interpret and load a source file into the current state.
@@ -78,11 +83,6 @@ Parse and display the AST of the given input or the n-th statement in the trace.
 
 .SH EXIT STATUS
 Returns 0 on success, non-zero on error.
-
-.SH FILES
-.TP
-.B .imp_history
-Command history file for the REPL.
 
 .SH EXAMPLES
 .TP

@@ -139,11 +139,11 @@ printable = satisfy (\c -> (c `notElem` " \t\n\r\f\v") && c > '\31')
 
 -- | Parser for a single word (unreserved identifier).
 word :: Parser String
-word = Token.lexeme lexer (many1 printable) <?> "word"
+word = spaces *> Token.lexeme lexer (many1 printable) <?> "word"
 
 -- | Parser for multiple words separated by spaces.
 sentence :: Parser String
-sentence = Token.lexeme lexer (concat <$> sepBy1 word spaces) <?> "sentence"
+sentence = spaces *> Token.lexeme lexer (concat <$> sepBy1 word spaces) <?> "sentence"
 
 -- | Parser for a file path (either quoted or without spaces)
 filepath :: Parser FilePath
@@ -153,6 +153,3 @@ filepath = try quoted <|> unquoted <?> "file path"
         single = between (char '"') (char '"') (many (noneOf "\""))
         double = between (char '\'') (char '\'') (many (noneOf "'"))
         unquoted = Token.lexeme lexer (many1 printable) <?> "unquoted file path"
-
-command :: String -> Parser ()
-command cmd = string cmd *> spaces <?> cmd

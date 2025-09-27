@@ -1,7 +1,16 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 {- |
-TODO
+Module      : Meta
+Description : Metastring definitions and parse instances
+Copyright   : (c) Basil Feitknecht, 2025
+License     : MIT
+Maintainer  : bfeitknecht@ethz.ch
+Stability   : stable
+Portability : portable
+
+Provides the definitions of metacommands and associates.
+Handles parsing of arguments and options.
 -}
 module Meta where
 
@@ -12,7 +21,7 @@ import IMP.Parser
 import IMP.Syntax
 import Preset
 
--- | TODO
+-- | Encapsulation for metacommand.
 data Command
     = Help
     | Quit
@@ -25,7 +34,7 @@ data Command
     | Set Option
     deriving (Eq, Show)
 
--- | TODO
+-- | Encapsulation of an aspect to 'IMP.REPL.reset' or 'IMP.REPL.shower'.
 data Aspect
     = Vars
     | Procs
@@ -34,7 +43,7 @@ data Aspect
     | All
     deriving (Eq, Show)
 
--- | TODO
+-- | Encapsulation of an element to 'IMP.REPL.ast'.
 data Element
     = Index Int
     | Input Construct
@@ -49,87 +58,67 @@ data Option
     | Verbose Level
     deriving (Eq, Show)
 
--- | TODO
-data Defaults = Default
-    { __welcome :: String
-    , __prompt :: String
-    , __separator :: Char
-    , __goodbye :: String
-    , __verbose :: Level
-    }
-
--- | TODO
-defaults :: Defaults
-defaults =
-    Default
-        { __welcome = welcome
-        , __prompt = prompt
-        , __separator = separator
-        , __goodbye = goodbye
-        , __verbose = verbosity
-        }
-
--- | TODO
+-- | Parser for showable and resettable aspect 'Aspect'.
 instance Parses Aspect where
     parses =
         choice
-            [ Vars <$ string "vars"
-            , Procs <$ string "procs"
-            , Flag <$ (string "break" <|> string "flag")
-            , Trace <$ string "trace"
-            , All <$ string ""
+            [ Vars <$ symbol "vars"
+            , Procs <$ symbol "procs"
+            , Flag <$ symbol "break"
+            , Trace <$ symbol "trace"
+            , All <$ return () -- INFO: empty word corresponds to every aspect
             ]
 
--- | TODO
+-- | Parser for element 'Element' to 'IMP.REPL.shower'.
 instance Parses Element where
     parses =
         choice
-            [ try (Index . fromInteger <$ char '#' <*> integer)
+            [ Index . fromInteger <$ char '#' <*> integer
             , Input <$> parses
             ]
 
--- | TODO
+-- | Parser for modifiable option 'Option'.
 instance Parses Option where
     parses =
         choice
-            [ Welcome <$ string "welcome" <*> sentence
-            , Prompt <$ string "prompt" <*> word
-            , Separator <$ string "separator" <*> satisfy (`elem` ":?!-+*#%&$=>")
-            , Goodbye <$ string "goodbye" <*> sentence
-            , Verbose <$ string "verbose" <*> parses
+            [ Welcome <$ symbol "welcome" <*> sentence
+            , Prompt <$ symbol "prompt" <*> (word <|> mempty)
+            , Separator <$ symbol "separator" <*> satisfy (`elem` ":?!-+*#%&$=>")
+            , Goodbye <$ symbol "goodbye" <*> sentence
+            , Verbose <$ symbol "verbose" <*> parses
             ]
 
--- | TODO
+-- | Parser for verbosity level 'Level'.
 instance Parses Level where
     parses =
         choice
-            [ Normal <$ string "normal"
-            , Profile <$ string "profile"
-            , Debug <$ string "debug"
+            [ Normal <$ symbol "normal"
+            , Profile <$ symbol "profile"
+            , Debug <$ symbol "debug"
             ]
 
--- | TODO
+-- | Parser for metacommand 'Command'.
 instance Parses Command where
     parses =
         choice
-            [ Help <$ (command "help" <|> command "?")
-            , Quit <$ command "quit"
-            , Clear <$ command "clear"
-            , Reset <$ command "reset" <*> parses
-            , Show <$ command "show" <*> parses
-            , Load <$ command "load" <*> filepath
-            , Write <$ command "write" <*> filepath
-            , AST <$ command "ast" <*> parses
+            [ Help <$ (symbol "help" <|> symbol "?")
+            , Quit <$ symbol "quit"
+            , Clear <$ symbol "clear"
+            , Reset <$ symbol "reset" <*> parses
+            , try $ Show <$ symbol "show" <*> parses
+            , Load <$ symbol "load" <*> filepath
+            , Write <$ symbol "write" <*> filepath
+            , AST <$ symbol "ast" <*> parses
             , Set <$> (set <|> unset)
             ]
         where
-            set = command "set" *> parses
+            set = symbol "set" *> parses
             unset =
-                command "unset"
+                symbol "unset"
                     *> choice
-                        [ Welcome <$ string "welcome" <*> return welcome
-                        , Prompt <$ string "prompt" <*> return prompt
-                        , Separator <$ string "separator" <*> return separator
-                        , Goodbye <$ string "prompt" <*> return goodbye
-                        , Verbose <$ string "prompt" <*> return verbosity
+                        [ Welcome <$ symbol "welcome" <*> return welcome
+                        , Prompt <$ symbol "prompt" <*> return prompt
+                        , Separator <$ symbol "separator" <*> return normalsep
+                        , Goodbye <$ symbol "prompt" <*> return goodbye
+                        , Verbose <$ symbol "verbose" <*> return verbosity
                         ]

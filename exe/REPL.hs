@@ -66,7 +66,7 @@ data Store = Store
     , _prompt :: String
     , _separator :: Char
     , _goodbye :: String
-    , _verbose :: Level
+    , _verbose :: Level -- TODO: implement usage of verbosity
     }
 
 -- | Starting data store for 'repl'.
@@ -78,7 +78,7 @@ start =
         , _defaults = defaults
         , _welcome = welcome
         , _prompt = prompt
-        , _separator = separator
+        , _separator = normalsep
         , _goodbye = goodbye
         , _verbose = verbosity
         }
@@ -119,14 +119,13 @@ loop = handleInterrupt loop $ do
 liftIMP :: IMP a -> REPL a
 liftIMP m = (lift . liftIO . runExceptT) m >>= either throwError return
 
--- | TODO
+-- | Typeclass to dispatch 'IMP.Syntax.Construct' or 'IMP.Meta.Command'.
 class Dispatches a where
-    -- | TODO
+    -- | Dispatch execution.
     dispatch :: (Parses a) => a -> REPL ()
 
--- | TODO
+-- | Dispatcher for 'IMP.Syntax.Construct'.
 instance Dispatches Construct where
-    -- \| TODO
     dispatch construct = do
         trace <- gets _trace
         state <- gets _state
@@ -138,9 +137,8 @@ instance Dispatches Construct where
             Boolean bexp -> outputln (if evaluate state bexp then "true" else "false")
             Whitespace -> return ()
 
--- | TODO
+-- | Dispatcher for 'IMP.Meta.Command'.
 instance Dispatches Command where
-    -- \| TODO
     dispatch Quit = return ()
     dispatch command =
         case command of
@@ -157,7 +155,7 @@ instance Dispatches Command where
             Set option -> set option
             >> loop
 
--- | TODO
+-- | Reset 'IMP.Meta.Aspect'.
 reset :: Aspect -> REPL ()
 reset aspect = do
     state <- gets _state
@@ -168,7 +166,7 @@ reset aspect = do
         Flag -> modify (\st -> st {_state = resetBreak state}) >> (display . Info) "break flag reset"
         Trace -> modify (\st -> st {_trace = []}) >> (display . Info) "trace reset"
 
--- | TODO
+-- | Show 'IMP.Meta.Aspect'.
 shower :: Aspect -> REPL ()
 shower aspect = do
     (vars, procs, flag) <- gets _state
@@ -215,7 +213,7 @@ writeIMP path = do
             `catchError` (\e -> throwError . IOFail $ unlines ["write trace to: " ++ path, show e])
     throwError . Info $ "wrote trace to: " ++ path
 
--- | TODO
+-- | Show abstract syntax tree of 'IMP.Meta.Element'.
 ast :: Element -> REPL ()
 ast (Input construct) = display construct
 ast (Index n) = do
@@ -225,14 +223,19 @@ ast (Index n) = do
         -- INFO: condition guarantees index in bounds
         else display (trace !! (length trace - n))
 
--- | TODO
+-- | Set 'IMP.Meta.Option'.
 set :: Option -> REPL ()
 set option = case option of
     Welcome w -> modify $ \st -> st {_welcome = w}
     Prompt p -> modify $ \st -> st {_prompt = p}
     Separator s -> modify $ \st -> st {_separator = s}
     Goodbye g -> modify $ \st -> st {_goodbye = g}
-    Verbose v -> modify $ \st -> st {_verbose = v}
+    Verbose v -> modify $ \st -> st {_verbose = v, _separator = separator'}
+        where
+            separator' = case v of
+                Normal -> normalsep
+                Profile -> profilesep
+                Debug -> debugsep
 
 -- | Nicely format 'outputln' with heading and indented body.
 explain :: String -> [String] -> REPL ()

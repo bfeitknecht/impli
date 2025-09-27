@@ -1,5 +1,13 @@
 {- |
-TODO
+Module      : Preset
+Description : Preset settings for the REPL
+Copyright   : (c) Basil Feitknecht, 2025
+License     : MIT
+Maintainer  : bfeitknecht@ethz.ch
+Stability   : stable
+Portability : portable
+
+Defines preset options and constants for the REPL.
 -}
 module Preset where
 
@@ -7,7 +15,7 @@ module Preset where
 welcome :: String
 welcome = unwords ["Welcome to the IMP REPL!", hint]
 
--- | TODO
+-- | Default hint displayed on enter of 'IMP.REPL.repl' or metacommand error.
 hint :: String
 hint = "Enter :help to list available metacommands or :quit to exit."
 
@@ -15,24 +23,52 @@ hint = "Enter :help to list available metacommands or :quit to exit."
 prompt :: String
 prompt = "IMP"
 
--- | TODO
-separator :: Char
-separator = '>'
+-- | Default prompt-input separator.
+normalsep :: Char
+normalsep = '>'
+
+-- | Default prompt-input separator with profile verbosity.
+profilesep :: Char
+profilesep = '+'
+
+-- | Default prompt-input separator with debug verbosity.
+debugsep :: Char
+debugsep = '*'
 
 -- | Default message displayed after clean exit.
 goodbye :: String
 goodbye = "Goodbye!"
 
--- | TODO
+-- | Encapsulation of verbosity level in 'IMP.REPL.REPL'.
 data Level
     = Normal
     | Profile
     | Debug
     deriving (Eq, Show)
 
--- | TODO
+-- | Default verbosity.
 verbosity :: Level
 verbosity = Normal
+
+-- | Encapsulation of default options.
+data Defaults = Default
+    { __welcome :: String
+    , __prompt :: String
+    , __separator :: Char
+    , __goodbye :: String
+    , __verbose :: Level
+    }
+
+-- | Default options.
+defaults :: Defaults
+defaults =
+    Default
+        { __welcome = welcome
+        , __prompt = prompt
+        , __separator = normalsep
+        , __goodbye = goodbye
+        , __verbose = verbosity
+        }
 
 -- | Help message displayed when user enters @:help@ metacommand.
 helpMessage :: [String]
