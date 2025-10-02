@@ -1,33 +1,24 @@
 <!doctype html>
 <html>
-    <head>
-        <meta charset="utf-8" />
-        <title>impli.js</title>
-        <script type="importmap">
-            {
-                "imports": {
-                    "xterm": "https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/+esm",
-                    "pty": "https://cdn.jsdelivr.net/npm/xterm-pty@0.11.1/+esm",
-                    "fit": "https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/+esm"
-                }
-            }
-        </script>
-        <link
-            rel="preload"
-            href="./CommitMonoV143-VF.woff2"
-            as="font"
-            type="font/woff2"
-            crossorigin
-        />
-        <link
-            rel="stylesheet"
-            href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5/css/xterm.min.css"
-        />
-        <link rel="stylesheet" href="style.css" />
-    </head>
-    <body>
-        <div id="terminal"></div>
-        <noscript><p>This website needs scripting to work.</p></noscript>
-        <script type="module" src="module.mjs"></script>
-    </body>
+  <head>
+    <meta charset="utf-8" />
+    <title>impli.js</title>
+    <script type="importmap">
+      {
+        "imports": {
+          "xterm": "https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/+esm",
+          "pty": "https://cdn.jsdelivr.net/npm/xterm-pty@0.11.1/+esm",
+          "fit": "https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/+esm"
+        }
+      }
+    </script>
+    <link rel="preload" href="./CommitMonoV143-VF.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5/css/xterm.min.css" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div id="terminal"></div>
+    <noscript><p>This website needs scripting to work.</p></noscript>
+    <script type="module" src="module.mjs"></script>
+  </body>
 </html>

@@ -92,7 +92,7 @@ executable impli-web
     jsaddle >=0.9 && <0.10,
 
   js-sources:
-    web/src/ffi.js
+    web/lib/ffi.js
 
   ld-options:
     -Os
@@ -100,7 +100,7 @@ executable impli-web
     -sENVIRONMENT=web
     -sFORCE_FILESYSTEM
     -sASYNCIFY
-    "--js-library=./web/src/lib/emscripten-pty.js"
+    "--js-library=./web/lib/emscripten-pty.js"
 
 test-suite impli-test
   import: shared
