@@ -1,6 +1,3 @@
-{-# LANGUAGE ForeignFunctionInterface #-}
-{-# LANGUAGE TypeApplications #-}
-
 {- |
 Module      : Main
 Description : Web capability for the IMP language interpreter
@@ -12,226 +9,38 @@ Portability : portable
 
 Provides web capabilities for the IMP language interpreter.
 -}
-module Main where
+module Web where
 
--- import System.IO (BufferMode (..), hSetBuffering, stderr, stdin, stdout)
+import Control.Monad.Except
+import Control.Monad.State
+import System.Console.Haskeline
+import System.Exit (exitFailure)
 
-import Config
-import Control.Monad.Except (catchError, throwError)
-import Control.Monad.IO.Class (liftIO)
-import Data.Version (showVersion)
-import Text.Read (readMaybe)
-
-import qualified Control.Monad.Trans.Except as Except
-import qualified Data.Map as Map
-
-import IMP.Exception
-import IMP.Expression
-import IMP.Parser
 import IMP.Pretty
-import IMP.Semantics.Structural
-import IMP.State
-import IMP.Syntax
-
-import qualified Paths_impli as Paths
-
-{-
-foreign import javascript unsafe "console.log($1)" logger :: JSString -> IO ()
-foreign import javascript unsafe "console.warn($1)" warner :: JSString -> IO ()
-
--- | Communicate with browser console from Haskell String.
-js_log, js_warn :: String -> IO ()
-js_log = logger . toJSString
-js_warn = warner . toJSString
--}
-
--- | Export
-js_export :: String -> IO ()
-js_export = undefined
+import Preset
+import REPL hiding (repl)
 
 -- | Entrypoint for the IMP language interpreter in the web.
 main :: IO ()
-main = do
-    -- hSetBuffering stdin NoBuffering
-    -- hSetBuffering stdout NoBuffering
-    -- hSetBuffering stderr NoBuffering
-    repl start
+main = repl start
 
--- | Environment in 'loop' as 2-tuple of trace (list of 'IMP.Syntax.Stm') and 'IMP.State.State'.
-type Env = ([Stm], State)
+-- | Read-Evaluate-Print-Loop in the 'REPL' monad.
+repl :: Store -> IO ()
+repl store = do
+    putStrLn $ _welcome store
+    runInputTWithPrefs
+        defaultPrefs
+        defaultSettings
+        (withInterrupt (runExceptT (execStateT loop store)))
+        >>= either (\e -> print e >> exitFailure) (\store' -> putStrLn goodbye >> repl store')
+    error "How did we get here?"
 
--- | Start 'Env' for 'repl'.
-start :: Env
-start = ([], initial)
+-- | Write trace to specified file.
+writeIMP :: FilePath -> REPL ()
+writeIMP path = do
+    trace <- gets _trace
+    liftIO . exportJS path . prettify . mconcat $ trace
 
-repl :: Env -> IO ()
-repl env =
-    Except.runExceptT (loop env)
-        >>= either print (\_ -> putStrLn goodbye)
-        >> repl env
-
--- | REPL loop that processes input and maintains interpreter state.
-loop :: Env -> IMP ()
-loop env = do
-    outputln wwwelcome
-    output prompt
-    line <- liftIO getLine
-    case line of
-        "" -> loop env -- empty line, loop
-        (':' : rest) -> handleMeta env . normalizeMeta $ words rest
-        input ->
-            either
-                (\e -> throwError . ParseFail $ unlines [input, show e])
-                (\c -> dispatch env c >>= loop)
-                (parser "browser" input)
-        `catchError` \e -> case e of
-            Empty -> outputln "" -- ctrl-d during read, flush line and exit cleanly
-            AssertFail _ -> throwError e -- unrecoverable, propagate
-            Raised _ -> throwError e -- ''
-            _ -> display e >> loop env -- mistakes happen
-
--- | Process construct in environment, return updated environment.
-dispatch :: Env -> Construct -> IMP Env
-dispatch env@(trace, state) cnstr = case cnstr of
-    Statement stm -> do
-        state' <- run (stm, state)
-        return (stm : trace, state')
-    Arithmetic aexp -> display (evaluate state aexp) >> return env
-    Boolean bexp -> outputln (if evaluate state bexp then "true" else "false") >> return env
-    Whitespace -> return env
-
--- | Help message displayed when user enters @:help@ metacommand.
-helpMessage :: [String]
-helpMessage =
-    [ ":help / :?               Show this help message"
-    , ":version                 Show the version"
-    , ":clear                   Clear screen"
-    , ":reset [ASPECT]          Reset environment or specific aspect (vars, procs, break, trace)"
-    , ":trace                   Show trace (executed statements)"
-    , ":state                   Show state (defined variables and procedures, break flag)"
-    , ":load FILE               Interpret file and load resulting state"
-    , ":write                   Write trace to file (opens in new tab)"
-    , ":ast (INPUT | #n)        Parse and display AST of input or n-th statement in trace"
-    ]
-
--- | Expand metacommand abbreviations.
-normalizeMeta :: [String] -> [String]
-normalizeMeta ["?"] = ["help"]
-normalizeMeta ["h"] = ["help"]
-normalizeMeta ["v"] = ["version"]
-normalizeMeta ["t"] = ["trace"]
-normalizeMeta ["s"] = ["state"]
-normalizeMeta (w : ws)
-    | w `elem` ["l", "load"] = ["load", it]
-    | w `elem` ["w", "write"] = ["write", it]
-    | w `elem` ["a", "ast"] = ["ast", it]
-    | w `elem` ["r", "reset"] = ["reset", it]
-    where
-        it = unwords ws
-normalizeMeta rest = rest
-
--- | Process metacommand in environment, continue loop or exit.
-handleMeta :: Env -> [String] -> IMP ()
-handleMeta env@(trace, state@(vars, procs, flag)) meta = case meta of
-    [")"] -> outputln "You look good today!" >> loop env
-    ["help"] -> do
-        explain
-            "All meta commands can be abbreviated by their first letter."
-            helpMessage
-        loop env
-    ["version"] -> outputln ("impli " ++ showVersion Paths.version) >> loop env
-    ["reset", it]
-        | null it -> (display . Info) "environment reset" >> loop start
-        | it `elem` ["v", "vars"] -> (display . Info) "variables reset" >> loop (trace, (zero, procs, flag))
-        | it `elem` ["p", "procs"] -> (display . Info) "procedures reset" >> loop (trace, (vars, [], flag))
-        | it `elem` ["b", "break"] -> (display . Info) "break flag reset" >> loop (trace, (vars, procs, False))
-        | it `elem` ["t", "trace"] -> (display . Info) "trace reset" >> loop ([], (vars, procs, flag))
-        | otherwise -> throwError . Error $ "unrecognized aspect to reset: " ++ it
-    ["trace"] -> do
-        -- CHECK: is there some better way to do this without reverse?
-        explain
-            "Trace:"
-            [ init . unlines $ zipWith (++) (indx : bufs) (lines s)
-            | (i, s) <- zip [1 :: Int ..] (reverse . map prettify $ trace)
-            , let
-                indx = '#' : show i ++ space 2
-                bufs = repeat . space $ length (show i) + 3
-            ]
-        loop env
-    ["state"] -> do
-        explain
-            "Variables:"
-            -- INFO: invariant of IMP.State.setVar guarantees no empty string key
-            [k ++ " = " ++ show v | (k, v) <- Map.toList vars, head k /= '_']
-        explain "Procedures:" [prettify p | p <- procs]
-        outputln $ "Break: " ++ show flag ++ "\n"
-        loop env
-    ["load", it]
-        | null it -> throwError . Info $ "no filepath provided"
-        | otherwise -> loadIMP state it >>= curry loop trace
-    ["write"] -> writeIMP trace >> loop env
-    ["ast", it]
-        | null it -> throwError . Info $ "nothing to parse"
-        | "#" <- it -> throwError . Info $ "no index provided"
-        | '#' : ds <- it -> case readMaybe ds of
-            Nothing -> throwError . ParseFail $ it
-            Just i ->
-                if i <= 0 || i > length trace
-                    then throwError . Error $ "index out of bounds: " ++ show i
-                    -- INFO: condition guarantees index in bounds
-                    else display (trace !! (length trace - i)) >> loop env
-        | otherwise -> printAST it >> loop env
-    _ ->
-        throwError . Error $
-            unlines
-                [ "not a meta command: :" ++ unwords meta
-                , "Enter :help to list available metacommands and :quit to exit."
-                ]
-
--- | Interpret IMP language source file, return updated state.
-loadIMP :: State -> FilePath -> IMP State
-loadIMP state path = do
-    content <-
-        liftIO (readFile path)
-            `catchError` (\e -> throwError . IOFail $ unlines ["read from: " ++ path, show e])
-    case parser path content of
-        Left e -> throwError . ParseFail $ unlines [path, show e]
-        Right stm -> do
-            state' <- run (stm, state)
-            display . Info $ "interpreted: " ++ path
-            return state'
-
-writeIMP :: [Stm] -> IMP ()
-writeIMP = undefined
-
-exportIMP :: FilePath -> IMP ()
-exportIMP path = do
-    content <-
-        liftIO (readFile path)
-            `catchError` (\e -> throwError . IOFail $ unlines ["read from: " ++ path, show e])
-    liftIO $ js_export content
-
--- | Parse input and print AST.
-printAST :: String -> IMP ()
-printAST input =
-    either
-        (\e -> display . ParseFail $ unlines [input, show e])
-        display
-        (parser @Construct "browser" input)
-
--- | Convert trace to valid IMP language source code.
-prettytrace :: [Stm] -> String
-prettytrace = prettify . mconcat -- Haskell is nice!
-
--- | Nicely format 'outputln' with heading and indented body.
-explain :: String -> [String] -> IMP ()
-explain heading [] = outputln heading
-explain heading body = outputln $ heading ++ '\n' : indent 4 (unlines body)
-
--- | Indent every line by @n@ space characters.
-indent :: Int -> String -> String
-indent n = unlines . map (space n ++) . lines
-
--- | 'String' of @n@ space characters.
-space :: Int -> String
-space n = replicate n ' '
+-- | Export source code to new browser tab.
+exportJS :: String -> FilePath -> IO ()
+exportJS path code = undefined

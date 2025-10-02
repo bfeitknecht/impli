@@ -56,7 +56,7 @@ getVal x = do
             >>= either (\_ -> throwError Empty) return
     case readMaybe input of
         Nothing -> do
-            display . Info $ "invalid input, please enter an integer"
+            inform "invalid input, please enter an integer"
             getVal x
         Just i -> return i
     where
@@ -150,7 +150,10 @@ display = liftIO . print
 (%%) v1 0 = v1
 (%%) v1 v2 = mod v1 v2
 
--- | Convenience function for error and information passing.
-errata, inform :: (MonadError Exception m) => String -> m a
+-- | Convenient error passing.
+errata :: (MonadError Exception m) => String -> m a
 errata = throwError . Error
-inform = throwError . Info
+
+-- | Convenient information passing.
+inform :: (MonadIO m) => String -> m ()
+inform = display . Info

@@ -76,6 +76,7 @@ helpMessage =
     [ ":help                    Show this help message"
     , ":quit                    Quit REPL"
     , ":clear                   Clear screen"
+    , ":version                 Show version"
     , ":reset [ASPECT]          Reset environment or specific aspect (vars, procs, break, trace)"
     , ":show [ASPECT]           Show environment or specific aspect"
     , ":load FILE               Interpret file and load resulting state"

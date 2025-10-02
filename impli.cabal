@@ -1,7 +1,7 @@
 cabal-version: 3.8
 -- ^ FIXME: revert to 3.12 after bump of nixpkgs pin in `flake.nix`
 name: impli
-version: 3.0.0.0
+version: 4.0.0.0
 build-type: Simple
 license: MIT
 license-file: LICENSE.md
@@ -54,9 +54,9 @@ common runnable
 
   other-modules:
     CLI
-    Preset
     Meta
     Paths_impli
+    Preset
     REPL
 
   autogen-modules:
@@ -89,6 +89,9 @@ executable impli-web
   build-depends:
     impli,
     jsaddle >=0.9 && <0.10,
+
+  other-modules:
+    Web2
 
   js-sources:
     web/src/ffi.js

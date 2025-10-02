@@ -13,6 +13,6 @@ module Main where
 
 import CLI
 
--- | Entrypoint for the executable.
+-- | Entrypoint for the IMP language interpreter.
 main :: IO ()
 main = parseCLI >>= runCLI

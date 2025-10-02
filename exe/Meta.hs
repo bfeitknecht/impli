@@ -26,6 +26,7 @@ data Command
     = Help
     | Quit
     | Clear
+    | Version
     | Reset Aspect
     | Show Aspect
     | Load FilePath
@@ -104,6 +105,7 @@ instance Parses Command where
             [ Help <$ (command "help" <|> symbol "?")
             , Quit <$ command "quit"
             , Clear <$ command "clear"
+            , Version <$ command "version"
             , Reset <$ command "reset" <*> parses
             , try $ Show <$ command "show" <*> parses
             , Load <$ command "load" <*> filepath
@@ -112,7 +114,7 @@ instance Parses Command where
             , Set <$> (set <|> unset)
             ]
         where
-            command cmd = symbol cmd <|> symbol [head cmd] -- INFO: case "" does not exist
+            command cmd = try (symbol [head cmd]) <|> symbol cmd -- INFO: case of empty string not possible
             set = symbol "set" *> parses
             unset =
                 symbol "unset"

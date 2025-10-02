@@ -20,10 +20,12 @@ module REPL where
 
 import Control.Monad.Except
 import Control.Monad.State hiding (State, state)
+import Data.Version (showVersion)
 import System.Console.Haskeline hiding (display)
 import System.Exit (exitFailure)
 
 import qualified Data.Map as Map
+import qualified Paths_impli as Paths
 import qualified System.Console.ANSI as ANSI
 
 import IMP.Exception
@@ -45,13 +47,9 @@ data Setup = Setup
     , prefs :: Prefs -- INFO: for more information visit https://github.com/haskell/haskeline/wiki/UserPreferences
     }
 
--- | Default REPL customization.
-defaultSetup :: Setup
-defaultSetup = Setup {settings = defaultSettings, prefs = defaultPrefs}
-
 -- | Setup with arguments.
 setup :: Maybe FilePath -> Maybe FilePath -> IO Setup
-setup Nothing Nothing = return defaultSetup
+setup Nothing Nothing = return Setup {settings = defaultSettings, prefs = defaultPrefs}
 setup hist conf = do
     let settings' = defaultSettings {historyFile = hist}
     prefs' <- maybe (return defaultPrefs) readPrefs conf
@@ -83,7 +81,7 @@ start =
         , _verbose = verbosity
         }
 
--- | Read-Evaluate-Print-Loop function in the 'REPL' monad.
+-- | Read-Evaluate-Print-Loop in the 'REPL' monad.
 repl :: Setup -> Store -> IO ()
 repl (Setup s p) store = do
     putStrLn $ _welcome store
@@ -101,7 +99,7 @@ loop = handleInterrupt loop $ do
         Just ":)" -> outputln "You look good today!" >> loop -- it's true
         Just (':' : meta) ->
             either
-                (const . throwError . Error $ unlines ["unrecognized meta command: :" ++ meta, hint])
+                (const . errata $ unlines ["unrecognized meta command: :" ++ meta, hint])
                 (dispatch @Command)
                 (parser "meta" meta)
         Just input ->
@@ -144,9 +142,10 @@ instance Dispatches Command where
         case command of
             Help ->
                 explain
-                    "All metacommands unrelated to settings can be abbreviated by their first letter" -- FIXME
+                    "All metacommands besides :(un)set can be abbreviated by their first letter"
                     helpMessage
             Clear -> clear
+            Version -> outputln $ unwords ["impli", showVersion Paths.version]
             Reset aspect -> reset aspect
             Show aspect -> shower aspect
             Load path -> loadIMP path
@@ -160,11 +159,11 @@ reset :: Aspect -> REPL ()
 reset aspect = do
     state <- gets _state
     case aspect of
-        All -> modify (\st -> st {_state = initial, _trace = []}) >> (display . Info) "environment reset"
-        Vars -> modify (\st -> st {_state = resetVars state}) >> (display . Info) "variables reset"
-        Procs -> modify (\st -> st {_state = resetProcs state}) >> (display . Info) "procedures reset"
-        Flag -> modify (\st -> st {_state = resetBreak state}) >> (display . Info) "break flag reset"
-        Trace -> modify (\st -> st {_trace = []}) >> (display . Info) "trace reset"
+        All -> modify (\st -> st {_state = initial, _trace = []}) >> inform "environment reset"
+        Vars -> modify (\st -> st {_state = resetVars state}) >> inform "variables reset"
+        Procs -> modify (\st -> st {_state = resetProcs state}) >> inform "procedures reset"
+        Flag -> modify (\st -> st {_state = resetBreak state}) >> inform "break flag reset"
+        Trace -> modify (\st -> st {_trace = []}) >> inform "trace reset"
 
 -- | Show 'IMP.Meta.Aspect'.
 shower :: Aspect -> REPL ()
@@ -183,11 +182,11 @@ shower aspect = do
         Trace ->
             explain
                 "Trace:"
-                [ init . unlines $ zipWith (++) (indx : bufs) (lines s)
+                [ init . unlines $ zipWith (++) (index : buffer) (lines s)
                 | (i, s) <- zip [1 :: Int ..] (reverse . map prettify $ trace)
                 , let
-                    indx = '#' : show i ++ space 2
-                    bufs = repeat . space $ length (show i) + 3
+                    index = '#' : show i ++ space 2
+                    buffer = repeat . space $ length (show i) + 3
                 ]
 
 -- | Interpret IMP language source file, return updated state.
@@ -200,9 +199,10 @@ loadIMP path = do
         Left e -> throwError . ParseFail $ unlines [path, show e]
         Right stm -> do
             state <- gets _state
+            trace <- gets _trace
             state' <- liftIMP $ execute (stm, state)
-            modify $ \st -> st {_state = state'}
-            display . Info $ "interpreted: " ++ path
+            modify $ \st -> st {_state = state', _trace = stm : trace}
+    throwError . Info $ "interpreted: " ++ path
 
 -- | Write trace to specified file.
 writeIMP :: FilePath -> REPL ()
@@ -219,9 +219,8 @@ ast (Input construct) = display construct
 ast (Index n) = do
     trace <- gets _trace
     if n <= 0 || n > length trace
-        then throwError . Error $ "index out of bounds: " ++ show n
-        -- INFO: condition guarantees index in bounds
-        else display (trace !! (length trace - n))
+        then errata $ "index out of bounds: " ++ show n
+        else display (trace !! (length trace - n)) -- INFO: condition guarantees index in bounds
 
 -- | Set 'IMP.Meta.Option'.
 set :: Option -> REPL ()

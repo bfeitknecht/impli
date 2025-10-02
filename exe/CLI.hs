@@ -87,7 +87,7 @@ runCLI mode =
         Command cmd -> runProgram "command" cmd
         AST input -> printAST input
         STDIN -> runSTDIN
-        Version -> putStrLn $ "impli " ++ showVersion Paths.version
+        Version -> putStrLn $ unwords ["impli", showVersion Paths.version]
 
 -- | Interpret source file or standard input if path is @-@.
 runFile :: FilePath -> IO ()

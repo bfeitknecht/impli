@@ -83,10 +83,10 @@ run (stm, state) = case stm of
     ProcDef p -> return $ setProc state p
     ProcInvoc name (arguments, returns) ->
         case getProc state name of
-            Nothing -> throwError . Error $ "undefined procedure: " ++ name
+            Nothing -> errata $ "undefined procedure: " ++ name
             Just (Procedure _ (params, rets) body)
-                | length arguments /= length params -> throwError . Error $ "mismatched number of arguments to parameters"
-                | length returns /= length rets -> throwError . Error $ "mismatched number of return variables"
+                | length arguments /= length params -> errata "mismatched number of arguments to parameters"
+                | length returns /= length rets -> errata "mismatched number of return variables"
                 | otherwise -> do
                     let
                         vals = map (evaluate state) arguments -- evaluate arguments
@@ -133,5 +133,5 @@ run (stm, state) = case stm of
             w = getVar state y
         in
             return $ setVars state [(x, w), (y, v)]
-    Timeout _ _ -> throwError . Error $ "timeout statement not (yet) supported in big-step semantics"
-    Alternate _ _ -> throwError . Error $ "alternate execution not supported in big-step semantics"
+    Timeout _ _ -> errata "timeout statement not (yet) supported in big-step semantics"
+    Alternate _ _ -> errata "alternate execution not supported in big-step semantics"
