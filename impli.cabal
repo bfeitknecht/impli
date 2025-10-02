@@ -58,6 +58,7 @@ common runnable
     Paths_impli
     Preset
     REPL
+    Util
 
   autogen-modules:
     Paths_impli
@@ -89,9 +90,6 @@ executable impli-web
   build-depends:
     impli,
     jsaddle >=0.9 && <0.10,
-
-  other-modules:
-    Web2
 
   js-sources:
     web/src/ffi.js

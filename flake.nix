@@ -1,17 +1,17 @@
 {
-  description = "Build impli for the web via GHC's JS bachend";
+  description = "Flake for development and build of impli in the web via GHC's JS bachend";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/1779f9e0d8b45d88d7525665dd4d2a5b65041248";
   };
 
-  outputs = { self, nixpkgs }:
+  outputs = { self, nixpkgs, ... }:
   let
     # system = "aarch64-darwin";
     system = "aarch64-linux";
     version = "ghc912";
 
-    custom = final: prev:
+    overlay = final: prev:
       let lib = prev.haskell.lib; in {
       haskell = prev.haskell // {
         packageOverrides = self: super: with lib; {
@@ -20,13 +20,29 @@
       };
     };
 
-    pkgs = import nixpkgs { inherit system; overlays = [ custom ]; };
-    jsPkgs = pkgs.pkgsCross.ghcjs.haskell.packages.${version};
+    pkgs = import nixpkgs { inherit system; overlays = [ overlay ]; };
+    ghcjspkgs = pkgs.pkgsCross.ghcjs.haskell.packages.${version};
+
+    cabal-install-ghcjs = pkgs.writeShellScriptBin "javascript-unknown-ghcjs-cabal" ''
+      PREFIX=javascript-unknown-ghcjs
+      ${pkgs.cabal-install}/bin/cabal \
+        --with-compiler=$PREFIX-ghc \
+        --with-hc-pkg=$PREFIX-ghc-pkg \
+        --with-hsc2hs=$PREFIX-hsc2hs \
+        "$@"
+    '';
+
+    js-version = pkgs.pkgsCross.ghcjs.haskell.packages.${version};
 
   in {
-    defaultPackage = jsPkgs.impli;
-    packages = {
-      "${system}" = { default = jsPkgs.impli; };
+    packages.${system}.default = ghcjspkgs.impli;
+    devShells.${system}.default = pkgs.mkShell {
+      buildInputs = [
+        cabal-install-ghcjs
+        pkgs.emscripten
+        js-version.ghc
+        pkgs.nodejs
+      ];
     };
   };
 }
