@@ -29,6 +29,7 @@ import IMP.State
 import IMP.Statement
 import IMP.Syntax
 import REPL
+import Util
 
 import qualified Paths_impli as Paths
 

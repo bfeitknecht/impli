@@ -11,11 +11,11 @@ Defines preset options and constants for the REPL.
 -}
 module Preset where
 
--- | Default message displayed on entry of 'IMP.REPL.repl'.
+-- | Default message displayed on entry of 'REPL.repl'.
 welcome :: String
 welcome = unwords ["Welcome to the IMP REPL!", hint]
 
--- | Default hint displayed on enter of 'IMP.REPL.repl' or metacommand error.
+-- | Default hint displayed on enter of 'REPL.repl' or metacommand error.
 hint :: String
 hint = "Enter :help to list available metacommands or :quit to exit."
 
@@ -39,7 +39,7 @@ debugsep = '*'
 goodbye :: String
 goodbye = "Goodbye!"
 
--- | Encapsulation of verbosity level in 'IMP.REPL.REPL'.
+-- | Encapsulation of verbosity level in 'REPL.REPL'.
 data Level
     = Normal
     | Profile

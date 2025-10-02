@@ -16,9 +16,9 @@ import Control.Monad.State
 import System.Console.Haskeline
 import System.Exit (exitFailure)
 
-import IMP.Pretty
 import Preset
 import REPL hiding (repl)
+import Util
 
 -- | Entrypoint for the IMP language interpreter in the web.
 main :: IO ()
@@ -34,13 +34,3 @@ repl store = do
         (withInterrupt (runExceptT (execStateT loop store)))
         >>= either (\e -> print e >> exitFailure) (\store' -> putStrLn goodbye >> repl store')
     error "How did we get here?"
-
--- | Write trace to specified file.
-writeIMP :: FilePath -> REPL ()
-writeIMP path = do
-    trace <- gets _trace
-    liftIO . exportJS path . prettify . mconcat $ trace
-
--- | Export source code to new browser tab.
-exportJS :: String -> FilePath -> IO ()
-exportJS path code = undefined

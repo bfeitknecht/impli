@@ -35,7 +35,7 @@ data Command
     | Set Option
     deriving (Eq, Show)
 
--- | Encapsulation of an aspect to 'IMP.REPL.reset' or 'IMP.REPL.shower'.
+-- | Encapsulation of an aspect to 'REPL.reset' or 'REPL.shower'.
 data Aspect
     = Vars
     | Procs
@@ -44,13 +44,13 @@ data Aspect
     | All
     deriving (Eq, Show)
 
--- | Encapsulation of an element to 'IMP.REPL.ast'.
+-- | Encapsulation of an element to 'REPL.ast'.
 data Element
     = Index Int
     | Input Construct
     deriving (Eq, Show)
 
--- | Modifiable option in 'IMP.REPL.repl' through @:set@ and @:unset@.
+-- | Modifiable option in 'REPL.repl' through @:set@ and @:unset@.
 data Option
     = Welcome String
     | Prompt String
@@ -70,7 +70,7 @@ instance Parses Aspect where
             , All <$ return () -- INFO: empty word corresponds to every aspect
             ]
 
--- | Parser for element 'Element' to 'IMP.REPL.shower'.
+-- | Parser for element 'Element' to 'REPL.shower'.
 instance Parses Element where
     parses =
         choice
