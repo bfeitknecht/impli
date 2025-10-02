@@ -42,6 +42,7 @@
         pkgs.emscripten
         js-version.ghc
         pkgs.nodejs
+        pkgs.brotli
       ];
     };
   };
