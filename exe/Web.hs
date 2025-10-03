@@ -1,5 +1,3 @@
-{-# LANGUAGE ForeignFunctionInterface #-}
-
 {- |
 Module      : Main
 Description : Web capability for the IMP language interpreter

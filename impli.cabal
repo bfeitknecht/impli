@@ -94,6 +94,9 @@ executable impli-web
   js-sources:
     web/lib/ffi.js
 
+  cpp-options:
+    -DGHCJS_BROWSER
+
   ld-options:
     -Os
     -sEXPORT_ES6

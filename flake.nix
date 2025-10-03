@@ -7,7 +7,6 @@
 
   outputs = { self, nixpkgs, ... }:
   let
-    # system = "aarch64-darwin";
     system = "aarch64-linux";
     version = "ghc912";
 
