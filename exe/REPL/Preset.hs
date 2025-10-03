@@ -1,5 +1,5 @@
 {- |
-Module      : Preset
+Module      : REPL.Preset
 Description : Preset settings for the REPL
 Copyright   : (c) Basil Feitknecht, 2025
 License     : MIT
@@ -9,7 +9,7 @@ Portability : portable
 
 Defines preset options and constants for the REPL.
 -}
-module Preset where
+module REPL.Preset where
 
 -- | Default message displayed on entry of 'REPL.repl'.
 welcome :: String

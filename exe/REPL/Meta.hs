@@ -1,7 +1,7 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 {- |
-Module      : Meta
+Module      : REPL.Meta
 Description : Metastring definitions and parse instances
 Copyright   : (c) Basil Feitknecht, 2025
 License     : MIT
@@ -12,14 +12,14 @@ Portability : portable
 Provides the definitions of metacommands and associates.
 Handles parsing of arguments and options.
 -}
-module Meta where
+module REPL.Meta where
 
 import Text.Parsec
 
 import IMP.Lexer
 import IMP.Parser
 import IMP.Syntax
-import Preset
+import REPL.Preset
 
 -- | Encapsulation for metacommand.
 data Command

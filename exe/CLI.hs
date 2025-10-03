@@ -28,8 +28,8 @@ import IMP.Parser
 import IMP.State
 import IMP.Statement
 import IMP.Syntax
-import REPL
-import Util
+import REPL.Execute
+import REPL.Util
 
 import qualified Paths_impli as Paths
 
@@ -45,8 +45,8 @@ data Mode
 {- FOURMOLU_ENABLE -}
 
 -- | Parser for the CLI mode.
-parseMode :: Parser Mode
-parseMode =
+mode :: Parser Mode
+mode =
     asum
         [ REPL
             <$> option
@@ -66,9 +66,7 @@ parseMode =
 cli :: ParserInfo Mode
 cli = info modifier description
     where
-        modifier =
-            parseMode
-                <**> helper
+        modifier = mode <**> helper
         description =
             fullDesc
                 <> header "impli - The IMP Language Interpreter"
@@ -81,8 +79,8 @@ parseCLI = customExecParser defaultPrefs {prefColumns = maxBound} cli
 
 -- | Entrypoint for the CLI.
 runCLI :: Mode -> IO ()
-runCLI mode =
-    case mode of
+runCLI modus =
+    case modus of
         REPL hist conf -> setup hist conf >>= flip repl start
         File path -> runFile path
         Command cmd -> runProgram "command" cmd

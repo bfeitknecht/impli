@@ -52,13 +52,14 @@ common runnable
     impli,
     optparse-applicative >=0.15 && <0.19,
 
+  -- cabal gild: discover exe/** --exclude=**/Web.hs
   other-modules:
     CLI
-    Meta
     Paths_impli
-    Preset
-    REPL
-    Util
+    REPL.Execute
+    REPL.Meta
+    REPL.Preset
+    REPL.Util
 
   autogen-modules:
     Paths_impli

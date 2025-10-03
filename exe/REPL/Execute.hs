@@ -2,7 +2,7 @@
 {-# LANGUAGE TypeApplications #-}
 
 {- |
-Module      : REPL
+Module      : REPL.Execute
 Description : Read-Evaluate-Print-Loop for the IMP language interpreter
 Copyright   : (c) Basil Feitknecht, 2025
 License     : MIT
@@ -16,7 +16,7 @@ with 'IMP.Expression.evaluate' or 'IMP.Statement.execute'.
 Supports various metacommands, such as inspection of interpreter state, interpret source file,
 print AST of IMP language construct and save execution history to disk.
 -}
-module REPL where
+module REPL.Execute where
 
 import Control.Monad.Except
 import Control.Monad.State hiding (State, state)
@@ -33,9 +33,9 @@ import IMP.Parser
 import IMP.State
 import IMP.Statement
 import IMP.Syntax
-import Meta
-import Preset
-import Util
+import REPL.Meta
+import REPL.Preset
+import REPL.Util
 
 -- | Encapsulation of REPL customization.
 data Setup = Setup

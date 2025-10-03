@@ -1,7 +1,5 @@
-{-# LANGUAGE CPP #-}
-
 {- |
-Module      : Util
+Module      : REPL.Util
 Description : Utility for 'REPL' and 'Web'
 Copyright   : (c) Basil Feitknecht, 2025
 License     : MIT
@@ -9,9 +7,9 @@ Maintainer  : bfeitknecht@ethz.ch
 Stability   : stable
 Portability : portable
 
-Provides shared utility for the two modules 'REPL' and 'Web'.
+Provides shared utility for the REPL modules and 'Web'.
 -}
-module Util where
+module REPL.Util where
 
 import Control.Monad.Except
 import Control.Monad.State hiding (State, state)
@@ -25,10 +23,10 @@ import IMP.Pretty
 import IMP.State
 import IMP.Statement
 import IMP.Syntax
-import Meta
-import Preset
+import REPL.Meta
+import REPL.Preset
 
--- | Encapsulation of computation in 'REPL'.
+-- | Encapsulation of computation in 'REPL.repl'.
 type REPL = StateT Store (ExceptT Exception (InputT IO))
 
 -- | Lift computation from 'IMP.State.IMP' into 'REPL'.
@@ -47,7 +45,7 @@ data Store = Store
     , _verbose :: Level
     }
 
--- | Starting data store for 'repl'.
+-- | Starting data store for 'REPL.repl'.
 start :: Store
 start =
     Store
@@ -113,26 +111,11 @@ loadIMP path = do
 
 -- | Write trace to specified file.
 writeIMP :: FilePath -> REPL ()
-#ifdef javascript_HOST_OS
-
-writeIMP path = gets _trace >>= liftIO . exportJS path . prettify . mconcat
+writeIMP path = gets _trace >>= liftIO . exportIMP path . prettytrace
 
 -- | Export source code to new browser tab.
-exportJS :: String -> FilePath -> IO ()
-exportJS path code = undefined
-
-#else
-
-writeIMP path = do
-    content <- gets (prettytrace . _trace)
-    _ <-
-        liftIO (writeFile path content)
-            `catchError` \e ->
-                throwError . IOFail $
-                    unlines ["write trace to: " ++ path, show e]
-    throwError . Info $ "wrote trace to: " ++ path
-
-#endif
+exportIMP :: String -> FilePath -> IO ()
+exportIMP path code = undefined
 
 -- | Show abstract syntax tree of 'IMP.Meta.Element'.
 ast :: Element -> REPL ()
