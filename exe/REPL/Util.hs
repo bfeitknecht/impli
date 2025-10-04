@@ -1,6 +1,6 @@
 {- |
 Module      : REPL.Util
-Description : Utility for 'REPL' and 'Web'
+Description : Utility for 'REPL.*' and 'Web'
 Copyright   : (c) Basil Feitknecht, 2025
 License     : MIT
 Maintainer  : bfeitknecht@ethz.ch
@@ -13,9 +13,12 @@ module REPL.Util where
 
 import Control.Monad.Except
 import Control.Monad.State hiding (State, state)
+import Data.Version (showVersion)
 import System.Console.Haskeline hiding (display)
 
 import qualified Data.Map as Map
+import qualified Paths_impli as Paths
+import qualified System.Console.ANSI as ANSI
 
 import IMP.Exception
 import IMP.Parser
@@ -144,6 +147,21 @@ set option = case option of
 explain :: String -> [String] -> REPL ()
 explain heading [] = outputln heading
 explain heading body = outputln $ heading ++ '\n' : indent 4 (unlines body)
+
+-- | TODO
+help :: REPL ()
+help =
+    explain
+        "All metacommands besides :(un)set can be abbreviated by their first letter"
+        helpMessage
+
+-- | Clear the terminal.
+clear :: REPL ()
+clear = liftIO (ANSI.clearScreen >> ANSI.setCursorPosition 0 0)
+
+-- | TODO
+version :: REPL ()
+version = outputln $ unwords ["impli", showVersion Paths.version]
 
 -- | Indent every line by @n@ space characters.
 indent :: Int -> String -> String

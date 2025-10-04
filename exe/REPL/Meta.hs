@@ -102,7 +102,7 @@ instance Parses Level where
 instance Parses Command where
     parses =
         choice
-            [ Help <$ (command "help" <|> symbol "?")
+            [ Help <$ (command "help" <|> command "?")
             , Quit <$ command "quit"
             , Clear <$ command "clear"
             , Version <$ command "version"
@@ -114,7 +114,7 @@ instance Parses Command where
             , Set <$> (set <|> unset)
             ]
         where
-            command cmd = try (symbol [head cmd]) <|> symbol cmd -- INFO: case of empty string not possible
+            command cmd = try (symbol cmd) <|> symbol [head cmd] -- INFO: case of empty string not possible
             set = symbol "set" *> parses
             unset =
                 symbol "unset"

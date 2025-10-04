@@ -20,12 +20,8 @@ module REPL.Execute where
 
 import Control.Monad.Except
 import Control.Monad.State hiding (State, state)
-import Data.Version (showVersion)
 import System.Console.Haskeline hiding (display)
 import System.Exit (exitFailure)
-
-import qualified Paths_impli as Paths
-import qualified System.Console.ANSI as ANSI
 
 import IMP.Exception
 import IMP.Expression
@@ -106,12 +102,9 @@ instance Dispatches Command where
     dispatch Quit = return ()
     dispatch command =
         case command of
-            Help ->
-                explain
-                    "All metacommands besides :(un)set can be abbreviated by their first letter"
-                    helpMessage
-            Clear -> liftIO (ANSI.clearScreen >> ANSI.setCursorPosition 0 0)
-            Version -> outputln $ unwords ["impli", showVersion Paths.version]
+            Help -> help
+            Clear -> clear
+            Version -> version
             Reset aspect -> reset aspect
             Show aspect -> shower aspect
             Load path -> loadIMP path
