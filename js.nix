@@ -3,10 +3,10 @@
 
 let
   pins = {
-    # merge of https://github.com/NixOS/nixpkgs/pull/438642
+    # merge of https://github.com/NixOS/nixpkgs/pull/444862
     nixpkgs = builtins.fetchTarball {
-      url = "https://github.com/NixOS/nixpkgs/archive/1779f9e0d8b45d88d7525665dd4d2a5b65041248.tar.gz";
-      sha256 = "sha256:0ik0r3mxw1nn7089grzz15i9hmxfdprbjwi5siy2xqkb4wg67n2w";
+      url = "https://github.com/NixOS/nixpkgs/archive/15ed8f7638116135ac9d3bd4353c482e7c539e0f.tar.gz";
+      sha256 = "sha256:00ypnmxqm216jw55gvrh64v7shadzr16ppp3c7qpbxlkiq0mdars";
     };
   };
 
