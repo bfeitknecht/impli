@@ -1,4 +1,5 @@
 {-# LANGUAGE ConstrainedClassMethods #-}
+{-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE TypeApplications #-}
 
 {- |

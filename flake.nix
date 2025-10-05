@@ -2,7 +2,7 @@
   description = "Flake for development and build of impli in the web via GHC's JS bachend";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/1779f9e0d8b45d88d7525665dd4d2a5b65041248";
+    nixpkgs.url = "github:NixOS/nixpkgs/15ed8f7638116135ac9d3bd4353c482e7c539e0f";
   };
 
   outputs = { self, nixpkgs, ... }:

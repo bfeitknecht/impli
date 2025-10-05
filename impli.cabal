@@ -1,5 +1,4 @@
-cabal-version: 3.8
--- ^ FIXME: revert to 3.12 after bump of nixpkgs pin in `flake.nix`
+cabal-version: 3.12
 name: impli
 version: 3.0.0.0
 build-type: Simple
