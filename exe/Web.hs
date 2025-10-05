@@ -117,7 +117,7 @@ instance Dispatches Command where
             Set option -> set option
             >> loop
 
--- | TODO
+-- | Write trace to specified file.
 writeIMP :: FilePath -> REPL ()
 writeIMP path = gets _trace >>= liftIO . exportJS path . prettytrace
 

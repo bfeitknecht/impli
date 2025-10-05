@@ -114,11 +114,14 @@ loadIMP path = do
 
 -- | Write trace to specified file.
 writeIMP :: FilePath -> REPL ()
-writeIMP path = gets _trace >>= liftIO . exportIMP path . prettytrace
-
--- | Export source code to new browser tab.
-exportIMP :: String -> FilePath -> IO ()
-exportIMP path code = undefined
+writeIMP path = do
+    content <- gets (prettytrace . _trace)
+    _ <-
+        liftIO (writeFile path content)
+            `catchError` \e ->
+                throwError . IOFail $
+                    unlines ["write trace to: " ++ path, show e]
+    throwError . Info $ "wrote trace to: " ++ path
 
 -- | Show abstract syntax tree of 'IMP.Meta.Element'.
 ast :: Element -> REPL ()
