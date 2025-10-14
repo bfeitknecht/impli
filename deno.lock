@@ -1,0 +1,37 @@
+{
+  "version": "5",
+  "specifiers": {
+    "npm:xterm-addon-fit@0.8": "0.8.0_xterm@5.3.0",
+    "npm:xterm-pty@~0.11.1": "0.11.1",
+    "npm:xterm@^5.3.0": "5.3.0"
+  },
+  "npm": {
+    "@xterm/xterm@5.5.0": {
+      "integrity": "sha512-hqJHYaQb5OptNunnyAnkHyM8aCjZ1MEIDTQu1iIbbTD/xops91NB5yq1ZK/dC2JDbVWtF23zUtl9JE2NqwT87A=="
+    },
+    "xterm-addon-fit@0.8.0_xterm@5.3.0": {
+      "integrity": "sha512-yj3Np7XlvxxhYF/EJ7p3KHaMt6OdwQ+HDu573Vx1lRXsVxOcnVJs51RgjZOouIZOczTsskaS+CpXspK81/DLqw==",
+      "dependencies": [
+        "xterm"
+      ],
+      "deprecated": true
+    },
+    "xterm-pty@0.11.1": {
+      "integrity": "sha512-vQISyzSgO+Cud8lOOFNbHI37s0AG/Mpsf2HmILgGHvsJI7hzq2qfEoLWD+fpNkJbICJ9yMoIdZ7u3czDtZQKWg==",
+      "dependencies": [
+        "@xterm/xterm"
+      ]
+    },
+    "xterm@5.3.0": {
+      "integrity": "sha512-8QqjlekLUFTrU6x7xck1MsPzPA571K5zNqWm0M0oroYEWVOptZ0+ubQSkQ3uxIEhcIHRujJy6emDWX4A7qyFzg==",
+      "deprecated": true
+    }
+  },
+  "workspace": {
+    "dependencies": [
+      "npm:xterm-addon-fit@0.8",
+      "npm:xterm-pty@~0.11.1",
+      "npm:xterm@^5.3.0"
+    ]
+  }
+}
