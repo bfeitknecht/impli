@@ -1,6 +1,6 @@
 import { Terminal } from "xterm";
 import { openpty } from "xterm-pty";
-import { FitAddon } from "xterm-addon-fit";
+import { FitAddon as Fitter } from "xterm-fit";
 import Module from "./impli.js";
 
 const div = document.getElementById("terminal");
@@ -14,7 +14,7 @@ terminal.open(div);
 const { master, slave } = openpty();
 terminal.loadAddon(master);
 
-const fitter = new FitAddon();
+const fitter = new Fitter();
 terminal.loadAddon(fitter);
 fitter.fit();
 new ResizeObserver(() => fitter.fit()).observe(div);
