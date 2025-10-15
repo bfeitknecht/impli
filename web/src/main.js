@@ -19,6 +19,11 @@ terminal.loadAddon(fitter);
 fitter.fit();
 new ResizeObserver(() => fitter.fit()).observe(div);
 
-Module({ pty: slave });
+const setup = {
+  pty: slave,
+};
+const module = await Module(setup);
+
+globalThis.module = module;
 
 // TODO: mount directory with example IMP files

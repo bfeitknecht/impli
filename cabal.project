@@ -9,5 +9,5 @@ package *
 package impli-web
     ghc-options:
         -fforce-recomp
-    with-compiler: javascript-unknown-ghjs-ghc
+    with-compiler: javascript-unknown-ghcjs-ghc
     with-hc-pkg: javascript-unknown-ghcjs-ghc-pkg

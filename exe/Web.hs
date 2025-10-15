@@ -1,5 +1,6 @@
 {-# LANGUAGE ConstrainedClassMethods #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeApplications #-}
 
 {- |
@@ -17,6 +18,7 @@ module Main where
 
 import Control.Monad.Except
 import Control.Monad.State hiding (State, state)
+import Language.Javascript.JSaddle.String (JSString)
 import System.Console.Haskeline hiding (display)
 import System.Exit (exitFailure)
 
@@ -44,9 +46,13 @@ import REPL.Util (
     version,
  )
 
+foreign import javascript unsafe "console.log($1)" logger :: JSString -> IO ()
+
 -- | Entrypoint for the IMP language interpreter in the web.
 main :: IO ()
-main = repl start
+main = do
+    logger "Hello from Haskel!"
+    repl start
 
 -- | Read-Evaluate-Print-Loop in the 'REPL' monad.
 repl :: Store -> IO ()
