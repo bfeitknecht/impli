@@ -1,7 +1,7 @@
 import { Terminal } from "xterm";
 import { openpty } from "xterm-pty";
 import { FitAddon as Fitter } from "xterm-fit";
-import Module from "./impli.js";
+import Module from "impli";
 
 const div = document.getElementById("terminal");
 const terminal = new Terminal({
