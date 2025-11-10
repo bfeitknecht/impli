@@ -46,7 +46,7 @@ import REPL.Util (
     version,
  )
 
-foreign import javascript unsafe "logger" logger :: JSString -> IO ()
+foreign import javascript unsafe "_logger" logger :: JSString -> IO ()
 
 -- | Entrypoint for the IMP language interpreter in the web.
 main :: IO ()
