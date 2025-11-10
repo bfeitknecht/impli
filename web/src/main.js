@@ -24,6 +24,6 @@ const setup = {
 };
 const module = await Module(setup);
 
-globalThis.module = module;
+globalThis.module = module; // FIXME: don't expose module in production
 
 // TODO: mount directory with example IMP files

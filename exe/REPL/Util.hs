@@ -151,7 +151,7 @@ explain :: String -> [String] -> REPL ()
 explain heading [] = outputln heading
 explain heading body = outputln $ heading ++ '\n' : indent 4 (unlines body)
 
--- | TODO
+-- | Explain the metacommands.
 help :: REPL ()
 help =
     explain
@@ -162,7 +162,7 @@ help =
 clear :: REPL ()
 clear = liftIO (ANSI.clearScreen >> ANSI.setCursorPosition 0 0)
 
--- | TODO
+-- | Output the version.
 version :: REPL ()
 version = outputln $ unwords ["impli", showVersion Paths.version]
 
