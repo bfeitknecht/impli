@@ -1,12 +1,12 @@
-export function logger(str) {
+function logger(str) {
   console.log(str);
 }
 
-export function warner(str) {
+function warner(str) {
   console.warn(str);
 }
 
-export function exporter(content) {
+function exporter(content) {
   if (typeof content !== "string") {
     console.error("[FFI] exporter: function expects string argument!");
     return;

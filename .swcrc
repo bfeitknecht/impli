@@ -1,15 +1,16 @@
 {
-    "jsc": {
-        "minify": {
-        "compress": true,
-        "mangle": true,
-        "sourceMap": false
-        }
-    },
-    "minify": true,
-    "module": {
-        "type": "es6",
-        "strict": false,
-        "lazy": false
+  "minify": true,
+  "jsc": {
+    "minify": {
+      "compress": {
+        "unused": true
+      },
+      "mangle": true
     }
+  },
+  "module": {
+    "type": "es6",
+    "strict": false,
+    "lazy": false
+  }
 }

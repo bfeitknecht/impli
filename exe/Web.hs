@@ -46,13 +46,16 @@ import REPL.Util (
     version,
  )
 
-foreign import javascript unsafe "console.log($1)" logger :: JSString -> IO ()
+foreign import javascript unsafe "logger" logger :: JSString -> IO ()
 
 -- | Entrypoint for the IMP language interpreter in the web.
 main :: IO ()
 main = do
+    putStrLn "Hello from Haskell!"
     logger "Hello from Haskel!"
-    repl start
+    -- repl start
+    --
+    return ()
 
 -- | Read-Evaluate-Print-Loop in the 'REPL' monad.
 repl :: Store -> IO ()
