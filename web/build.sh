@@ -2,14 +2,19 @@
 
 set -euf -o pipefail
 
+artifacts=dist-newstyle
+echo "+++ INFO: clean up artifacts"
+rm -rf $artifacts
+
+JSCABAL=javascript-unknown-ghcjs-cabal
 echo "+++ INFO: update cabal"
-javascript-unknown-ghcjs-cabal update
+$JSCABAL update
 
 echo "+++ INFO: build target exe:impli-web"
-javascript-unknown-ghcjs-cabal build exe:impli-web
+$JSCABAL build exe:impli-web
 
 echo "+++ INFO: minimize generated JS"
-BIN="$(javascript-unknown-ghcjs-cabal list-bin exe:impli-web -v0).jsexe"
+BIN="$($JSCABAL list-bin exe:impli-web -v0).jsexe"
 OUT="./web/static"
 # TODO: ensure swc does not mangle ad absurdium
 # swc bundle "$BIN"/all.js -o "$OUT"/impli.js
