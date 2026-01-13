@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ## [4.0.0] - 2026-01-13
 
-- Change argument order in `evaluate` to `State -> a -> b` to align with theoretical counterpart
+- Change argument order in `evaluate` to `a -> State -> b` to align with theoretical counterpart
 - Start implementation of web support
 - Major restructure of the `REPL` module to use `State` monad
 - Implement `:set` and `:unset` meta commands
