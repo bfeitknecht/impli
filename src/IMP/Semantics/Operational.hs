@@ -17,7 +17,6 @@ module IMP.Semantics.Operational (
 where
 
 import Control.Monad.Except (catchError, throwError)
-import Control.Monad.IO.Class (liftIO)
 import System.Random (randomIO)
 
 import qualified Data.Map as Map
@@ -36,7 +35,7 @@ step (stm, stack@(state : states)) = case stm of
     VarDef x dop a ->
         let
             v = getVar state x
-            v' = evaluate state a
+            v' = evaluate a state
             state' = setVar state x $ case dop of
                 Def -> v'
                 Inc -> v + v'
@@ -52,24 +51,24 @@ step (stm, stack@(state : states)) = case stm of
             Nothing -> return (Just s2, stack')
             Just s1' -> return (Just $ s1' <> s2, stack')
     IfElse b s1 s2 ->
-        if evaluate state b
+        if evaluate b state
             then return (Just s1, stack)
             else return (Just s2, stack)
     While b s ->
-        if evaluate state b
+        if evaluate b state
             then
                 if not $ getBreak state
                     then return (Just $ s <> While b s, stack)
                     else return (Nothing, resetBreak state : states)
             else return (Nothing, stack)
-    Print a -> liftIO (print $ evaluate state a) >> return (Nothing, stack)
+    Print a -> display (evaluate a state) >> return (Nothing, stack)
     Read x -> do
         v <- getVal x
         return (Nothing, setVar state x v : states)
     Local x a s ->
         let
             snapshot = ([(x, getVar state x)], getProcs state, getBreak state)
-            local = setVar state x $ evaluate state a
+            local = setVar state x $ evaluate a state
         in
             -- CHECK: perhaps push local state on stack and then pop later?
             return (Just $ s <> Restore snapshot, local : states)
@@ -96,11 +95,11 @@ step (stm, stack@(state : states)) = case stm of
         case getProc state name of
             Nothing -> errata $ "undefined procedure: " ++ name
             Just (Procedure _ (params, rets) body)
-                | length arguments /= length params -> errata $ "mismatched number of arguments to parameters"
-                | length returns /= length rets -> errata $ "mismatched number of return variables"
+                | length arguments /= length params -> errata "mismatched number of arguments to parameters"
+                | length returns /= length rets -> errata "mismatched number of return variables"
                 | otherwise ->
                     let
-                        vals = map (evaluate state) arguments -- evaluate arguments
+                        vals = map (`evaluate` state) arguments -- evaluate arguments
                         local = (Map.fromList (zip params vals), getProcs state, getBreak state) -- into local state
                     in
                         return (Just $ body <> Return rets returns, local : stack)
@@ -121,7 +120,7 @@ step (stm, stack@(state : states)) = case stm of
         let snapshot = (Map.toList (getVars state), getProcs state, getBreak state)
         in return (Just $ s <> IfElse b (Restore snapshot) Skip, stack)
     Match a ms d ->
-        let v = evaluate state a
+        let v = evaluate a state
         in case lookup v ms of
             Just s -> return (Just s, stack)
             Nothing -> return (Just d, stack)
@@ -129,14 +128,14 @@ step (stm, stack@(state : states)) = case stm of
         v <- randomIO :: IMP Integer
         return (Nothing, setVar state x v : states)
     Assert b ->
-        if evaluate state b
+        if evaluate b state
             then return (Nothing, stack)
             else throwError . AssertFail $ prettify b
     FlipFlop i s1 s2 ->
         if getFlip state i
             then return (Just s1, setFlop state i : states)
             else return (Just s2, setFlip state i : states)
-    Raise a -> throwError . Raised $ evaluate state a
+    Raise a -> throwError . Raised $ evaluate a state
     TryCatch s1 x s2 -> do
         (rest, stack') <- catchError (step (s1, stack)) $ \e -> case e of
             Raised v ->
@@ -153,7 +152,7 @@ step (stm, stack@(state : states)) = case stm of
         in
             return (Nothing, setVars state [(x, w), (y, v)] : states)
     Timeout s a ->
-        if evaluate state a <= 0
+        if evaluate a state <= 0
             then return (Nothing, stack)
             else do
                 (rest, stack') <- step (s, stack)
@@ -168,7 +167,7 @@ step (stm, stack@(state : states)) = case stm of
 
 -- | Execute statement by repeated application of step until completion, return final state.
 steps :: (Stm, [State]) -> IMP State
-steps (_, []) = error "insufficient"
+steps (_, []) = error "illegal configuration for steps: empty state stack"
 steps conf = do
     (rest, stack'@(state' : _)) <- step conf
     case rest of

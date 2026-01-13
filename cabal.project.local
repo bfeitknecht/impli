@@ -1,0 +1,3 @@
+project-file: cabal.project
+ignore-project: False
+tests: True

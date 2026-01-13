@@ -1,0 +1,16 @@
+{
+  "minify": true,
+  "jsc": {
+    "minify": {
+      "compress": {
+        "unused": true
+      },
+      "mangle": true
+    }
+  },
+  "module": {
+    "type": "es6",
+    "strict": false,
+    "lazy": false
+  }
+}

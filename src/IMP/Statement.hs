@@ -12,7 +12,7 @@ Structural and operational semantics are supported, determined by 'Config.operat
 -}
 module IMP.Statement where
 
-import Config
+import IMP.Config
 import IMP.Semantics.Operational
 import IMP.Semantics.Structural
 import IMP.State

@@ -1,3 +1,5 @@
+{-# LANGUAGE TypeApplications #-}
+
 {- |
 Module      : CLI
 Description : Commandline interface for the IMP language interpreter
@@ -25,60 +27,66 @@ import IMP.Exception
 import IMP.Parser
 import IMP.State
 import IMP.Statement
-import REPL
+import IMP.Syntax
+import REPL.Execute
+import REPL.Util hiding (help)
 
 import qualified Paths_impli as Paths
 
 -- | Mode to run the CLI.
 {- FOURMOLU_DISABLE -}
 data Mode
-    = REPL Bool         -- ^ Start interactive REPL with option to toggle history.
-    | File FilePath     -- ^ Interpret IMP source file.
-    | Command String    -- ^ Interpret IMP command passed as string.
-    | AST String        -- ^ Print the AST of a construct.
-    | STDIN             -- ^ Interpret from standard input.
-    | Version           -- ^ Print the version.
+    = REPL (Maybe FilePath) (Maybe FilePath)    -- ^ Start interactive REPL with customization
+    | File FilePath                             -- ^ Interpret IMP source file.
+    | Command String                            -- ^ Interpret IMP command passed as string.
+    | AST String                                -- ^ Print the AST of a construct.
+    | STDIN                                     -- ^ Interpret from standard input.
+    | Version                                   -- ^ Print the version.
 {- FOURMOLU_ENABLE -}
 
 -- | Parser for the CLI mode.
-parseMode :: Parser Mode
-parseMode =
+mode :: Parser Mode
+mode =
     asum
-        [ REPL <$> switch (long "no-history" <> help "Disable REPL history")
+        [ REPL
+            <$> option
+                (Just <$> str)
+                (long "history" <> metavar "FILE" <> help "Save REPL history" <> value Nothing)
+            <*> option
+                (Just <$> str)
+                (long "config" <> metavar "FILE" <> help "Read Haskeline configuration" <> value Nothing)
         , File <$> strArgument (metavar "FILE" <> help "Interpret source file")
         , Command <$> strOption (long "command" <> short 'c' <> metavar "COMMAND" <> help "Interpret command")
-        , AST <$> strOption (long "ast" <> short 'a' <> metavar "CONSTRUCT" <> help "Print AST")
         , flag' STDIN (long "stdin" <> help "Interpret from standard input")
-        , flag' Version (long "version" <> short 'v' <> help "Print version")
+        , AST <$> strOption (long "ast" <> short 'a' <> metavar "CONSTRUCT" <> help "Show abstract syntax tree")
+        , flag' Version (long "version" <> help "Show version")
         ]
 
 -- | Parser for the CLI options and information.
 cli :: ParserInfo Mode
 cli = info modifier description
     where
-        modifier =
-            parseMode
-                <**> helper
+        modifier = mode <**> helper
         description =
             fullDesc
-                <> header "impli - IMP language interpreter"
+                <> header "impli - The IMP Language Interpreter"
                 <> progDesc "An interpreter and REPL for the imperative toy language IMP"
                 <> footer "For more information visit https://github.com/bfeitknecht/impli"
 
 -- | Parse CLI options and return 'Mode' for execution.
 parseCLI :: IO Mode
-parseCLI = customExecParser defaultPrefs {prefColumns = 120} cli
+parseCLI = customExecParser defaultPrefs {prefColumns = maxBound} cli
 
 -- | Entrypoint for the CLI.
 runCLI :: Mode -> IO ()
-runCLI mode =
-    case mode of
-        REPL nohist -> repl (settings nohist) start
+runCLI modus =
+    case modus of
+        REPL hist conf -> setup hist conf >>= flip repl start
         File path -> runFile path
         Command cmd -> runProgram "command" cmd
         AST input -> printAST input
         STDIN -> runSTDIN
-        Version -> putStrLn $ "impli " ++ showVersion Paths.version
+        Version -> putStrLn $ unwords ["impli", showVersion Paths.version]
 
 -- | Interpret source file or standard input if path is @-@.
 runFile :: FilePath -> IO ()
@@ -104,3 +112,11 @@ runProgram channel input =
         Right stm ->
             Except.runExceptT (execute (stm, initial))
                 >>= either (\e -> print e >> exitFailure) (\_ -> return ())
+
+-- | Parse input and print AST.
+printAST :: String -> IO ()
+printAST input =
+    either
+        (\e -> print . ParseFail $ unlines [input, show e])
+        print
+        (parser @Construct "AST" input)

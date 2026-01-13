@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [4.0.0] - 2026-01-13
+
+- Change argument order in `evaluate` to `State -> a -> b` to align with theoretical counterpart
+- Start implementation of web support
+- Major restructure of the `REPL` module to use `State` monad
+- Implement `:set` and `:unset` meta commands
+- General code cleanup and linting
+
+---
+
 ## [3.0.0] - 2025-08-30
 
 - Separated `REPL` monad stack into `IMP` for interpreter logic and `REPL` for the REPL
@@ -61,13 +71,13 @@ All notable changes to this project will be documented in this file.
 
 - Support for division and modulo operations.
 - Language extensions:
-  - `match` statement.
-  - `havoc` statement.
-  - `assert` statement.
-  - `flip` statement.
-  - `raise` statement.
-  - `try` statement.
-  - `swap` statement.
+    - `match` statement.
+    - `havoc` statement.
+    - `assert` statement.
+    - `flip` statement.
+    - `raise` statement.
+    - `try` statement.
+    - `swap` statement.
 - Replace `||` with `[]` for non-determinism.
 - Improved REPL and CLI.
 - Enhanced pretty printing.

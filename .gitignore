@@ -2,5 +2,6 @@
 .devlog
 dist-newstyle
 cabal.project.local
-cabal.project.wasm.local
-.imp_history
+
+web/static/impli.js
+web/static/module.mjs

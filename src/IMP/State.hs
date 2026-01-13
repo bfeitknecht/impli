@@ -1,3 +1,5 @@
+{-# LANGUAGE FlexibleContexts #-}
+
 {- |
 Module      : IMP.State
 Description : State for the IMP language
@@ -13,6 +15,7 @@ Provides definition and manipulation of state with some QOL helpers.
 module IMP.State where
 
 import Control.Exception (IOException, try)
+import Control.Monad.Except (MonadError, throwError)
 import Control.Monad.IO.Class
 import System.IO
 import Text.Read (readMaybe)
@@ -47,15 +50,17 @@ initial = (zero, [], False)
 -- | Get value for provided variable with prompt.
 getVal :: String -> IMP Integer
 getVal x = do
-    liftIO $ putStr (x ++ " := ") >> hFlush stdout
+    output (x ++ " := ") >> flush
     input <-
         liftIO (try getLine :: IO (Either IOException String))
             >>= either (\_ -> Except.throwError Empty) return
     case readMaybe input of
         Nothing -> do
-            liftIO . print . Info $ "invalid input, please enter an integer"
+            inform "invalid input, please enter an integer"
             getVal x
         Just i -> return i
+    where
+        flush = liftIO $ hFlush stdout
 
 -- | Get defined variables.
 getVars :: State -> Vars
@@ -75,6 +80,10 @@ setVar (vars, procs, flag) var val = (Map.insert var val vars, procs, flag)
 setVars :: State -> [(String, Integer)] -> State
 setVars = foldl $ uncurry . setVar
 
+-- | Reset variable definitions.
+resetVars :: State -> State
+resetVars (_, procs, flag) = (Map.empty, procs, flag)
+
 -- | Get defined procedures.
 getProcs :: State -> [Proc]
 getProcs (_, procs, _) = procs
@@ -86,6 +95,10 @@ getProc (_, procs, _) name = List.find ((name ==) . procname) procs
 -- | Set procedure.
 setProc :: State -> Proc -> State
 setProc (vars, procs, flag) proc = (vars, proc : procs, flag)
+
+-- | Reset procedure definitions.
+resetProcs :: State -> State
+resetProcs (vars, _, flag) = (vars, [], flag)
 
 -- | Get break flag.
 getBreak :: State -> Bool
@@ -115,6 +128,18 @@ setFlip state i = setVar state (flipvar i) 0
 setFlop :: State -> Integer -> State
 setFlop state i = setVar state (flipvar i) 1
 
+-- | 'putStr' inside some IO Monad.
+output :: (MonadIO m) => String -> m ()
+output = liftIO . putStr
+
+-- | 'putStrLn' inside some IO Monad.
+outputln :: (MonadIO m) => String -> m ()
+outputln = liftIO . putStrLn
+
+-- | 'print' inside some IO Monad.
+display :: (MonadIO m, Show a) => a -> m ()
+display = liftIO . print
+
 -- | Safe division, zero if divisor is zero.
 (//) :: Integer -> Integer -> Integer
 (//) _ 0 = 0
@@ -125,5 +150,10 @@ setFlop state i = setVar state (flipvar i) 1
 (%%) v1 0 = v1
 (%%) v1 v2 = mod v1 v2
 
-errata :: String -> IMP a
-errata = Except.throwError . Error
+-- | Convenient error passing.
+errata :: (MonadError Exception m) => String -> m a
+errata = throwError . Error
+
+-- | Convenient information passing.
+inform :: (MonadIO m) => String -> m ()
+inform = display . Info

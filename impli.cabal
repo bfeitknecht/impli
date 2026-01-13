@@ -1,4 +1,4 @@
-cabal-version: 3.12
+cabal-version: 3.14
 name: impli
 version: 3.0.0.0
 build-type: Simple
@@ -27,7 +27,7 @@ source-repository head
   type: git
   location: https://github.com/bfeitknecht/impli.git
 
-common shared-settings
+common shared
   default-language: Haskell2010
   ghc-options:
     -Wall
@@ -36,19 +36,39 @@ common shared-settings
   build-depends:
     async >=2.2 && <2.3,
     base >=4.14 && <5,
-    containers >=0.6 && <0.7,
+    containers >=0.6 && <0.9,
     mtl >=2.2 && <3,
     parsec >=3.1 && <3.2,
     prettyprinter >=1.7 && <2,
     random >=1.1 && <1.3,
     transformers >=0.5 && <0.7,
 
+common runnable
+  hs-source-dirs: exe
+  build-depends:
+    ansi-terminal >=0.11 && <1.1,
+    haskeline >=0.8 && <0.9,
+    impli,
+    optparse-applicative >=0.15 && <0.19,
+
+  -- cabal gild: discover exe/** --exclude=**/Web.hs
+  other-modules:
+    CLI
+    Paths_impli
+    REPL.Execute
+    REPL.Meta
+    REPL.Preset
+    REPL.Util
+
+  autogen-modules:
+    Paths_impli
+
 library
-  import: shared-settings
+  import: shared
   hs-source-dirs: src
   -- cabal-gild: discover src
   exposed-modules:
-    Config
+    IMP.Config
     IMP.Exception
     IMP.Expression
     IMP.Lexer
@@ -61,25 +81,32 @@ library
     IMP.Syntax
 
 executable impli
-  import: shared-settings
+  import: shared, runnable
   main-is: Main.hs
-  hs-source-dirs: exe
+
+executable impli-web
+  import: shared, runnable
+  main-is: Web.hs
   build-depends:
-    ansi-terminal >=0.11 && <1.1,
-    haskeline >=0.8 && <0.9,
     impli,
-    optparse-applicative >=0.15 && <0.19,
+    jsaddle >=0.9 && <0.10,
 
-  other-modules:
-    CLI
-    Paths_impli
-    REPL
+  js-sources:
+    web/lib/ffi.js
 
-  autogen-modules:
-    Paths_impli
+  cpp-options:
+    -DGHCJS_BROWSER
+
+  ld-options:
+    -Os
+    -sEXPORT_ES6
+    -sENVIRONMENT=web
+    -sFORCE_FILESYSTEM
+    -sASYNCIFY
+    "--js-library=./web/lib/emscripten-pty.js"
 
 test-suite impli-test
-  import: shared-settings
+  import: shared
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   hs-source-dirs: test
