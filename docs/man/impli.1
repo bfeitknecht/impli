@@ -1,4 +1,4 @@
-.TH IMPLI 1 "May 2025" "impli 3.0" "User Commands"
+.TH IMPLI 1 "January 2026" "impli 4.0" "User Commands"
 .SH NAME
 impli \- Interpreter and REPL for the imperative toy language IMP
 .SH SYNOPSIS
@@ -80,6 +80,19 @@ Write the current trace to a file.
 .TP
 .B :ast (INPUT | #n)
 Parse and display the AST of the given input or the n-th statement in the trace.
+.TP
+.B :set OPTION VALUE
+Set a REPL option. Supported options are
+.IR welcome ,
+.IR prompt ,
+.IR separator
+(must be one of: :?!\-+\*#%&$=>),
+.IR goodbye ,
+and
+.IR verbose .
+.TP
+.B :unset OPTION
+Reset a REPL option to its default value.
 
 .SH EXIT STATUS
 Returns 0 on success, non-zero on error.

@@ -193,10 +193,10 @@ assertParseConstruct input expected =
         parser "test" input @?= Right expected
 
 assertEvalAexp :: State -> Aexp -> Integer -> TestTree
-assertEvalAexp state e val = testCase (stringify e) $ evaluate state e @?= val
+assertEvalAexp state e val = testCase (stringify e) $ evaluate e state @?= val
 
 assertEvalBexp :: State -> Bexp -> Bool -> TestTree
-assertEvalBexp state b bool = testCase (stringify b) $ evaluate state b @?= bool
+assertEvalBexp state b bool = testCase (stringify b) $ evaluate b state @?= bool
 
 assertExec :: State -> Stm -> ([(String, Integer)], [Proc]) -> TestTree
 assertExec state stm (vars, procs) = testCase (stringify stm) $ do
