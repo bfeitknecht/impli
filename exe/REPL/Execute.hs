@@ -93,8 +93,8 @@ instance Dispatches Construct where
             Statement stm -> do
                 state' <- liftIMP $ execute (stm, state)
                 modify $ \st -> st {_state = state', _trace = stm : trace}
-            Arithmetic aexp -> display (evaluate state aexp)
-            Boolean bexp -> outputln (if evaluate state bexp then "true" else "false")
+            Arithmetic aexp -> display (evaluate aexp state)
+            Boolean bexp -> outputln (if evaluate bexp state then "true" else "false")
             Whitespace -> return ()
 
 -- | Dispatcher for 'IMP.Meta.Command'.

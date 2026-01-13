@@ -35,7 +35,7 @@ run (stm, state) = case stm of
     VarDef x dop a ->
         let
             v = getVar state x
-            v' = evaluate state a
+            v' = evaluate a state
         in
             return $ setVar state x $ case dop of
                 Def -> v'
@@ -46,24 +46,24 @@ run (stm, state) = case stm of
                 Rem -> v %% v'
     Seq s1 s2 -> run (s1, state) >>= curry run s2
     IfElse b s1 s2 ->
-        if evaluate state b
+        if evaluate b state
             then run (s1, state)
             else run (s2, state)
     While b s ->
-        if evaluate state b
+        if evaluate b state
             then
                 if not $ getBreak state
                     then run (s <> While b s, state)
                     else return $ resetBreak state
             else return state
-    Print e -> display (evaluate state e) >> return state
+    Print e -> display (evaluate e state) >> return state
     Read x -> do
         v <- getVal x
         return $ setVar state x v
     Local x a s -> do
         let
             old = getVar state x
-            new = evaluate state a
+            new = evaluate a state
             local = setVar state x new
         state' <- run (s, local)
         return $ setVar state' x old
@@ -89,7 +89,7 @@ run (stm, state) = case stm of
                 | length returns /= length rets -> errata "mismatched number of return variables"
                 | otherwise -> do
                     let
-                        vals = map (evaluate state) arguments -- evaluate arguments
+                        vals = map (`evaluate` state) arguments -- evaluate arguments
                         local = (Map.fromList (zip params vals), getProcs state, getBreak state) -- into local state
                     state' <- run (body, local) -- run body
                     let rets' = zip returns $ map (getVar state') rets -- extract returns
@@ -100,11 +100,11 @@ run (stm, state) = case stm of
     Revert s b -> do
         let old = state
         new <- run (s, state)
-        if evaluate new b
+        if evaluate b new
             then return old
             else return new
     Match a ms d ->
-        let v = evaluate state a
+        let v = evaluate a state
         in case lookup v ms of
             Just s -> run (s, state)
             Nothing -> run (d, state)
@@ -112,7 +112,7 @@ run (stm, state) = case stm of
         v <- randomIO :: IMP Integer
         return $ setVar state x v
     Assert b ->
-        if evaluate state b
+        if evaluate b state
             then return state
             else throwError . AssertFail $ prettify b
     FlipFlop i s1 s2 -> do
@@ -123,7 +123,7 @@ run (stm, state) = case stm of
             else do
                 state' <- run (s2, state)
                 return $ setFlip state' i
-    Raise a -> throwError . Raised $ evaluate state a
+    Raise a -> throwError . Raised $ evaluate a state
     TryCatch s1 x s2 -> catchError (run (s1, state)) $ \e -> case e of
         Raised v -> run (s2, setVar state x v) -- catch in x, continue with s2
         _ -> throwError e -- can't catch, propagate

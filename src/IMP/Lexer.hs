@@ -143,7 +143,7 @@ word = spaces *> Token.lexeme lexer (many1 printable) <?> "word"
 
 -- | Parser for multiple words separated by spaces.
 sentence :: Parser String
-sentence = spaces *> Token.lexeme lexer (concat <$> sepBy1 word spaces) <?> "sentence"
+sentence = spaces *> Token.lexeme lexer (unwords <$> sepBy1 word spaces) <?> "sentence"
 
 -- | Parser for a file path (either quoted or without spaces)
 filepath :: Parser FilePath
