@@ -1,7 +1,5 @@
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/bfeitknecht/impli)
 
----
-
 # `impli`
 
 This is an interpreter for the imperative toy language `IMP` from the course _Formal Methods and Functional Programming_ at ETHZ. It is published under the MIT license.
@@ -56,3 +54,7 @@ There are some crucial points for further improvement.
 - Improve documentation with examples
 - Write standard library
 - Extend test suite
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=bfeitknecht/impli&type=date&legend=top-left)](https://www.star-history.com/#bfeitknecht/impli&type=date&legend=top-left)
