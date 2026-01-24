@@ -23,7 +23,7 @@ jobs:
             - name: Update and build dependencies
               run: |
                   cabal update
-                  cabal build all
+                  cabal build impli-test
 
             - name: Run tests
-              run: cabal test all
+              run: cabal test impli-test
