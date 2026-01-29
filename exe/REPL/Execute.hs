@@ -80,11 +80,7 @@ loop = handleInterrupt loop $ do
                 (\e -> throwError . ParseFail $ unlines [input, show e])
                 (\c -> dispatch @IO' @Construct c >> loop)
                 (parser "interactive" input)
-        `catchError` \e -> case e of
-            Empty -> return () -- ctrl-d during read, flush line and exit cleanly
-            AssertFail _ -> throwError e -- irrecoverable, propagate
-            Raised _ -> throwError e -- ''
-            _ -> display e >> loop -- mistakes happen
+        `catchError` dispatch @IO' @Exception
 
 -- | Dispatcher for 'IMP.Syntax.Construct' with haskeline backend.
 instance Dispatches IO' Construct where
@@ -114,6 +110,14 @@ instance Dispatches IO' Command where
             AST element -> ast element
             Set option -> set option
             >> loop
+
+-- | Dispatcher for 'IMP.Exception.Exception' with haskeline backend.
+instance Dispatches IO' Exception where
+    dispatch e = case e of
+        Empty -> return () -- ctrl-d during read, flush line and exit cleanly
+        AssertFail _ -> throwError e -- irrecoverable, propagate
+        Raised _ -> throwError e -- ''
+        _ -> display e >> loop -- mistakes happen
 
 -- | Clear the terminal (haskeline-specific).
 clear :: REPL IO' ()
