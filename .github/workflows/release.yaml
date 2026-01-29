@@ -86,7 +86,7 @@ jobs:
                   # Make it executable and strip on Unix
                   if [[ "$OS" != "windows" ]]; then
                     chmod +x "artifacts/impli-${PLATFORM}${EXT}"
-                    strip -u -r "artifacts/impli-${PLATFORM}${EXT}" 2>/dev/null || true
+                    strip "artifacts/impli-${PLATFORM}${EXT}" 2>/dev/null || true
                   fi
 
             - name: Get latest Git tag (fallback)
