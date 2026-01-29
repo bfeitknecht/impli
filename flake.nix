@@ -15,14 +15,19 @@
     system = "x86_64-linux";
     pkgs = import nixpkgs { inherit system; };
     
+    # Get the WASM toolchain from ghc-wasm-meta
+    wasmPkgs = ghc-wasm-meta.packages.${system}.all_9_12;
+    
   in {
     packages.${system} = {
       # Default package builds the web version
       default = self.packages.${system}.impli-web;
       
       # Web version built with WASM backend
-      # Uses the ghc-wasm-meta package which provides all_9_12 with WASM cross-compilation support
-      impli-web = ghc-wasm-meta.packages.${system}.all_9_12;
+      # Note: The ghc-wasm-meta all_9_12 package provides a development shell with wasm32-wasi-ghc
+      # The actual WASM binary needs to be built using the tools in that environment
+      # For now, we provide the toolchain; the workflow will handle the build
+      impli-web = wasmPkgs;
     };
     
     devShells.${system}.default = pkgs.mkShell {

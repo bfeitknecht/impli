@@ -35,14 +35,24 @@ jobs:
 
       - name: Build impli-web with WASM backend
         run: |
-          nix build .#impli-web -L
-          
-          # Copy the WASM binary to web/static
-          mkdir -p web/static
-          cp result/bin/impli-web web/static/impli.wasm
-          
-          echo "WASM binary built successfully"
-          ls -lh web/static/impli.wasm
+          # Enter the nix development shell and build the WASM binary
+          nix develop .#default --command bash -c '
+            wasm32-wasi-cabal update
+            wasm32-wasi-cabal build exe:impli-web
+            
+            # Find and copy the WASM binary
+            WASM_BIN=$(find dist-newstyle -name impli-web -type f | grep wasm32)
+            if [ -z "$WASM_BIN" ]; then
+              echo "Error: WASM binary not found"
+              exit 1
+            fi
+            
+            mkdir -p web/static
+            cp "$WASM_BIN" web/static/impli.wasm
+            
+            echo "WASM binary built successfully"
+            ls -lh web/static/impli.wasm
+          '
 
       - name: Prepare web assets
         run: |
