@@ -20,7 +20,7 @@
     
     # Get the WASM Haskell package set for building Haskell packages
     # This is separate from the development tools and provides callCabal2nix
-    wasmHaskellPkgs = ghc-wasm-meta.packages.${system}.ghc-wasm32-wasi.haskellPackages;
+    wasmHaskellPkgs = ghc-wasm-meta.packages.${system}.ghc-wasm32-wasi;
     
   in {
     packages.${system} = {
