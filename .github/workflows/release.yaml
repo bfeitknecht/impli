@@ -70,7 +70,7 @@ jobs:
                     EXT=""
                   fi
 
-                  PLATFORM="${ARCH}-${OS}"
+                  SYSTEM="${ARCH}-${OS}"
 
                   # Use cabal list-bin to locate the binary
                   BIN=$(cabal list-bin exe:impli)
@@ -81,12 +81,12 @@ jobs:
                   fi
 
                   # Copy and rename with platform suffix
-                  cp "$BIN" "artifacts/impli-${PLATFORM}${EXT}"
+                  cp "$BIN" "artifacts/impli-${SYSTEM}${EXT}"
 
                   # Make it executable and strip on Unix
                   if [[ "$OS" != "windows" ]]; then
-                    chmod +x "artifacts/impli-${PLATFORM}${EXT}"
-                    strip "artifacts/impli-${PLATFORM}${EXT}" 2>/dev/null || true
+                    chmod +x "artifacts/impli-${SYSTEM}${EXT}"
+                    strip "artifacts/impli-${SYSTEM}${EXT}" 2>/dev/null || true
                   fi
 
             - name: Get latest Git tag (fallback)
