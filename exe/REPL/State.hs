@@ -28,7 +28,6 @@ import qualified Data.Map as Map
 import qualified Paths_impli as Paths
 
 import IMP.Exception
-import IMP.Expression
 import IMP.Parser
 import IMP.Pretty
 import IMP.State

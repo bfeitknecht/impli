@@ -11,11 +11,9 @@
   let
     # NOTE: Currently hard-coded to x86_64-linux for WASM cross-compilation
     # Multi-platform support can be added in the future if needed
+    # WASM compilation requires specific cross-compilation tools only available on x86_64-linux
     system = "x86_64-linux";
     pkgs = import nixpkgs { inherit system; };
-    
-    # Get WASM cross-compilation toolchain
-    wasmPkgs = ghc-wasm-meta.packages.${system};
     
   in {
     packages.${system} = {
@@ -23,12 +21,13 @@
       default = self.packages.${system}.impli-web;
       
       # Web version built with WASM backend
-      impli-web = wasmPkgs.buildPackages.haskell.packages.ghc-wasm32.callCabal2nix "impli" ./. {};
+      # Uses the ghc-wasm-meta package which provides all_9_12 with WASM cross-compilation support
+      impli-web = ghc-wasm-meta.packages.${system}.all_9_12;
     };
     
     devShells.${system}.default = pkgs.mkShell {
       buildInputs = [
-        wasmPkgs.all_9_12
+        ghc-wasm-meta.packages.${system}.all_9_12
         pkgs.cabal-install
         pkgs.nodejs
         pkgs.brotli
