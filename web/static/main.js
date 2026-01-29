@@ -10,7 +10,7 @@ if (document.readyState === 'loading') {
 
 async function init() {
   // Create terminal instance
-  const term = new Terminal({
+  const terminal = new Terminal({
     cursorBlink: true,
     fontFamily: '"CommitMono", "Courier New", monospace',
     fontSize: 13,
@@ -22,17 +22,17 @@ async function init() {
 
   // Create wasm-webterm addon
   // The first parameter is the path to predelivered binaries
-  const wasmterm = new WasmWebTerm.default('./');
+  const driver = new WasmWebTerm.default('./');
 
   // Load the addon into the terminal
-  term.loadAddon(wasmterm);
+  terminal.loadAddon(driver);
 
-  // Open terminal in the container
-  const container = document.getElementById('terminal');
-  term.open(container);
+  // Open terminal in the div
+  const div = document.getElementById('terminal');
+  terminal.open(div);
 
   // Focus the terminal
-  term.focus();
+  terminal.focus();
 
   // Auto-launch impli.wasm on startup
   // Wait for terminal to be ready before executing
@@ -40,6 +40,6 @@ async function init() {
   console.log('Launching impli WASM...');
   
   setTimeout(() => {
-    wasmterm.exec('impli');
+    driver.exec('impli');
   }, TERMINAL_READY_DELAY);
 }
