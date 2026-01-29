@@ -1,5 +1,8 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ConstrainedClassMethods #-}
 
 {- |
 Module      : REPL.State
@@ -25,6 +28,7 @@ import qualified Data.Map as Map
 import qualified Paths_impli as Paths
 
 import IMP.Exception
+import IMP.Expression
 import IMP.Parser
 import IMP.Pretty
 import IMP.State
@@ -174,3 +178,9 @@ indent n = unlines . map (space n ++) . lines
 -- | 'String' of @n@ space characters.
 space :: Int -> String
 space n = replicate n ' '
+
+-- | Typeclass to dispatch 'IMP.Syntax.Construct' or 'IMP.Meta.Command'.
+-- Polymorphic in the base monad 'm' to support both haskeline and pure IO.
+class Dispatches m a where
+    -- | Dispatch execution.
+    dispatch :: (Parses a, MonadIO m) => a -> REPL m ()
