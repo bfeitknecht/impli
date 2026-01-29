@@ -1,64 +1,67 @@
 {
-  description = "Flake for development and build of impli with WASM support";
+  description = "Flake for development and build of impli";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    ghc-wasm-meta.url = "gitlab:haskell-wasm/ghc-wasm-meta?host=gitlab.haskell.org";
-    ghc-wasm-meta.inputs.nixpkgs.follows = "nixpkgs";
+    flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = { self, nixpkgs, ghc-wasm-meta, ... }:
-  let
-    # NOTE: Currently hard-coded to x86_64-linux for WASM cross-compilation
-    # Multi-platform support can be added in the future if needed
-    # WASM compilation requires specific cross-compilation tools only available on x86_64-linux
-    system = "x86_64-linux";
-    pkgs = import nixpkgs { inherit system; };
-    
-    # Get the WASM development environment (includes wasm32-wasi-cabal and other tools)
-    wasmPkgs = ghc-wasm-meta.packages.${system}.all_9_12;
-    
-    # Get the WASM Haskell package set for building Haskell packages
-    # This is separate from the development tools and provides callCabal2nix
-    wasmHaskellPkgs = ghc-wasm-meta.packages.${system}.ghc-wasm32-wasi;
-    
-  in {
-    packages.${system} = {
-      # Default package builds the WASM binary
-      default = self.packages.${system}.impli-web;
-      
-      # Web version built with WASM backend
-      # Uses Nix's Haskell infrastructure to properly handle all dependencies
-      impli-web = wasmHaskellPkgs.callCabal2nix "impli" ./. {};
-    };
-    
-    devShells.${system}.default = pkgs.mkShell {
-      buildInputs = [
-        wasmPkgs
-        pkgs.cabal-install
-        pkgs.nodejs
-        pkgs.brotli
-        pkgs.python3
-      ];
-      
-      shellHook = ''
-        echo "======================================"
-        echo "impli WASM development environment"
-        echo "======================================"
-        echo ""
-        echo "Available tools:"
-        echo "  - cabal (native Haskell builds)"
-        echo "  - wasm32-wasi-cabal (WASM builds)"
-        echo "  - wasm32-wasi-ghc (WASM GHC)"
-        echo "  - node (Node.js for testing)"
-        echo ""
-        echo "Build WASM binary:"
-        echo "  wasm32-wasi-cabal build exe:impli-web"
-        echo ""
-        echo "Or use nix build:"
-        echo "  nix build . # Builds impli.wasm to result/bin/"
-        echo ""
-      '';
-    };
-  };
+  outputs = { self, nixpkgs, flake-utils }:
+    flake-utils.lib.eachDefaultSystem (system:
+      let
+        pkgs = import nixpkgs { inherit system; };
+        
+        # Get the GHC version from nixpkgs
+        ghc = pkgs.haskell.compiler.ghc948;
+        
+        # Haskell package set for building the project
+        haskellPackages = pkgs.haskell.packages.ghc948;
+        
+        # Build the impli package using cabal2nix
+        impli = haskellPackages.callCabal2nix "impli" ./. {};
+        
+      in {
+        packages = {
+          # Default package builds the native binary
+          default = self.packages.${system}.impli;
+          
+          # Native impli executable
+          impli = impli;
+        };
+        
+        devShells.default = pkgs.mkShell {
+          buildInputs = [
+            # Haskell toolchain
+            ghc
+            pkgs.cabal-install
+            
+            # Development tools
+            pkgs.fourmolu        # Code formatter
+            pkgs.haskell-language-server  # LSP server for IDE support
+            
+            # Build tools
+            pkgs.zlib
+          ];
+          
+          shellHook = ''
+            echo "======================================"
+            echo "impli Development Environment"
+            echo "======================================"
+            echo ""
+            echo "Available tools:"
+            echo "  - ghc ${ghc.version}"
+            echo "  - cabal-install (for building)"
+            echo "  - fourmolu (for code formatting)"
+            echo "  - haskell-language-server (for IDE support)"
+            echo ""
+            echo "Quick start:"
+            echo "  cabal build        # Build the project"
+            echo "  cabal test         # Run tests"
+            echo "  cabal run impli    # Run the REPL"
+            echo "  fourmolu -i .      # Format code"
+            echo ""
+          '';
+        };
+      }
+    );
 }
