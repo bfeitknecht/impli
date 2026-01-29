@@ -16,41 +16,21 @@
     pkgs = import nixpkgs { inherit system; };
     
     # Get the WASM toolchain from ghc-wasm-meta
-    wasmEnv = ghc-wasm-meta.packages.${system}.all_9_12;
+    wasmPkgs = ghc-wasm-meta.packages.${system}.all_9_12;
     
   in {
     packages.${system} = {
       # Default package builds the WASM binary
       default = self.packages.${system}.impli-web;
       
-      # Web version built with WASM backend
-      # This builds the impli-web executable as a .wasm file
-      impli-web = pkgs.stdenv.mkDerivation {
-        name = "impli-web";
-        src = ./.;
-        
-        nativeBuildInputs = [ wasmEnv ];
-        
-        buildPhase = ''
-          # Set HOME to a writable directory for cabal
-          export HOME=$TMPDIR
-          
-          # Build the WASM binary using wasm32-wasi-cabal
-          wasm32-wasi-cabal build exe:impli-web
-        '';
-        
-        installPhase = ''
-          mkdir -p $out/bin
-          # Get the path to the built binary
-          WASM_BIN=$(wasm32-wasi-cabal list-bin -v0 exe:impli-web)
-          cp "$WASM_BIN" $out/bin/impli.wasm
-        '';
-      };
+      # Web version built with WASM backend using Nix's Haskell infrastructure
+      # This properly handles dependencies without requiring network access
+      impli-web = wasmPkgs.haskellPackages.callCabal2nix "impli" ./. {};
     };
     
     devShells.${system}.default = pkgs.mkShell {
       buildInputs = [
-        wasmEnv
+        wasmPkgs
         pkgs.cabal-install
         pkgs.nodejs
         pkgs.brotli
