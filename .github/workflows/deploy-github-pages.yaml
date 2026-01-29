@@ -1,4 +1,4 @@
-name: Build and Deploy WASM to GitHub Pages
+name: Build WASM and deploy GitHub Pages
 
 on:
   push:
