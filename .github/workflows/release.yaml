@@ -24,36 +24,20 @@ jobs:
             - name: Checkout repo
               uses: actions/checkout@v4
 
-            - name: Install Nix (Linux only)
-              if: runner.os == 'Linux'
-              uses: cachix/install-nix-action@v24
-              with:
-                  nix_path: nixpkgs=channel:nixos-unstable
-                  extra_nix_config: |
-                      experimental-features = nix-command flakes
-
-            - name: Build with Nix (Linux only)
-              if: runner.os == 'Linux'
-              run: |
-                  nix build .#impli -L
-
-            - name: Set up Haskell (non-Linux)
-              if: runner.os != 'Linux'
+            - name: Set up Haskell
               id: setup-haskell
               uses: haskell-actions/setup@v2
               with:
                   ghc-version: "9.10.2"
                   cabal-version: "3.12"
 
-            - name: Cache Cabal store (non-Linux)
-              if: runner.os != 'Linux'
+            - name: Cache Cabal store
               uses: actions/cache@v4
               with:
                   path: ${{ steps.setup-haskell.outputs.cabal-store }}
                   key: ${{ runner.os }}-cabal
 
-            - name: Build impli (non-Linux)
-              if: runner.os != 'Linux'
+            - name: Build impli
               run: |
                   cabal update
                   cabal build exe:impli
@@ -63,7 +47,7 @@ jobs:
               run: |
                   mkdir -p artifacts
 
-                  # Fallback platform detection
+                  # Platform detection
                   ARCH=$(uname -m)
                   OS=$(uname -s | tr '[:upper:]' '[:lower:]')
 
@@ -87,34 +71,23 @@ jobs:
                   fi
 
                   PLATFORM="${ARCH}-${OS}"
-                  BINARY_NAME="impli${EXT}"
 
-                  echo "🔍 Looking for binary: $BINARY_NAME"
+                  # Use cabal list-bin to locate the binary
+                  BIN=$(cabal list-bin exe:impli)
 
-                  # For Linux with Nix build, look in result/bin/
-                  if [[ "$RUNNER_OS" == "Linux" && -d "result/bin" ]]; then
-                    BIN="result/bin/impli"
-                  else
-                    # Locate the binary (executable) in cabal build directory
-                    BIN=$(find dist-newstyle -type f -name "$BINARY_NAME" | head -n 1)
-                  fi
-
-                  if [[ -z "$BIN" ]]; then
-                    echo "❌ ERROR: Could not find compiled binary '$BINARY_NAME'"
+                  if [[ -z "$BIN" || ! -f "$BIN" ]]; then
+                    echo "ERROR: Could not find compiled binary"
                     exit 1
                   fi
 
-                  # Copy and rename with platform suffix first
+                  # Copy and rename with platform suffix
                   cp "$BIN" "artifacts/impli-${PLATFORM}${EXT}"
 
                   # Make it executable and strip on Unix
                   if [[ "$OS" != "windows" ]]; then
                     chmod +x "artifacts/impli-${PLATFORM}${EXT}"
-                    echo "🔧 Stripping binary to reduce size..."
-                    strip -u -r "artifacts/impli-${PLATFORM}${EXT}" || echo "⚠️ strip failed, continuing..."
+                    strip -u -r "artifacts/impli-${PLATFORM}${EXT}" 2>/dev/null || true
                   fi
-
-                  echo "✅ Binary copied to artifacts/impli-${PLATFORM}${EXT}"
 
             - name: Get latest Git tag (fallback)
               if: github.event_name == 'workflow_dispatch'
