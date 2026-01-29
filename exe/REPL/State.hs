@@ -93,7 +93,8 @@ shower aspect = do
         Vars ->
             explain
                 "Variables:"
-                [k ++ " = " ++ show v | (k, v) <- Map.toList vars, case k of [] -> False; (c:_) -> c /= '_']
+                -- INFO: invariant of IMP.State.setVar guarantees no empty string key
+                [k ++ " = " ++ show v | (k, v) <- Map.toList vars, head k /= '_']
         Procs -> explain "Procedures:" [prettify p | p <- procs]
         Flag -> outputln $ "Break: " ++ show flag ++ "\n"
         Trace ->
