@@ -101,8 +101,8 @@ executable impli-web
   autogen-modules:
     Paths_impli
 
+  -- Note: No -threaded flag for WASM (threading not supported in wasm32-wasi)
   ghc-options:
-    -threaded
     -rtsopts
 
 test-suite impli-test
