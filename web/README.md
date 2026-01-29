@@ -92,9 +92,6 @@ Access the deployed version at: https://bfeitknecht.github.io/impli/
 
 ```
 web/
-├── build.sh                # Old JS backend build script (deprecated)
-├── lib/                    # Old JS backend files (deprecated)
-├── src/                    # Old JS backend files (deprecated)
 ├── static/
 │   ├── index.html          # Terminal UI (wasm-webterm)
 │   ├── main.js             # Auto-launches impli.wasm
@@ -114,7 +111,7 @@ The previous approach using the GHC JavaScript backend with emscripten-pty has b
 - **No Complex Dependencies**: Avoids emscripten versioning issues
 - **Standard WASI**: Uses the WebAssembly System Interface standard
 
-Old files (`build.sh`, `lib/`, `src/`) are kept for reference but can be removed in a future cleanup.
+All old JS backend files (`.swcrc`, `build.sh`, `lib/`, `src/`) have been removed from this directory.
 
 ## Resources
 
