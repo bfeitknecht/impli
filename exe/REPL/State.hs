@@ -3,15 +3,17 @@
 
 {- |
 Module      : REPL.State
-Description : Shared state and utilities for REPL modules
+Description : Shared state and REPL monad for all REPL implementations
 Copyright   : (c) Basil Feitknecht, 2025
 License     : MIT
 Maintainer  : bfeitknecht@ethz.ch
 Stability   : stable
 Portability : portable
 
-Provides shared state, store definitions, and parametric utility functions for REPL modules.
-Similar to IMP.State, this module contains all the core REPL functionality in a monad-parametric way.
+Provides shared state, polymorphic REPL monad, and utility functions for REPL modules.
+Similar to IMP.State, this module contains all the core REPL functionality.
+The REPL monad is polymorphic in its base monad to support both haskeline (InputT IO) 
+and pure IO backends.
 -}
 module REPL.State where
 
@@ -57,23 +59,28 @@ start =
         , _verbose = verbosity
         }
 
--- | Lift computation from 'IMP.State.IMP' into any REPL monad.
-liftIMP :: (MonadIO m, MonadError Exception m) => IMP a -> m a
-liftIMP m = (liftIO . runExceptT) m >>= either throwError return
+-- | Polymorphic REPL monad.
+-- The base monad 'm' can be 'InputT IO' for haskeline-based REPL
+-- or just 'IO' for simple IO-based REPL.
+type REPL m = StateT Store (ExceptT Exception m)
 
--- | Reset 'IMP.Meta.Aspect' - parametric version.
-reset :: (MonadState Store m, MonadIO m) => Aspect -> m ()
+-- | Lift computation from 'IMP.State.IMP' into 'REPL'.
+liftIMP :: (MonadIO m) => IMP a -> REPL m a
+liftIMP m = (lift . liftIO . runExceptT) m >>= either throwError return
+
+-- | Reset 'IMP.Meta.Aspect'.
+reset :: (MonadIO m) => Aspect -> REPL m ()
 reset aspect = do
     state <- gets _state
     case aspect of
-        All -> modify (\st -> st {_state = initial, _trace = []}) >> liftIO (putStrLn "environment reset")
-        Vars -> modify (\st -> st {_state = resetVars state}) >> liftIO (putStrLn "variables reset")
-        Procs -> modify (\st -> st {_state = resetProcs state}) >> liftIO (putStrLn "procedures reset")
-        Flag -> modify (\st -> st {_state = resetBreak state}) >> liftIO (putStrLn "break flag reset")
-        Trace -> modify (\st -> st {_trace = []}) >> liftIO (putStrLn "trace reset")
+        All -> modify (\st -> st {_state = initial, _trace = []}) >> inform "environment reset"
+        Vars -> modify (\st -> st {_state = resetVars state}) >> inform "variables reset"
+        Procs -> modify (\st -> st {_state = resetProcs state}) >> inform "procedures reset"
+        Flag -> modify (\st -> st {_state = resetBreak state}) >> inform "break flag reset"
+        Trace -> modify (\st -> st {_trace = []}) >> inform "trace reset"
 
--- | Show 'IMP.Meta.Aspect' - parametric version.
-shower :: (MonadState Store m, MonadIO m) => Aspect -> m ()
+-- | Show 'IMP.Meta.Aspect'.
+shower :: (MonadIO m) => Aspect -> REPL m ()
 shower aspect = do
     (vars, procs, flag) <- gets _state
     trace <- gets _trace
@@ -84,7 +91,7 @@ shower aspect = do
                 "Variables:"
                 [k ++ " = " ++ show v | (k, v) <- Map.toList vars, case k of [] -> False; (c:_) -> c /= '_']
         Procs -> explain "Procedures:" [prettify p | p <- procs]
-        Flag -> liftIO $ putStrLn $ "Break: " ++ show flag ++ "\n"
+        Flag -> outputln $ "Break: " ++ show flag ++ "\n"
         Trace ->
             explain
                 "Trace:"
@@ -95,11 +102,12 @@ shower aspect = do
                     buffer = repeat . space $ length (show i) + 3
                 ]
 
--- | Interpret IMP language source file - parametric version.
-loadIMP :: (MonadState Store m, MonadIO m, MonadError Exception m) => FilePath -> m ()
+-- | Interpret IMP language source file, return updated state.
+loadIMP :: (MonadIO m) => FilePath -> REPL m ()
 loadIMP path = do
-    content <- liftIO (readFile path) `catchError` 
-        (\e -> throwError . IOFail $ unlines ["read from: " ++ path, show e])
+    content <-
+        liftIO (readFile path)
+            `catchError` (\e -> throwError . IOFail $ unlines ["read from: " ++ path, show e])
     case parser path content of
         Left e -> throwError . ParseFail $ unlines [path, show e]
         Right stm -> do
@@ -109,25 +117,28 @@ loadIMP path = do
             modify $ \st -> st {_state = state', _trace = stm : trace}
     throwError . Info $ "interpreted: " ++ path
 
--- | Write trace to specified file - parametric version.
-writeIMP :: (MonadState Store m, MonadIO m, MonadError Exception m) => FilePath -> m ()
+-- | Write trace to specified file.
+writeIMP :: (MonadIO m) => FilePath -> REPL m ()
 writeIMP path = do
     content <- gets (prettytrace . _trace)
-    liftIO (writeFile path content) `catchError` 
-        (\e -> throwError . IOFail $ unlines ["write trace to: " ++ path, show e])
+    _ <-
+        liftIO (writeFile path content)
+            `catchError` \e ->
+                throwError . IOFail $
+                    unlines ["write trace to: " ++ path, show e]
     throwError . Info $ "wrote trace to: " ++ path
 
--- | Show abstract syntax tree of 'IMP.Meta.Element' - parametric version.
-ast :: (MonadState Store m, MonadIO m, MonadError Exception m) => Element -> m ()
-ast (Input construct) = liftIO $ print construct
+-- | Show abstract syntax tree of 'IMP.Meta.Element'.
+ast :: (MonadIO m) => Element -> REPL m ()
+ast (Input construct) = display construct
 ast (Index n) = do
     trace <- gets _trace
     if n <= 0 || n > length trace
-        then liftIO $ putStrLn $ "index out of bounds: " ++ show n
-        else liftIO $ print (trace !! (length trace - n))
+        then errata $ "index out of bounds: " ++ show n
+        else display (trace !! (length trace - n))
 
--- | Set 'IMP.Meta.Option' - parametric version.
-set :: (MonadState Store m) => Option -> m ()
+-- | Set 'IMP.Meta.Option'.
+set :: (Monad m) => Option -> REPL m ()
 set option = case option of
     Welcome w -> modify $ \st -> st {_welcome = w}
     Prompt p -> modify $ \st -> st {_prompt = p}
@@ -140,21 +151,21 @@ set option = case option of
                 Profile -> profilesep
                 Debug -> debugsep
 
--- | Nicely format output with heading and indented body - parametric version.
-explain :: (MonadIO m) => String -> [String] -> m ()
-explain heading [] = liftIO $ putStrLn heading
-explain heading body = liftIO $ putStrLn $ heading ++ '\n' : indent 4 (unlines body)
+-- | Nicely format 'outputln' with heading and indented body.
+explain :: (MonadIO m) => String -> [String] -> REPL m ()
+explain heading [] = outputln heading
+explain heading body = outputln $ heading ++ '\n' : indent 4 (unlines body)
 
--- | Explain the metacommands - parametric version.
-help :: (MonadIO m) => m ()
+-- | Explain the metacommands.
+help :: (MonadIO m) => REPL m ()
 help =
     explain
         "All metacommands besides :(un)set can be abbreviated by their first letter"
         helpMessage
 
--- | Output the version - parametric version.
-version :: (MonadIO m) => m ()
-version = liftIO $ putStrLn $ unwords ["impli", showVersion Paths.version]
+-- | Output the version.
+version :: (MonadIO m) => REPL m ()
+version = outputln $ unwords ["impli", showVersion Paths.version]
 
 -- | Indent every line by @n@ space characters.
 indent :: Int -> String -> String

@@ -23,6 +23,8 @@ import Control.Monad.State hiding (State, state)
 import System.Console.Haskeline hiding (display)
 import System.Exit (exitFailure)
 
+import qualified System.Console.ANSI as ANSI
+
 import IMP.Exception
 import IMP.Expression
 import IMP.Parser
@@ -31,7 +33,7 @@ import IMP.Statement
 import IMP.Syntax
 import REPL.Meta
 import REPL.Preset
-import REPL.Util
+import REPL.State
 
 -- | Encapsulation of REPL customization.
 data Setup = Setup
@@ -55,7 +57,7 @@ repl (Setup s p) store = do
         >>= either (\e -> print e >> exitFailure) (\_ -> putStrLn goodbye)
 
 -- | REPL loop that processes input and maintains interpreter state.
-loop :: REPL ()
+loop :: REPL (InputT IO) ()
 loop = handleInterrupt loop $ do
     prompt' <- gets _prompt
     separator' <- gets _separator
@@ -82,7 +84,7 @@ loop = handleInterrupt loop $ do
 -- | Typeclass to dispatch 'IMP.Syntax.Construct' or 'IMP.Meta.Command'.
 class Dispatches a where
     -- | Dispatch execution.
-    dispatch :: (Parses a) => a -> REPL ()
+    dispatch :: (Parses a) => a -> REPL (InputT IO) ()
 
 -- | Dispatcher for 'IMP.Syntax.Construct'.
 instance Dispatches Construct where
@@ -112,3 +114,7 @@ instance Dispatches Command where
             AST element -> ast element
             Set option -> set option
             >> loop
+
+-- | Clear the terminal (haskeline-specific).
+clear :: REPL (InputT IO) ()
+clear = liftIO (ANSI.clearScreen >> ANSI.setCursorPosition 0 0)

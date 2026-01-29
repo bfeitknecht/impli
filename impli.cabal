@@ -59,7 +59,6 @@ common runnable
     REPL.Meta
     REPL.Preset
     REPL.State
-    REPL.Util
 
   autogen-modules:
     Paths_impli
