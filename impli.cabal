@@ -84,26 +84,46 @@ executable impli
   import: shared, runnable
   main-is: Main.hs
 
-executable impli-web
-  import: shared, runnable
-  main-is: Web.hs
+-- Temporarily disabled while focusing on WASM support
+-- executable impli-web
+--   import: shared, runnable
+--   main-is: Web.hs
+--   build-depends:
+--     impli,
+--     jsaddle >=0.9 && <0.10,
+-- 
+--   js-sources:
+--     web/lib/ffi.js
+-- 
+--   cpp-options:
+--     -DGHCJS_BROWSER
+-- 
+--   ld-options:
+--     -Os
+--     -sEXPORT_ES6
+--     -sENVIRONMENT=web
+--     -sFORCE_FILESYSTEM
+--     -sASYNCIFY
+--     "--js-library=./web/lib/emscripten-pty.js"
+
+executable impli-wasm
+  import: shared
+  hs-source-dirs: exe
+  main-is: Wasm.hs
   build-depends:
     impli,
-    jsaddle >=0.9 && <0.10,
 
-  js-sources:
-    web/lib/ffi.js
+  other-modules:
+    REPL.Meta
+    REPL.Preset
+    Paths_impli
 
-  cpp-options:
-    -DGHCJS_BROWSER
+  autogen-modules:
+    Paths_impli
 
-  ld-options:
-    -Os
-    -sEXPORT_ES6
-    -sENVIRONMENT=web
-    -sFORCE_FILESYSTEM
-    -sASYNCIFY
-    "--js-library=./web/lib/emscripten-pty.js"
+  ghc-options:
+    -threaded
+    -rtsopts
 
 test-suite impli-test
   import: shared
