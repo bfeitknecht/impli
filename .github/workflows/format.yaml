@@ -1,4 +1,4 @@
-name: Test specifications
+name: Test formatting
 
 on:
     push:
@@ -7,11 +7,11 @@ on:
     workflow_dispatch:
 
 jobs:
-    test:
+    format:
         runs-on: ubuntu-latest
 
         steps:
-            - name: Checkout repos
+            - name: Checkout repository
               uses: actions/checkout@v4
 
             - name: Set up Haskell
@@ -20,10 +20,11 @@ jobs:
                   ghc-version: "9.12.2"
                   cabal-version: "3.14"
 
-            - name: Update and build dependencies
+            - name: Install fourmolu
               run: |
                   cabal update
-                  cabal build impli-test
+                  cabal install fourmolu-0.16.2.0
 
-            - name: Run tests
-              run: cabal test impli-test
+            - name: Check formatting
+              run: |
+                  fourmolu --mode check $(git ls-files '*.hs')
