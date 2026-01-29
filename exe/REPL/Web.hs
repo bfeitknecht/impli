@@ -1,7 +1,6 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE ScopedTypeVariables #-}
 
 {- |
 Module      : REPL.Web
@@ -53,33 +52,25 @@ loop = do
         then return ()
         else do
             line <- liftIO getLine
-            processLine line
-
--- | Process a single line of input
-processLine :: String -> REPL IO ()
-processLine "" = loop
-processLine ":)" = liftIO (putStrLn "You look good today!") >> loop
-processLine (':':meta) = do
-    case parser "meta" meta of
-        Left _ -> do
-            liftIO $ putStrLn $ unlines ["unrecognized meta command: :" ++ meta, hint]
-            loop
-        Right (cmd :: Command) -> (dispatch cmd >> loop) `catchError` handleREPLError
-processLine input = do
-    case parser @Construct "interactive" input of
-        Left e -> do
-            liftIO . putStrLn . unlines $ [input, show e]
-            loop
-        Right (construct :: Construct) -> (dispatch construct >> loop) `catchError` handleREPLError
-
--- | Handle REPL errors
-handleREPLError :: Exception -> REPL IO ()
-handleREPLError e = case e of
-    Empty -> return ()  -- EOF, exit cleanly
-    AssertFail _ -> throwError e  -- irrecoverable
-    Raised _ -> throwError e  -- irrecoverable
-    Info msg -> liftIO (putStrLn msg) >> loop  -- informational message
-    _ -> liftIO (print e) >> loop  -- recoverable errors
+            case line of
+                "" -> loop
+                ":)" -> liftIO (putStrLn "You look good today!") >> loop
+                (':' : meta) ->
+                    either
+                        (const $ liftIO (putStrLn $ unlines ["unrecognized meta command: :" ++ meta, hint]) >> loop)
+                        (dispatch @IO @Command)
+                        (parser "meta" meta)
+                input ->
+                    either
+                        (\e -> throwError . ParseFail $ unlines [input, show e])
+                        (\c -> dispatch @IO @Construct c >> loop)
+                        (parser "interactive" input)
+                `catchError` \e -> case e of
+                    Empty -> return () -- EOF, exit cleanly
+                    AssertFail _ -> throwError e -- irrecoverable, propagate
+                    Raised _ -> throwError e -- ''
+                    Info msg -> liftIO (putStrLn msg) >> loop -- informational message
+                    _ -> liftIO (print e) >> loop -- recoverable errors
 
 -- | Dispatcher for 'IMP.Syntax.Construct' with IO backend.
 instance Dispatches IO Construct where
