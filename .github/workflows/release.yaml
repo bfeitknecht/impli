@@ -49,7 +49,6 @@ jobs:
 
                   # Platform detection
                   ARCH=$(uname -m)
-                  OS=$(uname -s | tr '[:upper:]' '[:lower:]')
 
                   # Normalize architecture name
                   if [[ "$ARCH" == "arm64" ]]; then
