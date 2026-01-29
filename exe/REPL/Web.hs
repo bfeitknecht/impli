@@ -11,7 +11,7 @@ Portability : portable
 
 Provides REPL implementation for web/WASM context using basic IO.
 This module implements the REPL loop without haskeline dependency.
-Uses parametric functions from REPL.State for all core functionality.
+Uses the polymorphic REPL monad from REPL.State with IO as the base monad.
 -}
 module REPL.Web (repl) where
 
@@ -29,9 +29,6 @@ import REPL.Meta
 import REPL.Preset
 import REPL.State
 
--- | Web REPL monad using basic IO
-type WebREPL = StateT Store (ExceptT Exception IO)
-
 -- | Run the REPL with the given initial store
 repl :: Store -> IO ()
 repl store = do
@@ -42,7 +39,7 @@ repl store = do
         Right _ -> putStrLn goodbye
 
 -- | Main REPL loop using basic IO
-loop :: WebREPL ()
+loop :: REPL IO ()
 loop = do
     prompt' <- gets _prompt
     separator' <- gets _separator
@@ -56,7 +53,7 @@ loop = do
             processLine line
 
 -- | Process a single line of input
-processLine :: String -> WebREPL ()
+processLine :: String -> REPL IO ()
 processLine "" = loop
 processLine ":)" = liftIO (putStrLn "You look good today!") >> loop
 processLine (':':meta) = do
@@ -73,7 +70,7 @@ processLine input = do
         Right construct -> (dispatchConstruct construct >> loop) `catchError` handleREPLError
 
 -- | Handle REPL errors
-handleREPLError :: Exception -> WebREPL ()
+handleREPLError :: Exception -> REPL IO ()
 handleREPLError e = case e of
     Empty -> return ()  -- EOF, exit cleanly
     AssertFail _ -> throwError e  -- irrecoverable
@@ -82,7 +79,7 @@ handleREPLError e = case e of
     _ -> liftIO (print e) >> loop  -- recoverable errors
 
 -- | Dispatch IMP construct
-dispatchConstruct :: Construct -> WebREPL ()
+dispatchConstruct :: Construct -> REPL IO ()
 dispatchConstruct construct = do
     trace <- gets _trace
     state <- gets _state
@@ -96,8 +93,8 @@ dispatchConstruct construct = do
             liftIO . putStrLn $ if evaluate bexp state then "true" else "false"
         Whitespace -> return ()
 
--- | Dispatch meta command (uses parametric functions from REPL.State)
-dispatchCommand :: Command -> WebREPL ()
+-- | Dispatch meta command (uses functions from REPL.State)
+dispatchCommand :: Command -> REPL IO ()
 dispatchCommand Quit = return ()
 dispatchCommand command = case command of
     Help -> help
