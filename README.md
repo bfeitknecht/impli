@@ -23,6 +23,50 @@ chmod +x impli-*
 xattr -d com.apple.quarantine impli-*
 ```
 
+## Development
+
+### Using Nix (Recommended)
+
+If you have [Nix](https://nixos.org/) with flakes enabled, you can easily set up a complete development environment:
+
+```bash
+# Enter development shell with all tools
+nix develop
+
+# Or use direnv to automatically load the environment
+echo "use flake" > .envrc
+direnv allow
+```
+
+The development shell includes:
+- GHC 9.4.8 (Haskell compiler)
+- cabal-install (build tool)
+- fourmolu (code formatter)
+- haskell-language-server (IDE support)
+
+Quick commands in the dev shell:
+```bash
+cabal build        # Build the project
+cabal test         # Run tests
+cabal run impli    # Run the REPL
+fourmolu -i .      # Format code
+```
+
+You can also build the project directly with Nix:
+```bash
+nix build          # Build impli executable to ./result/bin/impli
+```
+
+### Using Cabal Directly
+
+If you have GHC and Cabal installed on your system:
+
+```bash
+cabal build        # Build the project
+cabal run impli    # Run the REPL
+cabal test         # Run tests
+```
+
 ## Specification
 
 The most apparent deviations from the specifications are that parentheses are not required for arithmetic and boolean operations in expressions and sequential composition in statements. Additionally, the write-only placeholder variable `_` allows discarding of values. It can only be used on the lefthandside of variable definitions.
