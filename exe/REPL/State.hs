@@ -179,8 +179,8 @@ indent n = unlines . map (space n ++) . lines
 space :: Int -> String
 space n = replicate n ' '
 
--- | Typeclass to dispatch 'IMP.Syntax.Construct' or 'IMP.Meta.Command'.
+-- | Typeclass to dispatch 'IMP.Syntax.Construct', 'IMP.Meta.Command', or 'IMP.Exception.Exception'.
 -- Polymorphic in the base monad 'm' to support both haskeline and pure IO.
 class Dispatches m a where
     -- | Dispatch execution.
-    dispatch :: (Parses a, MonadIO m) => a -> REPL m ()
+    dispatch :: (MonadIO m) => a -> REPL m ()

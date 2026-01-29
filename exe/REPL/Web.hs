@@ -65,12 +65,7 @@ loop = do
                         (\e -> throwError . ParseFail $ unlines [input, show e])
                         (\c -> dispatch @IO @Construct c >> loop)
                         (parser "interactive" input)
-                `catchError` \e -> case e of
-                    Empty -> return () -- EOF, exit cleanly
-                    AssertFail _ -> throwError e -- irrecoverable, propagate
-                    Raised _ -> throwError e -- ''
-                    Info msg -> liftIO (putStrLn msg) >> loop -- informational message
-                    _ -> liftIO (print e) >> loop -- recoverable errors
+                `catchError` dispatch @IO @Exception
 
 -- | Dispatcher for 'IMP.Syntax.Construct' with IO backend.
 instance Dispatches IO Construct where
@@ -102,6 +97,15 @@ instance Dispatches IO Command where
             AST element -> ast element
             Set option -> set option
             >> loop
+
+-- | Dispatcher for 'IMP.Exception.Exception' with IO backend.
+instance Dispatches IO Exception where
+    dispatch e = case e of
+        Empty -> return () -- EOF, exit cleanly
+        AssertFail _ -> throwError e -- irrecoverable, propagate
+        Raised _ -> throwError e -- ''
+        Info msg -> liftIO (putStrLn msg) >> loop -- informational message
+        _ -> liftIO (print e) >> loop -- recoverable errors
 
 -- | Clear the terminal (simple version for web).
 clear :: REPL IO ()
