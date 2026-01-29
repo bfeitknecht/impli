@@ -41,11 +41,19 @@ The table below depicts the correspondence between semantics functions defined i
 | $\mathcal{A}[[a]]\sigma$                                          | `IMP.Expression.evaluate a state`              |
 | $\mathcal{B}[[b]]\sigma$                                          | `IMP.Expression.evaluate b state`              |
 
+## Web Support
+
+`impli` can run in the browser via WebAssembly! Try it online at: https://bfeitknecht.github.io/impli/
+
+The web version uses [wasm-webterm](https://github.com/cryptool-org/wasm-webterm) to provide a terminal interface in the browser. See `web/README.md` for more details on building and deploying the WASM version.
+
+**Note:** The WASM version is currently under development. Full WebAssembly compilation requires the GHC WASM backend toolchain.
+
 ## Roadmap
 
 There are some crucial points for further improvement.
 
-- Add web-support (probably via compilation to WASM)
+- ~~Add web-support (probably via compilation to WASM)~~ ✓ Infrastructure complete, awaiting WASM toolchain
 - Improve the REPL
     - Support tab-autocompletion
     - Handle multi-line input

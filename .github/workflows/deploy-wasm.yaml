@@ -1,0 +1,85 @@
+name: Build and Deploy WASM to GitHub Pages
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+# Sets permissions for GitHub Pages deployment
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow one concurrent deployment
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up GHC
+        uses: haskell-actions/setup@v2
+        with:
+          ghc-version: '9.14.1'
+          cabal-version: '3.16'
+
+      - name: Cache Cabal store
+        uses: actions/cache@v3
+        with:
+          path: ~/.cabal/store
+          key: ${{ runner.os }}-cabal-wasm-${{ hashFiles('**/*.cabal', 'cabal.project') }}
+          restore-keys: |
+            ${{ runner.os }}-cabal-wasm-
+
+      - name: Update Cabal index
+        run: cabal update
+
+      - name: Build impli-wasm executable
+        run: |
+          echo "Building impli-wasm..."
+          cabal build exe:impli-wasm
+          
+          echo "Locating binary..."
+          BIN=$(cabal list-bin exe:impli-wasm -v0)
+          echo "Binary location: $BIN"
+          
+          # For now, copy native binary as placeholder
+          # TODO: Replace with actual WASM compilation when GHC WASM backend is configured
+          echo "Copying binary to web/static..."
+          mkdir -p web/static
+          cp "$BIN" web/static/impli.native
+          
+          echo "Build complete!"
+
+      - name: Prepare web assets
+        run: |
+          echo "Web assets already in web/static/"
+          ls -la web/static/
+          
+      - name: Upload artifact for GitHub Pages
+        uses: actions/upload-pages-artifact@v2
+        with:
+          path: 'web/static'
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v2
