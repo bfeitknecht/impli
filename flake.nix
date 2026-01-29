@@ -15,7 +15,7 @@
     system = "x86_64-linux";
     pkgs = import nixpkgs { inherit system; };
     
-    # Get the WASM package set from ghc-wasm-meta
+    # Get the WASM toolchain from ghc-wasm-meta
     wasmPkgs = ghc-wasm-meta.packages.${system}.all_9_12;
     
   in {
@@ -23,9 +23,25 @@
       # Default package builds the WASM binary
       default = self.packages.${system}.impli-web;
       
-      # Web version built with WASM backend using Nix's Haskell infrastructure
-      # This properly handles dependencies without requiring network access
-      impli-web = wasmPkgs.callCabal2nix "impli" ./. {};
+      # Web version built with WASM backend
+      # Uses the ghc-wasm-meta toolchain to build the WASM binary
+      impli-web = pkgs.stdenv.mkDerivation {
+        name = "impli-web";
+        src = ./.;
+        
+        nativeBuildInputs = [ wasmPkgs ];
+        
+        buildPhase = ''
+          # Build the WASM binary using wasm32-wasi-cabal
+          wasm32-wasi-cabal build exe:impli-web --ghc-options="-optl-Wl,--export-table"
+        '';
+        
+        installPhase = ''
+          mkdir -p $out/bin
+          # Find and copy the built WASM binary
+          find dist-newstyle -name "impli-web.wasm" -type f -exec cp {} $out/bin/impli.wasm \;
+        '';
+      };
     };
     
     devShells.${system}.default = pkgs.mkShell {
