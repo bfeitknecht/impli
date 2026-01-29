@@ -119,7 +119,7 @@ Old files (`build.sh`, `lib/`, `src/`) are kept for reference but can be removed
 ## Resources
 
 - **wasm-webterm**: https://github.com/cryptool-org/wasm-webterm
-- **GHC WASM Backend**: https://gitlab.haskell.org/ghc/ghc-wasm-meta
+- **GHC WASM Backend**: https://gitlab.haskell.org/haskell-wasm/ghc-wasm-meta
 - **Nix Flake**: See `flake.nix` in the repository root
 - **WASI Specification**: https://wasi.dev/
 - **XTerm.js**: https://xtermjs.org/
