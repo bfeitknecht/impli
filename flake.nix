@@ -32,6 +32,9 @@
         nativeBuildInputs = [ wasmEnv ];
         
         buildPhase = ''
+          # Set HOME to a writable directory for cabal
+          export HOME=$TMPDIR
+          
           # Build the WASM binary using wasm32-wasi-cabal
           wasm32-wasi-cabal build exe:impli-web
         '';
