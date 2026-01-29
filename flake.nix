@@ -9,6 +9,8 @@
 
   outputs = { self, nixpkgs, ghc-wasm-meta, ... }:
   let
+    # NOTE: Currently hard-coded to x86_64-linux for WASM cross-compilation
+    # Multi-platform support can be added in the future if needed
     system = "x86_64-linux";
     pkgs = import nixpkgs { inherit system; };
     
