@@ -12,7 +12,7 @@ function init() {
   // Create terminal instance
   const term = new Terminal({
     cursorBlink: true,
-    fontFamily: '"CommitMono", "Courier New Bold", monospace',
+    fontFamily: '"CommitMono", "Courier New", monospace',
     fontSize: 13,
     theme: {
       background: '#0a0a0a',
