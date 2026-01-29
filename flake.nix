@@ -32,6 +32,9 @@
         nativeBuildInputs = [ wasmPkgs ];
         
         buildPhase = ''
+          # Set HOME to a writable directory (Nix sets it to read-only /homeless-shelter)
+          export HOME=$TMPDIR
+          
           # Build the WASM binary using wasm32-wasi-cabal
           wasm32-wasi-cabal build exe:impli-web --ghc-options="-optl-Wl,--export-table"
         '';
