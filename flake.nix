@@ -16,23 +16,38 @@
     pkgs = import nixpkgs { inherit system; };
     
     # Get the WASM toolchain from ghc-wasm-meta
-    wasmPkgs = ghc-wasm-meta.packages.${system}.all_9_12;
+    wasmEnv = ghc-wasm-meta.packages.${system}.all_9_12;
     
   in {
     packages.${system} = {
-      # Default package builds the web version
+      # Default package builds the WASM binary
       default = self.packages.${system}.impli-web;
       
       # Web version built with WASM backend
-      # Note: The ghc-wasm-meta all_9_12 package provides a development shell with wasm32-wasi-ghc
-      # The actual WASM binary needs to be built using the tools in that environment
-      # For now, we provide the toolchain; the workflow will handle the build
-      impli-web = wasmPkgs;
+      # This builds the impli-web executable as a .wasm file
+      impli-web = pkgs.stdenv.mkDerivation {
+        name = "impli-web";
+        src = ./.;
+        
+        nativeBuildInputs = [ wasmEnv ];
+        
+        buildPhase = ''
+          # Build the WASM binary using wasm32-wasi-cabal
+          wasm32-wasi-cabal build exe:impli-web
+        '';
+        
+        installPhase = ''
+          mkdir -p $out/bin
+          # Get the path to the built binary
+          WASM_BIN=$(wasm32-wasi-cabal list-bin -v0 exe:impli-web)
+          cp "$WASM_BIN" $out/bin/impli.wasm
+        '';
+      };
     };
     
     devShells.${system}.default = pkgs.mkShell {
       buildInputs = [
-        ghc-wasm-meta.packages.${system}.all_9_12
+        wasmEnv
         pkgs.cabal-install
         pkgs.nodejs
         pkgs.brotli
@@ -40,8 +55,22 @@
       ];
       
       shellHook = ''
-        echo "WASM development environment loaded"
-        echo "Build with: wasm32-wasi-cabal build exe:impli-web"
+        echo "======================================"
+        echo "impli WASM development environment"
+        echo "======================================"
+        echo ""
+        echo "Available tools:"
+        echo "  - cabal (native Haskell builds)"
+        echo "  - wasm32-wasi-cabal (WASM builds)"
+        echo "  - wasm32-wasi-ghc (WASM GHC)"
+        echo "  - node (Node.js for testing)"
+        echo ""
+        echo "Build WASM binary:"
+        echo "  wasm32-wasi-cabal build exe:impli-web"
+        echo ""
+        echo "Or use nix build:"
+        echo "  nix build . # Builds impli.wasm to result/bin/"
+        echo ""
       '';
     };
   };
