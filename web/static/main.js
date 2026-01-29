@@ -35,10 +35,11 @@ async function init() {
   term.focus();
 
   // Auto-launch impli.wasm on startup
+  // Wait for terminal to be ready before executing
+  const TERMINAL_READY_DELAY = 100; // ms - allows terminal to finish initialization
   console.log('Launching impli WASM...');
   
-  // Wait a moment for terminal to be ready, then execute impli
   setTimeout(() => {
     wasmterm.exec('impli');
-  }, 100);
+  }, TERMINAL_READY_DELAY);
 }
