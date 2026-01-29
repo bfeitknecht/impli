@@ -101,15 +101,15 @@ jobs:
                     exit 1
                   fi
 
-                  # Make it executable on Unix
-                  if [[ "$OS" != "windows" ]]; then
-                    chmod +x "$BIN"
-                    echo "🔧 Stripping binary to reduce size..."
-                    strip -u -r "$BIN" || echo "⚠️ strip failed, continuing..."
-                  fi
-
-                  # Copy and rename with platform suffix
+                  # Copy and rename with platform suffix first
                   cp "$BIN" "artifacts/impli-${PLATFORM}${EXT}"
+
+                  # Make it executable and strip on Unix
+                  if [[ "$OS" != "windows" ]]; then
+                    chmod +x "artifacts/impli-${PLATFORM}${EXT}"
+                    echo "🔧 Stripping binary to reduce size..."
+                    strip -u -r "artifacts/impli-${PLATFORM}${EXT}" || echo "⚠️ strip failed, continuing..."
+                  fi
 
                   echo "✅ Binary copied to artifacts/impli-${PLATFORM}${EXT}"
 
