@@ -15,7 +15,7 @@
     system = "x86_64-linux";
     pkgs = import nixpkgs { inherit system; };
     
-    # Get the WASM toolchain from ghc-wasm-meta
+    # Get the WASM package set from ghc-wasm-meta
     wasmPkgs = ghc-wasm-meta.packages.${system}.all_9_12;
     
   in {
@@ -25,7 +25,7 @@
       
       # Web version built with WASM backend using Nix's Haskell infrastructure
       # This properly handles dependencies without requiring network access
-      impli-web = wasmPkgs.haskellPackages.callCabal2nix "impli" ./. {};
+      impli-web = wasmPkgs.callCabal2nix "impli" ./. {};
     };
     
     devShells.${system}.default = pkgs.mkShell {
