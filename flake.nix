@@ -3,7 +3,7 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    ghc-wasm-meta.url = "gitlab:ghc/ghc-wasm-meta";
+    ghc-wasm-meta.url = "gitlab:haskell-wasm/ghc-wasm-meta?host=gitlab.haskell.org";
     ghc-wasm-meta.inputs.nixpkgs.follows = "nixpkgs";
   };
 
