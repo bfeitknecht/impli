@@ -58,6 +58,7 @@ common runnable
     REPL.Execute
     REPL.Meta
     REPL.Preset
+    REPL.State
     REPL.Util
 
   autogen-modules:
