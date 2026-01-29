@@ -1,18 +1,19 @@
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeApplications #-}
 
 {- |
-Module      : Main
-Description : WASM-compatible entrypoint for the IMP language interpreter
+Module      : REPL.Web
+Description : Web REPL implementation using basic IO
 Copyright   : (c) Basil Feitknecht, 2025
 License     : MIT
 Maintainer  : bfeitknecht@ethz.ch
 Stability   : stable
 Portability : portable
 
-Provides a WASM-compatible entrypoint that uses basic IO instead of haskeline.
-This allows compilation to WASM/WASI without terminfo dependencies.
+Provides REPL implementation for web/WASM context using basic IO.
+This module implements the REPL loop without haskeline dependency.
 -}
-module Main where
+module REPL.Web (repl) where
 
 import Control.Monad.Except
 import Control.Monad.State hiding (State, state)
@@ -32,51 +33,26 @@ import IMP.Statement
 import IMP.Syntax
 import REPL.Meta
 import REPL.Preset
+import REPL.State
 
--- | Encapsulation of state in the simple REPL
-data Store = Store
-    { _state :: State
-    , _trace :: [Stm]
-    , _defaults :: Defaults
-    , _welcome :: String
-    , _prompt :: String
-    , _separator :: Char
-    , _goodbye :: String
-    , _verbose :: Level
-    }
+-- | Web REPL monad using basic IO
+type WebREPL = StateT Store (ExceptT Exception IO)
 
--- | Starting store for the REPL
-start :: Store
-start =
-    Store
-        { _state = initial
-        , _trace = []
-        , _defaults = defaults
-        , _welcome = welcome
-        , _prompt = prompt
-        , _separator = normalsep
-        , _goodbye = goodbye
-        , _verbose = verbosity
-        }
-
--- | Simple REPL monad without haskeline dependency
-type SimpleREPL = StateT Store (ExceptT Exception IO)
-
--- | Lift computation from 'IMP.State.IMP' into 'SimpleREPL'.
-liftIMP :: IMP a -> SimpleREPL a
+-- | Lift computation from 'IMP.State.IMP' into 'WebREPL'.
+liftIMP :: IMP a -> WebREPL a
 liftIMP m = (lift . liftIO . runExceptT) m >>= either throwError return
 
--- | Entrypoint for WASM-compatible IMP interpreter
-main :: IO ()
-main = do
-    putStrLn (_welcome start)
-    result <- runExceptT (execStateT loop start)
+-- | Run the REPL with the given initial store
+repl :: Store -> IO ()
+repl store = do
+    putStrLn (_welcome store)
+    result <- runExceptT (execStateT loop store)
     case result of
         Left e -> print e >> Exit.exitFailure
         Right _ -> putStrLn goodbye
 
--- | Main REPL loop using simple IO
-loop :: SimpleREPL ()
+-- | Main REPL loop using basic IO
+loop :: WebREPL ()
 loop = do
     prompt' <- gets _prompt
     separator' <- gets _separator
@@ -90,7 +66,7 @@ loop = do
             processLine line
 
 -- | Process a single line of input
-processLine :: String -> SimpleREPL ()
+processLine :: String -> WebREPL ()
 processLine "" = loop
 processLine ":)" = liftIO (putStrLn "You look good today!") >> loop
 processLine (':':meta) = do
@@ -107,7 +83,7 @@ processLine input = do
         Right construct -> (dispatchConstruct construct >> loop) `catchError` handleREPLError
 
 -- | Handle REPL errors
-handleREPLError :: Exception -> SimpleREPL ()
+handleREPLError :: Exception -> WebREPL ()
 handleREPLError e = case e of
     Empty -> return ()  -- EOF, exit cleanly
     AssertFail _ -> throwError e  -- irrecoverable
@@ -116,7 +92,7 @@ handleREPLError e = case e of
     _ -> liftIO (print e) >> loop  -- recoverable errors
 
 -- | Dispatch IMP construct
-dispatchConstruct :: Construct -> SimpleREPL ()
+dispatchConstruct :: Construct -> WebREPL ()
 dispatchConstruct construct = do
     trace <- gets _trace
     state <- gets _state
@@ -131,7 +107,7 @@ dispatchConstruct construct = do
         Whitespace -> return ()
 
 -- | Dispatch meta command
-dispatchCommand :: Command -> SimpleREPL ()
+dispatchCommand :: Command -> WebREPL ()
 dispatchCommand Quit = return ()
 dispatchCommand command = case command of
     Help -> liftIO $ putStrLn $ unlines helpMessage
@@ -145,7 +121,7 @@ dispatchCommand command = case command of
     Set option -> setOption option
 
 -- | Reset aspect of REPL state
-resetAspect :: Aspect -> SimpleREPL ()
+resetAspect :: Aspect -> WebREPL ()
 resetAspect aspect = do
     state <- gets _state
     case aspect of
@@ -166,7 +142,7 @@ resetAspect aspect = do
             liftIO $ putStrLn "trace reset"
 
 -- | Show aspect of REPL state
-showAspect :: Aspect -> SimpleREPL ()
+showAspect :: Aspect -> WebREPL ()
 showAspect aspect = do
     (vars, procs, flag) <- gets _state
     trace <- gets _trace
@@ -190,7 +166,7 @@ showAspect aspect = do
             liftIO $ putStrLn $ indent 4 (unlines traceLines)
 
 -- | Load and execute IMP file
-loadFile :: FilePath -> SimpleREPL ()
+loadFile :: FilePath -> WebREPL ()
 loadFile path = do
     content <- liftIO (readFile path) `catchError` 
         (\e -> throwError . IOFail $ unlines ["read from: " ++ path, show e])
@@ -204,7 +180,7 @@ loadFile path = do
     throwError . Info $ "interpreted: " ++ path
 
 -- | Write trace to file
-writeTrace :: FilePath -> SimpleREPL ()
+writeTrace :: FilePath -> WebREPL ()
 writeTrace path = do
     content <- gets (prettytrace . _trace)
     liftIO (writeFile path content) `catchError` 
@@ -212,7 +188,7 @@ writeTrace path = do
     throwError . Info $ "wrote trace to: " ++ path
 
 -- | Show AST of element
-showAST :: Element -> SimpleREPL ()
+showAST :: Element -> WebREPL ()
 showAST (Input construct) = liftIO $ print construct
 showAST (Index n) = do
     trace <- gets _trace
@@ -221,7 +197,7 @@ showAST (Index n) = do
         else liftIO $ print (trace !! (length trace - n))
 
 -- | Set REPL option
-setOption :: Option -> SimpleREPL ()
+setOption :: Option -> WebREPL ()
 setOption option = case option of
     Welcome w -> modify $ \st -> st {_welcome = w}
     Prompt p -> modify $ \st -> st {_prompt = p}
