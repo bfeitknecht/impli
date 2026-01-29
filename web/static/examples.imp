@@ -1,0 +1,46 @@
+(*
+ * Example IMP Programs
+ * 
+ * These are sample programs demonstrating the IMP language
+ * that can be loaded in the web version of impli.
+ *)
+
+(* Factorial Calculation *)
+procedure factorial(n; result)
+begin
+    result := 1;
+    while n > 0 do
+        result := result * n;
+        n := n - 1
+    end
+end;
+
+(* Fibonacci Sequence *)
+procedure fibonacci(n; a)
+begin
+    var b := 0 in
+    var temp := 0 in
+    a := 1;
+    while n > 1 do
+        temp := a + b;
+        b := a;
+        a := temp;
+        n := n - 1
+    end
+end;
+
+(* Greatest Common Divisor (GCD) using Euclidean algorithm *)
+procedure gcd(a, b; result)
+begin
+    while b > 0 do
+        result := b;
+        b := a - (a / b) * b;
+        a := result
+    end;
+    result := a
+end;
+
+(* Example usage - uncomment to try *)
+(* factorial(5; x); x  (* Should give 120 *) *)
+(* fibonacci(10; y); y (* Should give 55 *) *)
+(* gcd(48, 18; z); z   (* Should give 6 *) *)

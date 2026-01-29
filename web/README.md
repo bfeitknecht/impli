@@ -24,7 +24,7 @@ To build actual WebAssembly binaries, you need to:
 
 1. **Install GHC WASM Backend**
    
-   Follow the instructions at [ghc-wasm-meta](https://gitlab.haskell.org/haskell-wasm/ghc-wasm-meta) to install the WASM cross-compilation toolchain.
+   Follow the instructions at [ghc-wasm-meta](https://gitlab.haskell.org/ghc/ghc-wasm-meta) to install the WASM cross-compilation toolchain.
 
 2. **Configure for WASM**
    
