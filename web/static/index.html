@@ -2,28 +2,26 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>impli.js</title>
-    <!-- TODO: create favicon SVG -->
+    <title>impli - Web REPL</title>
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" sizes="any" />
     <link rel="icon" href="./favicon.png" type="image/png" sizes="192x192" />
     <link rel="shortcut icon" href="./favicon.ico" />
     <link rel="preload" href="./CommitMonoV143-VF.woff2" as="font" type="font/woff2" crossorigin />
-    <script type="importmap">
-      {
-        "imports": {
-          "xterm": "https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/+esm",
-          "xterm-pty": "https://cdn.jsdelivr.net/npm/xterm-pty@0.11.1/+esm",
-          "xterm-fit": "https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/+esm",
-          "impli": "./impli.js"
-        }
-      }
-    </script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5/css/xterm.min.css" />
+    
+    <!-- XTerm.js CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.min.css" />
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
     <div id="terminal"></div>
-    <script type="module" src="module.mjs"></script>
-    <noscript><p>This website needs scripting to work.</p></noscript>
+    
+    <!-- Load XTerm.js and wasm-webterm -->
+    <script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/lib/xterm.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/wasm-webterm@1.0.0/webterm.bundle.js"></script>
+    
+    <!-- Main application script -->
+    <script type="module" src="./main.js"></script>
+    
+    <noscript><p>This website needs JavaScript to work.</p></noscript>
   </body>
 </html>

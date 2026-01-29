@@ -3,5 +3,11 @@
 dist-newstyle
 cabal.project.local
 
+# Old JS backend artifacts
 web/static/impli.js
 web/static/module.mjs
+
+# WASM build artifacts
+web/static/impli.wasm
+web/static/impli.wasm.placeholder
+web/static/impli.native
