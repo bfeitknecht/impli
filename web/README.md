@@ -79,7 +79,7 @@ To test the web interface locally:
 
 ## GitHub Pages Deployment
 
-The GitHub Actions workflow (`.github/workflows/deploy-gh-pages.yaml`) automatically:
+The GitHub Actions workflow (`.github/workflows/deploy-github-pages.yaml`) automatically:
 
 1. Uses the Nix flake to build `impli-web` with the WASM backend
 2. Copies the WASM binary and web assets
