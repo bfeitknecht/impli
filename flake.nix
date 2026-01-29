@@ -27,9 +27,6 @@
       # Default package builds the WASM binary
       default = self.packages.${system}.impli-web;
       
-      # Native impli CLI binary
-      impli = pkgs.haskellPackages.callCabal2nix "impli" ./. {};
-      
       # Web version built with WASM backend
       # Uses Nix's Haskell infrastructure to properly handle all dependencies
       impli-web = wasmHaskellPkgs.callCabal2nix "impli" ./. {};
