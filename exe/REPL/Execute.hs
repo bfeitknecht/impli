@@ -1,5 +1,8 @@
 {-# LANGUAGE ConstrainedClassMethods #-}
 {-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 {- |
 Module      : REPL.Execute
@@ -68,12 +71,12 @@ loop = handleInterrupt loop $ do
         Just (':' : meta) ->
             either
                 (const . errata $ unlines ["unrecognized meta command: :" ++ meta, hint])
-                (dispatch @Command)
+                (\(cmd :: Command) -> dispatch cmd)
                 (parser "meta" meta)
         Just input ->
             either
                 (\e -> throwError . ParseFail $ unlines [input, show e])
-                (\c -> dispatch @Construct c >> loop)
+                (\(c :: Construct) -> dispatch c >> loop)
                 (parser "interactive" input)
         `catchError` \e -> case e of
             Empty -> return () -- ctrl-d during read, flush line and exit cleanly
@@ -81,13 +84,8 @@ loop = handleInterrupt loop $ do
             Raised _ -> throwError e -- ''
             _ -> display e >> loop -- mistakes happen
 
--- | Typeclass to dispatch 'IMP.Syntax.Construct' or 'IMP.Meta.Command'.
-class Dispatches a where
-    -- | Dispatch execution.
-    dispatch :: (Parses a) => a -> REPL (InputT IO) ()
-
--- | Dispatcher for 'IMP.Syntax.Construct'.
-instance Dispatches Construct where
+-- | Dispatcher for 'IMP.Syntax.Construct' with haskeline backend.
+instance Dispatches (InputT IO) Construct where
     dispatch construct = do
         trace <- gets _trace
         state <- gets _state
@@ -99,8 +97,8 @@ instance Dispatches Construct where
             Boolean bexp -> outputln (if evaluate bexp state then "true" else "false")
             Whitespace -> return ()
 
--- | Dispatcher for 'IMP.Meta.Command'.
-instance Dispatches Command where
+-- | Dispatcher for 'IMP.Meta.Command' with haskeline backend.
+instance Dispatches (InputT IO) Command where
     dispatch Quit = return ()
     dispatch command =
         case command of

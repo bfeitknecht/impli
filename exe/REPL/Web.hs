@@ -1,4 +1,7 @@
 {-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 {- |
 Module      : REPL.Web
@@ -61,13 +64,13 @@ processLine (':':meta) = do
         Left _ -> do
             liftIO $ putStrLn $ unlines ["unrecognized meta command: :" ++ meta, hint]
             loop
-        Right cmd -> (dispatchCommand cmd >> loop) `catchError` handleREPLError
+        Right (cmd :: Command) -> (dispatch cmd >> loop) `catchError` handleREPLError
 processLine input = do
     case parser @Construct "interactive" input of
         Left e -> do
             liftIO . putStrLn . unlines $ [input, show e]
             loop
-        Right construct -> (dispatchConstruct construct >> loop) `catchError` handleREPLError
+        Right (construct :: Construct) -> (dispatch construct >> loop) `catchError` handleREPLError
 
 -- | Handle REPL errors
 handleREPLError :: Exception -> REPL IO ()
@@ -78,31 +81,37 @@ handleREPLError e = case e of
     Info msg -> liftIO (putStrLn msg) >> loop  -- informational message
     _ -> liftIO (print e) >> loop  -- recoverable errors
 
--- | Dispatch IMP construct
-dispatchConstruct :: Construct -> REPL IO ()
-dispatchConstruct construct = do
-    trace <- gets _trace
-    state <- gets _state
-    case construct of
-        Statement stm -> do
-            state' <- liftIMP $ execute (stm, state)
-            modify $ \st -> st {_state = state', _trace = stm : trace}
-        Arithmetic aexp -> 
-            liftIO . print $ evaluate aexp state
-        Boolean bexp -> 
-            liftIO . putStrLn $ if evaluate bexp state then "true" else "false"
-        Whitespace -> return ()
+-- | Dispatcher for 'IMP.Syntax.Construct' with IO backend.
+instance Dispatches IO Construct where
+    dispatch construct = do
+        trace <- gets _trace
+        state <- gets _state
+        case construct of
+            Statement stm -> do
+                state' <- liftIMP $ execute (stm, state)
+                modify $ \st -> st {_state = state', _trace = stm : trace}
+            Arithmetic aexp -> 
+                liftIO . print $ evaluate aexp state
+            Boolean bexp -> 
+                liftIO . putStrLn $ if evaluate bexp state then "true" else "false"
+            Whitespace -> return ()
 
--- | Dispatch meta command (uses functions from REPL.State)
-dispatchCommand :: Command -> REPL IO ()
-dispatchCommand Quit = return ()
-dispatchCommand command = case command of
-    Help -> help
-    Clear -> liftIO $ putStrLn $ replicate 50 '\n'  -- Simple clear for web
-    Version -> version
-    Reset aspect -> reset aspect
-    Show aspect -> shower aspect
-    Load path -> loadIMP path
-    Write path -> writeIMP path
-    AST element -> ast element
-    Set option -> set option
+-- | Dispatcher for 'IMP.Meta.Command' with IO backend.
+instance Dispatches IO Command where
+    dispatch Quit = return ()
+    dispatch command =
+        case command of
+            Help -> help
+            Clear -> clear
+            Version -> version
+            Reset aspect -> reset aspect
+            Show aspect -> shower aspect
+            Load path -> loadIMP path
+            Write path -> writeIMP path
+            AST element -> ast element
+            Set option -> set option
+            >> loop
+
+-- | Clear the terminal (simple version for web).
+clear :: REPL IO ()
+clear = liftIO $ putStrLn $ replicate 50 '\n'
