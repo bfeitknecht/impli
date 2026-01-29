@@ -23,7 +23,7 @@
       in {
         packages = {
           # Default package builds the native binary
-          default = self.packages.${system}.impli;
+          default = impli;
           
           # Native impli executable
           impli = impli;
@@ -39,7 +39,7 @@
             pkgs.fourmolu        # Code formatter
             pkgs.haskell-language-server  # LSP server for IDE support
             
-            # Build tools
+            # System libraries
             pkgs.zlib
           ];
           
