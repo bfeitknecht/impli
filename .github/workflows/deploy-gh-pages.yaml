@@ -53,6 +53,9 @@ jobs:
 
       - name: Prepare web assets
         run: |
+          # Copy example IMP programs
+          cp docs/examples/*.imp web/static/
+          
           echo "Web assets prepared in web/static/"
           ls -la web/static/
           

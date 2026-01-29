@@ -8,7 +8,7 @@ if (document.readyState === 'loading') {
   init();
 }
 
-function init() {
+async function init() {
   // Create terminal instance
   const term = new Terminal({
     cursorBlink: true,
@@ -34,10 +34,11 @@ function init() {
   // Focus the terminal
   term.focus();
 
-  // Note: When a WASM binary named 'impli.wasm' is placed in the web/static directory,
-  // users can run it by typing 'impli' in the terminal.
-  // The binary will be automatically fetched and executed.
-
-  console.log('impli WASM terminal initialized');
-  console.log('Place impli.wasm in the same directory to enable execution');
+  // Auto-launch impli.wasm on startup
+  console.log('Launching impli WASM...');
+  
+  // Wait a moment for terminal to be ready, then execute impli
+  setTimeout(() => {
+    wasmterm.exec('impli');
+  }, 100);
 }
