@@ -40,8 +40,8 @@ jobs:
             wasm32-wasi-cabal update
             wasm32-wasi-cabal build exe:impli-web
             
-            # Find and copy the WASM binary
-            WASM_BIN=$(find dist-newstyle -name impli-web -type f | grep wasm32)
+            # Get the WASM binary path using list-bin
+            WASM_BIN=$(wasm32-wasi-cabal list-bin -v0 exe:impli-web)
             if [ -z "$WASM_BIN" ]; then
               echo "Error: WASM binary not found"
               exit 1
