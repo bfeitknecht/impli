@@ -15,7 +15,7 @@
     # Toolchain providing wasm32-wasi-cabal, wasm32-wasi-ghc, etc.
     wasmPkgs = ghc-wasm-meta.packages.${system}.all_9_12;
 
-    # WASM Haskell package set for building WASM packages with callCabal2nix
+    # WASM Haskell package set for building WASM packages
     wasmHaskellPkgs = ghc-wasm-meta.packages.${system}.ghc-wasm32-wasi;
 
     shellMessage = ''
@@ -40,10 +40,13 @@
     '';
   in {
     packages.${system} = {
-      # Build WASM binary using the WASM Haskell package set
-      # callCabal2nix takes: package-name, source-path, overrides
-      # The package name "impli" must match the name in impli.cabal
-      impli-web = wasmHaskellPkgs.callCabal2nix "impli" ./. {};
+      # Build only the impli-web executable for WASM
+      # Disable tests and specify to build only exe:impli-web component
+      impli-web = pkgs.haskell.lib.compose.overrideCabal (drv: {
+        doCheck = false;
+        # Specify which components to build - only the library and impli-web
+        buildTarget = "lib:impli exe:impli-web";
+      }) (wasmHaskellPkgs.callCabal2nix "impli" ./. {});
       default = self.packages.${system}.impli-web;
     };
 
