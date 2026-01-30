@@ -1,7 +1,7 @@
 {-# LANGUAGE ConstrainedClassMethods #-}
-{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeApplications #-}
 
 {- |
 Module      : REPL.Execute
