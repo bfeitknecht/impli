@@ -43,26 +43,6 @@ common shared
     random >=1.1 && <1.3,
     transformers >=0.5 && <0.7,
 
-common runnable
-  hs-source-dirs: exe
-  build-depends:
-    ansi-terminal >=0.11 && <1.1,
-    haskeline >=0.8 && <0.9,
-    impli,
-    optparse-applicative >=0.15 && <0.19,
-
-  -- cabal gild: discover exe/** --exclude=**/Web.hs
-  other-modules:
-    CLI
-    Paths_impli
-    REPL.Execute
-    REPL.Meta
-    REPL.Preset
-    REPL.State
-
-  autogen-modules:
-    Paths_impli
-
 library
   import: shared
   hs-source-dirs: src
@@ -81,29 +61,43 @@ library
     IMP.Syntax
 
 executable impli
-  import: shared, runnable
+  import: shared
+  hs-source-dirs: exe
   main-is: Main.hs
+  build-depends:
+    ansi-terminal >=0.11 && <1.1,
+    haskeline >=0.8 && <0.9,
+    impli,
+    optparse-applicative >=0.15 && <0.19,
+
+  -- cabal gild: discover exe/** --exclude=**/Web.hs
+  other-modules:
+    CLI
+    Paths_impli
+    REPL.Execute
+    REPL.Meta
+    REPL.Preset
+    REPL.State
+
+  autogen-modules:
+    Paths_impli
 
 executable impli-web
   import: shared
   hs-source-dirs: exe
   main-is: Web.hs
   build-depends:
-    impli,
+    impli
 
   other-modules:
+    Paths_impli
     REPL.Meta
     REPL.Preset
     REPL.State
     REPL.Web
-    Paths_impli
 
   autogen-modules:
     Paths_impli
-
-  -- Note: No -threaded flag for WASM (threading not supported in wasm32-wasi)
-  ghc-options:
-    -rtsopts
 
 test-suite impli-test
   import: shared
