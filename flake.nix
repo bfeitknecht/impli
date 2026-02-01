@@ -1,3 +1,4 @@
+{
   description = "Flake for development and build of impli with WASM support";
 
   nixConfig = {
