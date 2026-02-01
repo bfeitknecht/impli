@@ -47,6 +47,9 @@
             pname = "impli-web";
             version = "4.0.0.0";
             src = ./.;
+            
+            # Disable Nix sandbox to allow network access for cabal to fetch dependencies
+            __noChroot = true;
 
             # We only need wasmTools. It includes its own cabal-install wrapper.
             # Using pkgs.haskell.packages.*.cabal-install would trigger a heavy rebuild of the Haskell world.
