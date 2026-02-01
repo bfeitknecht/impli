@@ -67,6 +67,8 @@
               mkdir -p $HOME/.cabal
               cat > $HOME/.cabal/config <<EOF
               remote-repo-cache: $HOME/.cabal/packages
+              repository hackage.haskell.org
+                url: https://hackage.haskell.org/
               http-transport: curl
               EOF
               # wasm32-wasi-cabal is a wrapper that handles the GHC WASM backend automatically.
