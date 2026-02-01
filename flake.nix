@@ -8,6 +8,7 @@
   };
 
   outputs = { self, nixpkgs, ghc-wasm-meta, ... }:
+
   let
     system = "x86_64-linux";
     pkgs = import nixpkgs { inherit system; };
@@ -37,18 +38,15 @@
     '';
   in {
     packages.${system} = {
-      # Expose only impli-web as the build target (WASM)
+      # ERROR: this uses the incorrect version of cabal, use the with GHC WASM backend (from ghc-wasm-meta?)
       impli-web = pkgs.haskellPackages.callCabal2nix "impli-web" ./. {};
       default = self.packages.${system}.impli-web;
     };
 
     devShells.${system}.default = pkgs.mkShell {
       buildInputs = [
-        wasmPkgs           # includes wasm32-wasi-cabal and wasm32-wasi-ghc
-        # pkgs.cabal-install # native cabal
-        # pkgs.ghc           # native GHC for use with native cabal
+        wasmPkgs
         pkgs.python3
-        # pkgs.nodejs
         pkgs.fourmolu
         pkgs.brotli
       ];
