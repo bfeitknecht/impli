@@ -21,7 +21,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -32,16 +32,18 @@ jobs:
           nix_path: nixpkgs=channel:nixos-unstable
           extra_nix_config: |
             experimental-features = nix-command flakes
+            extra-substituters = https://ghc-wasm-meta.cachix.org
+            extra-trusted-public-keys = ghc-wasm-meta.cachix.org-1:6C9S967v6XvAizKovS/I844z6o0qR2r3/2DkY7vXGgY=
 
       - name: Build impli-web with WASM backend
         run: |
           # Build the WASM binary using nix build
           nix build .#impli-web -L
-          
+
           # Copy the built WASM binary to web/static
           mkdir -p web/static
-          cp result/bin/impli.wasm web/static/
-          
+          cp result/bin/impli-web.wasm web/static/impli.wasm
+
           echo "WASM binary built successfully"
           ls -lh web/static/impli.wasm
 
@@ -49,24 +51,24 @@ jobs:
         run: |
           # Copy example IMP programs
           cp docs/examples/*.imp web/static/
-          
+
           echo "Web assets prepared in web/static/"
           ls -la web/static/
-          
+
       - name: Upload artifact for GitHub Pages
         uses: actions/upload-pages-artifact@v3
         with:
-          path: 'web/static'
+          path: "web/static"
 
   deploy:
     runs-on: ubuntu-latest
     needs: build
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-    
+
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    
+
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
