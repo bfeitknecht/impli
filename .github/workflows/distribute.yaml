@@ -31,10 +31,18 @@ jobs:
 
       - name: Publish to Hackage
         if: startsWith(github.ref, 'refs/tags/')
-        run: |
-          cabal upload --publish dist-newstyle/sdist/impli-*.tar.gz
         env:
+          HACKAGE_USERNAME: ${{ secrets.HACKAGE_USERNAME }}
           HACKAGE_TOKEN: ${{ secrets.HACKAGE_TOKEN }}
+        run: |
+          if [ -z "$HACKAGE_USERNAME" ] || [ -z "$HACKAGE_TOKEN" ]; then
+            echo "Skipping Hackage publication: credentials not configured"
+            exit 0
+          fi
+          mkdir -p ~/.config/cabal
+          echo "username: $HACKAGE_USERNAME" > ~/.config/cabal/config
+          echo "password: $HACKAGE_TOKEN" >> ~/.config/cabal/config
+          cabal upload --publish dist-newstyle/sdist/impli-*.tar.gz
 
   # Create distribution artifacts
   build-artifacts:
