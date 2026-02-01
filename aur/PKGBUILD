@@ -1,0 +1,32 @@
+# Maintainer: Basil Feitknecht <bfeitknecht@ethz.ch>
+pkgname=impli
+pkgver=4.0.0.0
+pkgrel=1
+pkgdesc="Interpreter for an imperative toy language"
+arch=('x86_64')
+url="https://github.com/bfeitknecht/impli"
+license=('MIT')
+depends=('gmp')
+makedepends=('ghc' 'cabal-install')
+source=("$pkgname-$pkgver.tar.gz::https://github.com/bfeitknecht/impli/archive/refs/tags/v$pkgver.tar.gz")
+sha256sums=('SKIP')
+
+build() {
+    cd "$pkgname-$pkgver"
+    cabal v2-update
+    cabal v2-build exe:impli --ghc-options='-O2 -optl-static'
+}
+
+package() {
+    cd "$pkgname-$pkgver"
+    
+    # Install binary
+    local binpath=$(cabal list-bin exe:impli)
+    install -Dm755 "$binpath" "$pkgdir/usr/bin/impli"
+    
+    # Install man page
+    install -Dm644 docs/man/impli.1 "$pkgdir/usr/share/man/man1/impli.1"
+    
+    # Install license
+    install -Dm644 LICENSE.md "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}
