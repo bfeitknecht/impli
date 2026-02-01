@@ -83,7 +83,6 @@
             ======================================
 
             Available tools:
-              - cabal (native Haskell builds)
               ${
                 if wasmTools != null then
                   "- wasm32-wasi-cabal (WASM builds)\n  - wasm32-wasi-ghc (WASM GHC)"
