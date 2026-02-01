@@ -1,6 +1,6 @@
-{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeApplications #-}
 
 {- |
 Module      : REPL.Web
@@ -19,8 +19,8 @@ module REPL.Web (repl) where
 
 import Control.Monad.Except
 import Control.Monad.State hiding (State, state)
-import System.IO (hFlush, isEOF, stdout)
 import qualified System.Exit as Exit
+import System.IO (hFlush, isEOF, stdout)
 
 import IMP.Exception
 import IMP.Expression
@@ -46,7 +46,7 @@ loop = do
     prompt' <- gets _prompt
     separator' <- gets _separator
     liftIO $ putStr (prompt' ++ separator' : " ") >> hFlush stdout
-    
+
     eof <- liftIO isEOF
     if eof
         then return ()
@@ -76,9 +76,9 @@ instance Dispatches IO Construct where
             Statement stm -> do
                 state' <- liftIMP $ execute (stm, state)
                 modify $ \st -> st {_state = state', _trace = stm : trace}
-            Arithmetic aexp -> 
+            Arithmetic aexp ->
                 liftIO . print $ evaluate aexp state
-            Boolean bexp -> 
+            Boolean bexp ->
                 liftIO . putStrLn $ if evaluate bexp state then "true" else "false"
             Whitespace -> return ()
 

@@ -1,8 +1,8 @@
-{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ConstrainedClassMethods #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE ConstrainedClassMethods #-}
+{-# LANGUAGE RankNTypes #-}
 
 {- |
 Module      : REPL.State
@@ -15,7 +15,7 @@ Portability : portable
 
 Provides shared state, polymorphic REPL monad, and utility functions for REPL modules.
 Similar to IMP.State, this module contains all the core REPL functionality.
-The REPL monad is polymorphic in its base monad to support both haskeline (InputT IO) 
+The REPL monad is polymorphic in its base monad to support both haskeline (InputT IO)
 and pure IO backends.
 -}
 module REPL.State where
