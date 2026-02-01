@@ -61,8 +61,9 @@
 
             installPhase = ''
               mkdir -p $out/bin
-              # Find the resulting binary and copy it as a .wasm file
-              find dist-newstyle -name "impli-web" -type f -exec cp {} $out/bin/impli-web.wasm \;
+              # Use cabal list-bin to locate the built binary
+              BINARY_PATH=$(wasm32-wasi-cabal list-bin impli-web --project-file=cabal.project)
+              cp "$BINARY_PATH" $out/bin/impli-web.wasm
               # Create a symlink without extension for common tooling
               ln -s impli-web.wasm $out/bin/impli-web
             '';
