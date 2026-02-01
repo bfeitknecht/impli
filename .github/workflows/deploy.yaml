@@ -42,10 +42,10 @@ jobs:
 
           # Copy the built WASM binary to web/static
           mkdir -p web/static
-          cp result/bin/impli-web.wasm web/static/impli.web
+          cp result/bin/impli-web.wasm web/static/impli.wasm
 
           echo "WASM binary built successfully"
-          ls -lh web/static/impli.web
+          ls -lh web/static/impli.wasm
 
       - name: Prepare web assets
         run: |
