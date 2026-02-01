@@ -64,7 +64,7 @@
               # Find the resulting binary and copy it as a .wasm file
               find dist-newstyle -name "impli-web" -type f -exec cp {} $out/bin/impli-web.wasm \;
               # Create a symlink without extension for common tooling
-              ln -s $out/bin/impli-web.wasm $out/bin/impli-web
+              ln -s impli-web.wasm $out/bin/impli-web
             '';
           };
 
