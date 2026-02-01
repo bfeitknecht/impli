@@ -1,103 +1,103 @@
 name: Build binary and release
 
 on:
-    push:
-        tags:
-            - "v*"
-    pull_request:
-        branches: [master]
-    workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
 
 permissions:
-    contents: write
+  contents: write
 
 jobs:
-    build:
-        name: Build on ${{ matrix.os }}
-        runs-on: ${{ matrix.os }}
-        strategy:
-            fail-fast: false
-            matrix:
-                os: [ubuntu-latest, macos-latest, windows-latest]
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
 
-        steps:
-            - name: Checkout repo
-              uses: actions/checkout@v4
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
 
-            - name: Set up Haskell
-              id: setup-haskell
-              uses: haskell-actions/setup@v2
-              with:
-                  ghc-version: "9.10.2"
-                  cabal-version: "3.12"
+      - name: Set up Haskell
+        id: setup-haskell
+        uses: haskell-actions/setup@v2
+        with:
+          ghc-version: "9.10.2"
+          cabal-version: "3.12"
 
-            - name: Cache Cabal store
-              uses: actions/cache@v4
-              with:
-                  path: ${{ steps.setup-haskell.outputs.cabal-store }}
-                  key: ${{ runner.os }}-cabal
+      - name: Cache Cabal store
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.setup-haskell.outputs.cabal-store }}
+          key: ${{ runner.os }}-cabal
 
-            - name: Build impli
-              run: |
-                  cabal update
-                  cabal build exe:impli
+      - name: Build impli
+        run: |
+          cabal update
+          cabal build exe:impli
 
-            - name: Upload executable to artifacts
-              shell: bash
-              run: |
-                  mkdir -p artifacts
+      - name: Upload executable to artifacts
+        shell: bash
+        run: |
+          mkdir -p artifacts
 
-                  # Platform detection
-                  ARCH=$(uname -m)
+          # Platform detection
+          ARCH=$(uname -m)
 
-                  # Normalize architecture name
-                  if [[ "$ARCH" == "arm64" ]]; then
-                    ARCH="aarch64"
-                  elif [[ "$ARCH" == "x86_64" || "$ARCH" == "amd64" ]]; then
-                    ARCH="x86_64"
-                  fi
+          # Normalize architecture name
+          if [[ "$ARCH" == "arm64" ]]; then
+            ARCH="aarch64"
+          elif [[ "$ARCH" == "x86_64" || "$ARCH" == "amd64" ]]; then
+            ARCH="x86_64"
+          fi
 
-                  # Normalize OS name
-                  if [[ "$RUNNER_OS" == "Windows" ]]; then
-                    OS="windows"
-                    EXT=".exe"
-                  elif [[ "$RUNNER_OS" == "macOS" ]]; then
-                    OS="darwin"
-                    EXT=""
-                  else
-                    OS="linux"
-                    EXT=""
-                  fi
+          # Normalize OS name
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            OS="windows"
+            EXT=".exe"
+          elif [[ "$RUNNER_OS" == "macOS" ]]; then
+            OS="darwin"
+            EXT=""
+          else
+            OS="linux"
+            EXT=""
+          fi
 
-                  SYSTEM="${ARCH}-${OS}"
+          SYSTEM="${ARCH}-${OS}"
 
-                  # Use cabal list-bin to locate the binary
-                  BIN=$(cabal list-bin exe:impli)
+          # Use cabal list-bin to locate the binary
+          BIN=$(cabal list-bin exe:impli)
 
-                  if [[ -z "$BIN" || ! -f "$BIN" ]]; then
-                    echo "ERROR: Could not find compiled binary"
-                    exit 1
-                  fi
+          if [[ -z "$BIN" || ! -f "$BIN" ]]; then
+            echo "ERROR: Could not find compiled binary"
+            exit 1
+          fi
 
-                  # Copy and rename with platform suffix
-                  cp "$BIN" "artifacts/impli-${SYSTEM}${EXT}"
+          # Copy and rename with platform suffix
+          cp "$BIN" "artifacts/impli-${SYSTEM}${EXT}"
 
-                  # Make it executable and strip on Unix
-                  if [[ "$OS" != "windows" ]]; then
-                    chmod +x "artifacts/impli-${SYSTEM}${EXT}"
-                    strip "artifacts/impli-${SYSTEM}${EXT}" 2>/dev/null || true
-                  fi
+          # Make it executable and strip on Unix
+          if [[ "$OS" != "windows" ]]; then
+            chmod +x "artifacts/impli-${SYSTEM}${EXT}"
+            strip "artifacts/impli-${SYSTEM}${EXT}" 2>/dev/null || true
+          fi
 
-            - name: Get latest Git tag (fallback)
-              if: github.event_name == 'workflow_dispatch'
-              id: get_tag
-              run: |
-                  echo "tag=$(git describe --tags --abbrev=0)" >> "$GITHUB_OUTPUT"
+      - name: Get latest Git tag (fallback)
+        if: github.event_name == 'workflow_dispatch'
+        id: get_tag
+        run: |
+          echo "tag=$(git describe --tags --abbrev=0)" >> "$GITHUB_OUTPUT"
 
-            - name: Upload to GitHub Release
-              if: startsWith(github.ref, 'refs/tags/')
-              uses: softprops/action-gh-release@v1
-              with:
-                  files: artifacts/*
-              env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: artifacts/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
