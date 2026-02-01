@@ -57,16 +57,16 @@ jobs:
         run: mkdir -p artifacts
 
       - name: Copy Nix package
-        run: cp -r nixpkgs artifacts/
+        run: cp -r package/nixpkgs artifacts/
 
       - name: Copy Homebrew formula
-        run: cp homebrew/impli.rb artifacts/
+        run: cp package/homebrew/impli.rb artifacts/
 
       - name: Copy Debian package files
-        run: cp -r debian artifacts/
+        run: cp -r package/debian artifacts/
 
       - name: Copy AUR PKGBUILD
-        run: cp aur/PKGBUILD artifacts/
+        run: cp package/aur/PKGBUILD artifacts/
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -99,14 +99,14 @@ jobs:
         run: |
           VERSION=${{ steps.get_version.outputs.VERSION }}
           SHA256=${{ steps.calc_sha.outputs.SHA256 }}
-          sed -i "s|url \".*\"|url \"https://github.com/bfeitknecht/impli/archive/refs/tags/v${VERSION}.tar.gz\"|" homebrew/impli.rb
-          sed -i "s|sha256 \".*\"|sha256 \"${SHA256}\"|" homebrew/impli.rb
+          sed -i "s|url \".*\"|url \"https://github.com/bfeitknecht/impli/archive/refs/tags/v${VERSION}.tar.gz\"|" package/homebrew/impli.rb
+          sed -i "s|sha256 \".*\"|sha256 \"${SHA256}\"|" package/homebrew/impli.rb
 
       - name: Upload updated formula
         uses: actions/upload-artifact@v4
         with:
           name: homebrew-formula
-          path: homebrew/impli.rb
+          path: package/homebrew/impli.rb
 
   # Update AUR PKGBUILD with correct SHA
   update-aur:
@@ -133,14 +133,14 @@ jobs:
         run: |
           VERSION=${{ steps.get_version.outputs.VERSION }}
           SHA256=${{ steps.calc_sha.outputs.SHA256 }}
-          sed -i "s|pkgver=.*|pkgver=${VERSION}|" aur/PKGBUILD
-          sed -i "s|sha256sums=.*|sha256sums=('${SHA256}')|" aur/PKGBUILD
+          sed -i "s|pkgver=.*|pkgver=${VERSION}|" package/aur/PKGBUILD
+          sed -i "s|sha256sums=.*|sha256sums=('${SHA256}')|" package/aur/PKGBUILD
 
       - name: Upload updated PKGBUILD
         uses: actions/upload-artifact@v4
         with:
           name: aur-pkgbuild
-          path: aur/PKGBUILD
+          path: package/aur/PKGBUILD
 
   # Update Debian changelog
   update-debian:
@@ -159,7 +159,7 @@ jobs:
         run: |
           VERSION=${{ steps.get_version.outputs.VERSION }}
           DATE=$(date -R)
-          cat > debian/changelog << EOF
+          cat > package/debian/changelog << EOF
           impli (${VERSION}-1) unstable; urgency=low
 
             * New upstream release ${VERSION}.
@@ -171,7 +171,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: debian-package
-          path: debian/
+          path: package/debian/
 
   # Create release with updated distribution files
   create-release-notes:
@@ -218,7 +218,7 @@ jobs:
           ```
 
           ### Debian/Ubuntu
-          Build and install from source using the debian/ directory.
+          Build and install from source using the package/debian/ directory.
 
           ---
 

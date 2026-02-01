@@ -48,7 +48,7 @@ The workflow automatically:
 
 **Manual steps**:
 1. Fork [homebrew-core](https://github.com/Homebrew/homebrew-core)
-2. Add the formula from `homebrew/impli.rb`
+2. Add the formula from `package/homebrew/impli.rb`
 3. Submit a pull request
 
 Or create a custom tap:
@@ -63,7 +63,7 @@ brew tap bfeitknecht/tap
 
 **Manual steps**:
 1. Fork [nixpkgs](https://github.com/NixOS/nixpkgs)
-2. Add the package derivation from `nixpkgs/default.nix` to `pkgs/by-name/im/impli/package.nix`
+2. Add the package derivation from `package/nixpkgs/default.nix` to `pkgs/by-name/im/impli/package.nix`
 3. Submit a pull request following [contribution guidelines](https://github.com/NixOS/nixpkgs/blob/master/CONTRIBUTING.md)
 
 ### 4. AUR (Arch User Repository)
@@ -79,7 +79,7 @@ The workflow automatically:
    ```bash
    git clone ssh://aur@aur.archlinux.org/impli.git
    ```
-2. Copy `aur/PKGBUILD` to the cloned repository
+2. Copy `package/aur/PKGBUILD` to the cloned repository
 3. Generate `.SRCINFO`:
    ```bash
    makepkg --printsrcinfo > .SRCINFO
