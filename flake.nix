@@ -50,10 +50,17 @@
 
             # We only need wasmTools. It includes its own cabal-install wrapper.
             # Using pkgs.haskell.packages.*.cabal-install would trigger a heavy rebuild of the Haskell world.
-            nativeBuildInputs = [ wasmTools ];
+            # We also need cacert for HTTPS support when fetching from Hackage.
+            nativeBuildInputs = [
+              wasmTools
+              pkgs.cacert
+            ];
 
             buildPhase = ''
               export HOME=$TMPDIR
+              # Ensure SSL certificates are available for HTTPS
+              export SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt
+              export NIX_SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt
               # wasm32-wasi-cabal is a wrapper that handles the GHC WASM backend automatically.
               # We use --project-file=cabal.project to ensure we pick up local configuration.
               wasm32-wasi-cabal build impli-web --project-file=cabal.project

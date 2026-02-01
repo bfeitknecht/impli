@@ -37,12 +37,12 @@ jobs:
 
       - name: Build impli-web with WASM backend
         run: |
-          # Build the WASM binary using nix build
-          nix build .#impli-web -L
+          # Build the WASM binary using nix build with --accept-flake-config to trust binary cache
+          nix build .#impli-web -L --accept-flake-config
 
-          # Copy the built WASM binary to web/static
+          # Copy the built WASM binary to web/static with the correct name (impli.wasm)
           mkdir -p web/static
-          cp result/bin/impli.wasm web/static/
+          cp result/bin/impli-web.wasm web/static/impli.wasm
 
           echo "WASM binary built successfully"
           ls -lh web/static/impli.wasm
