@@ -1,33 +1,33 @@
 name: Test formatting
 
 on:
-    push:
-        branches: [master]
-    pull_request:
-    workflow_dispatch:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
 
 permissions:
-    contents: read
+  contents: read
 
 jobs:
-    format:
-        runs-on: ubuntu-latest
+  format:
+    runs-on: ubuntu-latest
 
-        steps:
-            - name: Checkout repository
-              uses: actions/checkout@v4
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-            - name: Set up Haskell
-              uses: haskell-actions/setup@v2
-              with:
-                  ghc-version: "9.10.2"
-                  cabal-version: "3.12"
+      - name: Set up Haskell
+        uses: haskell-actions/setup@v2
+        with:
+          ghc-version: "9.10.2"
+          cabal-version: "3.12"
 
-            - name: Install fourmolu
-              run: |
-                  cabal update
-                  cabal install fourmolu-0.16.2.0
+      - name: Install fourmolu
+        run: |
+          cabal update
+          cabal install fourmolu-0.16.2.0
 
-            - name: Check formatting
-              run: |
-                  fourmolu --mode check $(git ls-files '*.hs')
+      - name: Check formatting
+        run: |
+          fourmolu --mode check $(git ls-files '*.hs')
