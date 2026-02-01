@@ -20,8 +20,8 @@ jobs:
       - name: Set up Haskell
         uses: haskell-actions/setup@v2
         with:
-          ghc-version: "9.10.2"
-          cabal-version: "3.12"
+          ghc-version: "9.12.2"
+          cabal-version: "3.14"
 
       - name: Install fourmolu
         run: |
