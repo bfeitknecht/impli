@@ -38,7 +38,8 @@ jobs:
       - name: Build impli-web with WASM backend
         run: |
           # Build the WASM binary using nix build with --accept-flake-config to trust binary cache
-          nix build .#impli-web -L --accept-flake-config
+          # Disable sandbox to allow network access for cabal to fetch dependencies
+          nix build .#impli-web -L --accept-flake-config --option sandbox false
 
           # Copy the built WASM binary to web/static with the correct name (impli.wasm)
           mkdir -p web/static
