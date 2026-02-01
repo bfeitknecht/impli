@@ -39,7 +39,7 @@
   in {
     packages.${system} = {
       # ERROR: this uses the incorrect version of cabal, use the with GHC WASM backend (from ghc-wasm-meta?)
-      impli-web = pkgs.haskellPackages.callCabal2nix "impli-web" ./. {};
+      impli-web = wasmPkgs.wasm32-wasi-ghc.haskellPackages.haskellPackages.callCabal2nix "impli-web" ./. {};
       default = self.packages.${system}.impli-web;
     };
 
