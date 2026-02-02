@@ -3,6 +3,10 @@
 
 // Impli subclass of WasmWebTerm that auto-launches the impli REPL
 class Impli extends WasmWebTerm.default {
+  // Suppress the default welcome message  
+  async printWelcomeMessagePlusControlSequences() {  
+    return "\x1bc"; // Just clear terminal without any text  
+  }  
   async activate(xterm) {
     await super.activate(xterm); // sets up addons, registers JS commands
     // Skip the default REPL by not calling this.repl()
