@@ -103,8 +103,8 @@
                       export CC_FOR_BUILD=$CC
                     '';
                   });
-                  # Build the impli package which includes impli-web executable
-                  impli-web = hfinal.callCabal2nix "impli-web" ./. { };
+                  # Build the impli package which includes both executables
+                  impli = hfinal.callCabal2nix "impli" ./. { };
                 })
               ];
             };
@@ -121,7 +121,8 @@
           haskellPackages = wasmPackages.haskell.packages.${ghc};
         in
         {
-          impli-web = haskellPackages.impli-web;
+          # Reference the impli-web executable from the impli package
+          impli-web = haskellPackages.impli;
           default = self.packages.x86_64-linux.impli-web;
         };
 
