@@ -3,30 +3,41 @@
 
 // Impli subclass of WasmWebTerm that auto-launches the impli REPL
 class Impli extends WasmWebTerm.default {
-  // Suppress the default welcome message
   printWelcomeMessagePlusControlSequences() {
-    // https://patorjk.com/software/taag/#p=display&f=Broadway+KB&t=impli
-    const logo = `\
-     _   _      ___   _     _\r
-    | | | |\\/| | |_) | |   | |\r
-    |_| |_|  | |_|   |_|__ |_|\r\n\n`;
+    const dedent = (strings, ...values) => {
+      let raw = "";
+      for (let i = 0; i < strings.length; i++) {
+        raw += strings[i];
+        if (i < values.length) raw += values[i];
+      }
+      const lines = raw.split("\n");
+      const normalized = lines.map((line) => line.replace(/^[ \t]+/, ""));
+      return normalized.join("\r\n") + "\r\n";
+    };
 
-    const message =
-      `\
-      Execute IMP statements in the browser and inspect the resulting state.\r
-      Made with <3 by Basil Feitknecht` + "\n\n";
+    // https://patorjk.com/software/taag/#p=display&f=Broadway+KB&t=impli
+    const logo = dedent`\x1bc
+       _   _      ___   _     _
+      | | | |\\/| | |_) | |   | |
+      |_| |_|  | |_|   |_|__ |_|`;
+
+    const message = dedent`\
+      Execute IMP statements in the browser and inspect the resulting state.
+      Made with <3 by Basil Feitknecht`;
 
     return logo + message;
   }
-  /*
+
   async activate(xterm) {
-    await super.activate(xterm); // sets up addons, registers JS commands
-    // Skip the default REPL by not calling this.repl()
-    // Instead, directly launch impli WASM in interactive mode
-    // The WASM binary will print its own welcome message
-    await this.runWasmCommand("impli");
+    // Set up addons, registers JS commands
+    await super.activate(xterm);
+
+    // Run interactive impli REPL
+    await this.runWasmCommand("impli", []);
+
+    // How did we get here?
+    // this.repl();
   }
-  */
 }
 
 // Initialize everything when WebWorker is ready
