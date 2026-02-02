@@ -10,13 +10,30 @@
     "liga" 0;
 }
 
+/* Terminal theme variables */
+:root {
+  --terminal-bg: #ffffff;
+  --terminal-fg: #000000;
+  --terminal-cursor: #000000;
+  --terminal-selection: #add6ff;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --terminal-bg: #1e1e1e;
+    --terminal-fg: #d4d4d4;
+    --terminal-cursor: #ffffff;
+    --terminal-selection: #264f78;
+  }
+}
+
 body {
   margin: 0;
   padding: 0;
   height: 100vh;
   overflow: hidden;
-  background: #222;
-  color: #eee;
+  background: var(--terminal-bg);
+  color: var(--terminal-fg);
   font-family: "CommitMono", monospace;
   display: flex;
   flex-direction: column;
@@ -33,4 +50,13 @@ body {
 
 .xterm {
   height: 100%;
+}
+
+/* Ensure xterm cursor and selection align with CSS variables where possible */
+.xterm .xterm-helpers .xterm-helper-textarea {
+  caret-color: var(--terminal-cursor);
+}
+
+.xterm ::selection {
+  background: var(--terminal-selection);
 }

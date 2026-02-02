@@ -6,15 +6,14 @@ class Impli extends WasmWebTerm.default {
   // Suppress the default welcome message
   printWelcomeMessagePlusControlSequences() {
     // https://patorjk.com/software/taag/#p=display&f=Broadway+KB&t=impli
-    const logo =
-      `\
-     _   _      ___   _     _
-    | | | |\\/| | |_) | |   | |
-    |_| |_|  | |_|   |_|__ |_|` + "\n\n";
+    const logo = `\
+     _   _      ___   _     _\r
+    | | | |\\/| | |_) | |   | |\r
+    |_| |_|  | |_|   |_|__ |_|\r\n\n`;
 
     const message =
       `\
-      Execute IMP statements in the browser and inspect the resulting state.
+      Execute IMP statements in the browser and inspect the resulting state.\r
       Made with <3 by Basil Feitknecht` + "\n\n";
 
     return logo + message;
@@ -47,12 +46,30 @@ async function init() {
     cursorBlink: true,
     fontFamily: '"CommitMono", "Courier New", monospace',
     fontSize: 13,
+    theme: getThemeFromCSS(),
+  });
+
+  // Apply theme from CSS
+  const applyThemeStyle = () => terminal.setOption("theme", getThemeStyle());
+
+  // Re-apply on system theme changes (CSS media query updates variables)
+  const mql = window.matchMedia("(prefers-color-scheme: dark)");
+  if ("addEventListener" in mql) {
+    mql.addEventListener("change", applyThemeStyle);
+  } else if ("addListener" in mql) {
+    mql.addListener(applyThemeStyle);
+  }
+
+  // Observe :root style changes to catch manual CSS variable overrides
+  const observer = new MutationObserver(applyThemeStyle);
+  observer.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ["style", "class"],
   });
 
   // Create Impli addon (extends wasm-webterm)
   // The first parameter is the path to predelivered binaries
   const impli = new Impli("./");
-  // const impli = new WasmWebTerm.default("./");
 
   // Load the addon into the terminal
   terminal.loadAddon(impli);
@@ -67,7 +84,19 @@ async function init() {
   console.log("Launching impli WASM...");
 
   // Run impli WASM REPL
-  impli.runWasmCommand("impli", []);
+  // impli.runWasmCommand("impli", []);
+}
+
+function getThemeFromCSS() {
+  const getStyleVar = (name) =>
+    getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
+  return {
+    background: getStyleVar("--terminal-bg") || undefined,
+    foreground: getStyleVar("--terminal-fg") || undefined,
+    cursor: getStyleVar("--terminal-cursor") || undefined,
+    selectionBackground: getStyleVar("--terminal-selection") || undefined,
+  };
 }
 
 // Register ServiceWorker to enable WebWorker
