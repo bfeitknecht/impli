@@ -49,6 +49,9 @@ jobs:
 
       - name: Prepare web assets
         run: |
+          # Copy web interface files
+          cp web/*.html web/*.js web/*.css web/*.woff2 web/*.ico web/*.png web/static/
+          
           # Copy example IMP programs
           cp docs/examples/*.imp web/static/
 
