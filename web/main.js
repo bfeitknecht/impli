@@ -19,7 +19,8 @@ class Impli extends WasmWebTerm.default {
     const logo = dedent`\x1bc\x1b[1m
       ,_  ,_     ,___  ,_    ,_
       | | | |\\/| | |_) | |   | |
-      |_| |_|  | |_|   |_|__ |_|\x1b[0m`;
+      |_| |_|  | |_|   |_|__ |_|
+      \x1b[0m`;
 
     const message = dedent`\
       Execute IMP statements in the browser and inspect the resulting state.
@@ -38,7 +39,7 @@ class Impli extends WasmWebTerm.default {
     console.log = () => {};
     try {
       await super.activate(xterm); // Set up addons, registers JS commands
-      await this.runWasmCommand("impli", []); // Run interactive impli REPL
+      await this.runWasmCommand("impli", []); // Run WASM impli REPL
     } catch (err) {
       console.log = backup;
       console.log(err);
@@ -99,11 +100,8 @@ async function init() {
   // Focus the terminal
   terminal.focus();
 
-  // impli WASM will be automatically launched by the Impli.activate() method
+  // WASM impli REPL will be automatically launched by the Impli.activate() method
   console.log("[INFO] Launching WASM impli REPL");
-
-  // Run impli WASM REPL
-  // impli.runWasmCommand("impli", []);
 }
 
 // Get xterm theme from CSS
