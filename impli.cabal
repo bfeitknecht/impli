@@ -15,11 +15,11 @@ description:
 
 extra-doc-files:
   CHANGELOG.md
-  IMP.ebnf
+  docs/IMP.ebnf
   README.md
 
 extra-source-files:
-  IMP.ebnf
+  docs/IMP.ebnf
   docs/examples/*.imp
   docs/man/impli.1
 
@@ -44,14 +44,14 @@ common shared
     transformers >=0.5 && <0.7,
 
 common runnable
-  hs-source-dirs: exe
+  hs-source-dirs: src
   build-depends:
     ansi-terminal >=0.11 && <1.1,
     haskeline >=0.8 && <0.9,
     impli,
     optparse-applicative >=0.15 && <0.19,
 
-  -- cabal gild: discover exe/** --exclude=**/Web.hs
+  -- cabal gild: discover src/** --exclude=**/Web.hs --exclude=**/IMP/**
   other-modules:
     CLI
     Paths_impli
@@ -66,7 +66,7 @@ common runnable
 library
   import: shared
   hs-source-dirs: src
-  -- cabal-gild: discover src
+  -- cabal-gild: discover src/IMP
   exposed-modules:
     IMP.Config
     IMP.Exception
@@ -86,7 +86,7 @@ executable impli
 
 executable impli-web
   import: shared
-  hs-source-dirs: exe
+  hs-source-dirs: src
   main-is: Web.hs
   build-depends:
     impli,
