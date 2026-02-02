@@ -51,7 +51,7 @@ async function init() {
 
   // Create Impli addon (extends wasm-webterm)
   // The first parameter is the path to predelivered binaries
-  const impli = new Impli.default("./");
+  const impli = new Impli("./");
   // const impli = new WasmWebTerm.default("./");
 
   // Load the addon into the terminal
@@ -63,11 +63,11 @@ async function init() {
   // Focus the terminal
   terminal.focus();
 
-  // Run impli WASM REPL
-  // impli.runWasmCommand("impli");
-
   // impli WASM will be automatically launched by the Impli.activate() method
-  // onsole.log("Launching impli WASM...");
+  console.log("Launching impli WASM...");
+
+  // Run impli WASM REPL
+  impli.runWasmCommand("impli", []);
 }
 
 // Register ServiceWorker to enable WebWorker
