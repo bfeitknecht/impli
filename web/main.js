@@ -1,7 +1,7 @@
 // Main script for impli WASM web interface
-// Uses wasm-webterm to run the impli WASM binary in the browser
+// Uses wasm-webterm to run impli WASM binary in the browser
 
-// Impli subclass of WasmWebTerm that auto-launches the impli REPL
+// Impli subclass of WasmWebTerm that auto-launches impli REPL
 class Impli extends WasmWebTerm.default {
   printWelcomeMessagePlusControlSequences() {
     const dedent = (strings, ...values) => {
@@ -16,9 +16,9 @@ class Impli extends WasmWebTerm.default {
     };
 
     // https://patorjk.com/software/taag/#p=display&f=Broadway+KB&t=impli
-    const logo = dedent`\x1bc\x1b[1m\
+    const logo = dedent`\x1bc\x1b[1m
       ,_  ,_     ,___  ,_    ,_
-      | | | |\/| | |_) | |   | |
+      | | | |\\/| | |_) | |   | |
       |_| |_|  | |_|   |_|__ |_|\x1b[0m`;
 
     const message = dedent`\
@@ -28,18 +28,23 @@ class Impli extends WasmWebTerm.default {
     return logo + message;
   }
 
-  // Disable REPL
+  // Disable WasmWebTerm REPL
   repl() {}
 
+  // Start impli REPL
   async activate(xterm) {
-    // Set up addons, registers JS commands
-    await super.activate(xterm);
-
-    // Run interactive impli REPL
-    await this.runWasmCommand("impli", []);
-
-    // How did we get here?
-    // this.repl();
+    const backup = console.log;
+    // Surpress annoying log messages
+    console.log = () => {};
+    try {
+      await super.activate(xterm); // Set up addons, registers JS commands
+      await this.runWasmCommand("impli", []); // Run interactive impli REPL
+    } catch (err) {
+      console.log = backup;
+      console.log(err);
+    } finally {
+      console.log = backup;
+    }
   }
 }
 
@@ -60,7 +65,7 @@ async function init() {
     cursorBlink: true,
     fontFamily: '"CommitMono", "Courier New", monospace',
     fontSize: 13,
-    theme: getThemeFromCSS(),
+    theme: getThemeStyle(),
   });
 
   // Apply theme from CSS
@@ -101,7 +106,8 @@ async function init() {
   // impli.runWasmCommand("impli", []);
 }
 
-function getThemeFromCSS() {
+// Get xterm theme from CSS
+function getThemeStyle() {
   const getStyleVar = (name) =>
     getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 
