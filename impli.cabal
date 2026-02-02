@@ -70,7 +70,7 @@ executable impli
     impli,
     optparse-applicative >=0.15 && <0.19,
 
-  -- cabal-gild: discover src/** --exclude=**/Web.hs --exclude=**/IMP/**
+  -- cabal gild: discover src/** --exclude=**/Web.hs --exclude=**/IMP/**
   other-modules:
     CLI
     Paths_impli
@@ -89,7 +89,7 @@ executable impli-web
   build-depends:
     impli,
 
-  -- cabal-gild: discover src/** --exclude=**/Main.hs --exclude=**/CLI.hs --exclude=**/IMP/** --exclude=**/REPL/Execute.hs
+  -- cabal gild: discover src/** --exclude=**/Main.hs --exclude=**/CLI.hs --exclude=**/IMP/** --exclude=**/REPL/Execute.hs
   other-modules:
     Paths_impli
     REPL.Meta
