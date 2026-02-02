@@ -44,6 +44,9 @@ jobs:
       - name: Copy Homebrew formula
         run: cp package/homebrew/impli.rb artifacts/
 
+      - name: Copy Debian package files
+        run: cp -r package/debian artifacts/
+
       - name: Copy AUR PKGBUILD
         run: cp package/aur/PKGBUILD artifacts/
 
@@ -53,26 +56,50 @@ jobs:
           name: distribution-files
           path: artifacts/
 
-  # Homebrew release using marketplace action
+  # Update Homebrew formula for homebrew-core submission
   homebrew:
-    name: Release to Homebrew
+    name: Update Homebrew formula
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Release to Homebrew tap
-        uses: Homebrew/actions/homebrew-releaser@master
+      - name: Get version from tag
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Calculate SHA256
+        id: calc_sha
+        run: |
+          VERSION=${{ steps.get_version.outputs.VERSION }}
+          curl -L -o /tmp/impli.tar.gz "https://github.com/bfeitknecht/impli/archive/refs/tags/v${VERSION}.tar.gz"
+          SHA256=$(sha256sum /tmp/impli.tar.gz | awk '{print $1}')
+          echo "SHA256=${SHA256}" >> $GITHUB_OUTPUT
+
+      - name: Update Homebrew formula
+        run: |
+          VERSION=${{ steps.get_version.outputs.VERSION }}
+          SHA256=${{ steps.calc_sha.outputs.SHA256 }}
+          sed -i "s|url \".*\"|url \"https://github.com/bfeitknecht/impli/archive/refs/tags/v${VERSION}.tar.gz\"|" package/homebrew/impli.rb
+          sed -i "s|sha256 \".*\"|sha256 \"${SHA256}\"|" package/homebrew/impli.rb
+
+      - name: Create PR to homebrew-core
+        uses: mislav/bump-homebrew-formula-action@v3
+        if: "!contains(github.ref, '-')" # Skip for pre-releases
         with:
-          owner: bfeitknecht
-          repo: homebrew-tap
-          formula: package/homebrew/impli.rb
-          tap_token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
-          install: |
-            system "cabal", "v2-update"
-            system "cabal", "v2-install", "--install-method=copy", "--installdir=#{bin}"
-            man1.install "docs/man/impli.1"
+          formula-name: impli
+          formula-path: package/homebrew/impli.rb
+          homebrew-tap: Homebrew/homebrew-core
+          download-url: https://github.com/bfeitknecht/impli/archive/refs/tags/v${{ steps.get_version.outputs.VERSION }}.tar.gz
+        env:
+          COMMITTER_TOKEN: ${{ secrets.HOMEBREW_GITHUB_API_TOKEN }}
+
+      - name: Upload updated formula
+        uses: actions/upload-artifact@v4
+        with:
+          name: homebrew-formula
+          path: package/homebrew/impli.rb
 
   # Update AUR PKGBUILD with correct SHA
   update-aur:
@@ -108,7 +135,7 @@ jobs:
           name: aur-pkgbuild
           path: package/aur/PKGBUILD
 
-  # Build Debian package using marketplace action
+  # Build Debian package
   debian:
     name: Build Debian package
     runs-on: ubuntu-latest
@@ -116,6 +143,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Copy debian directory to root for build
+        run: cp -r package/debian .
 
       - name: Build Debian package
         uses: jtdor/build-deb-action@v1
@@ -152,9 +182,9 @@ jobs:
           Published to Hackage: https://hackage.haskell.org/package/impli
 
           ### Homebrew
-          Install via Homebrew tap:
+          After initial PR to homebrew-core is merged, updates are automatic.
+          Install via:
           ```bash
-          brew tap bfeitknecht/tap
           brew install impli
           ```
 
@@ -186,6 +216,7 @@ jobs:
         with:
           body_path: release-notes.md
           files: |
+            homebrew-formula/impli.rb
             aur-pkgbuild/PKGBUILD
             debian-packages/*.deb
         env:

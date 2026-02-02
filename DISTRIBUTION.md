@@ -12,10 +12,10 @@ The following secrets need to be configured in the GitHub repository settings:
    - Generate at: https://hackage.haskell.org/users/account-management
    - Required for automated Hackage publication
 
-2. **HOMEBREW_TAP_TOKEN**: GitHub personal access token for Homebrew tap
+2. **HOMEBREW_GITHUB_API_TOKEN**: GitHub personal access token for Homebrew
    - Create at: https://github.com/settings/tokens
-   - Required permissions: `repo` and `workflow`
-   - Required for automated Homebrew tap updates
+   - Required permissions: `public_repo` (or `repo` for private repos)
+   - Required for automated PR creation to homebrew-core
 
 ## Workflow Overview
 
@@ -25,7 +25,7 @@ The `distribute.yaml` workflow is triggered on:
 
 The workflow uses GitHub Actions marketplace actions to automate distribution:
 - **haskell-actions/hackage-publish** for Hackage
-- **Homebrew/actions/homebrew-releaser** for Homebrew
+- **mislav/bump-homebrew-formula-action** for Homebrew
 - **jtdor/build-deb-action** for Debian packages
 
 ## Distribution Targets
@@ -44,23 +44,22 @@ cabal upload --publish dist-newstyle/sdist/impli-*.tar.gz
 
 ### 2. Homebrew
 
-**Automatic**: Yes (requires `HOMEBREW_TAP_TOKEN` secret)
+**Automatic**: Yes (requires `HOMEBREW_GITHUB_API_TOKEN` secret and initial setup)
 
 The workflow automatically:
-- Creates/updates a Homebrew tap at `bfeitknecht/homebrew-tap`
-- Updates the formula with the latest version and checksum
-- Pushes changes to the tap repository
+- Updates the formula with the latest version and SHA256 checksum
+- Creates a PR to homebrew-core (after initial formula is accepted)
+- After the initial PR is merged, subsequent releases automatically create update PRs
+
+**Initial setup**:
+1. Submit the initial formula from `package/homebrew/impli.rb` to homebrew-core
+2. Follow the [Homebrew contribution guide](https://docs.brew.sh/How-To-Open-a-Homebrew-Pull-Request)
+3. Once merged, the workflow will automatically create PRs for new releases
 
 **Installation**:
 ```bash
-brew tap bfeitknecht/tap
 brew install impli
 ```
-
-**Manual steps** (for homebrew-core submission):
-1. Fork [homebrew-core](https://github.com/Homebrew/homebrew-core)
-2. Add the formula from `package/homebrew/impli.rb`
-3. Submit a pull request
 
 ### 3. Nix/Nixpkgs
 
@@ -128,22 +127,21 @@ sudo dpkg -i impli_*.deb
 2. **Wait for workflow completion**:
    - The workflow will automatically run
    - Hackage publication is automatic (if token is configured)
-   - Homebrew tap is updated automatically (if token is configured)
+   - Homebrew PR is created automatically (if token is configured and formula is in homebrew-core)
    - Debian package is built and attached to the release
    - AUR PKGBUILD is generated and attached to the release
 
 3. **Manual submissions** (optional):
    - Download the generated AUR PKGBUILD from the GitHub release and publish to AUR
-   - Submit formula to homebrew-core for wider distribution
-   - Submit package to official Debian/Ubuntu repositories
+   - For first-time Homebrew submission, submit formula to homebrew-core manually
 
 ## Verification
 
 After release, verify:
 - [ ] Hackage package is published: https://hackage.haskell.org/package/impli
-- [ ] Homebrew tap is updated: https://github.com/bfeitknecht/homebrew-tap
-- [ ] Release has distribution artifacts attached (Debian package, AUR PKGBUILD)
-- [ ] SHA256 checksums are correct in PKGBUILD
+- [ ] Homebrew PR is created (check https://github.com/Homebrew/homebrew-core/pulls)
+- [ ] Release has distribution artifacts attached (Debian package, AUR PKGBUILD, Homebrew formula)
+- [ ] SHA256 checksums are correct in PKGBUILD and Homebrew formula
 
 ## Troubleshooting
 
@@ -153,16 +151,17 @@ After release, verify:
 - Check Hackage API status
 - Ensure package version doesn't already exist on Hackage
 
-### Homebrew tap update fails
+### Homebrew PR creation fails
 
-- Verify `HOMEBREW_TAP_TOKEN` secret is set correctly
-- Ensure the token has `repo` and `workflow` permissions
-- Check that the `bfeitknecht/homebrew-tap` repository exists
+- Verify `HOMEBREW_GITHUB_API_TOKEN` secret is set correctly
+- Ensure the token has `public_repo` permission
+- Check that the formula already exists in homebrew-core (for updates)
+- For initial submission, submit manually following Homebrew guidelines
 
 ### Debian build fails
 
 - Check that all required build dependencies are available
-- Verify the `debian/` directory has all required files
+- Verify the `package/debian/` directory has all required files
 - Review GitHub Actions logs for specific build errors
 
 ### Workflow fails
