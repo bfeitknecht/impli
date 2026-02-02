@@ -7,10 +7,9 @@ class Impli extends WasmWebTerm.default {
     await super.activate(xterm); // sets up addons, registers JS commands
     // Skip the default REPL by not calling this.repl()
     // Instead, directly launch impli WASM
-    await this.printWelcomeMessage().then(msg => {
-      this._xterm.writeln(msg);
-    });
-    this.runWasmCommand('impli');
+    const msg = await this.printWelcomeMessage();
+    this._xterm.writeln(msg);
+    await this.runWasmCommand('impli');
   }
 }
 
