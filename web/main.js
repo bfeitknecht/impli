@@ -7,6 +7,7 @@ class Impli extends WasmWebTerm.default {
   async printWelcomeMessagePlusControlSequences() {  
     return "\x1bc"; // Just clear terminal without any text  
   }  
+  /*
   async activate(xterm) {
     await super.activate(xterm); // sets up addons, registers JS commands
     // Skip the default REPL by not calling this.repl()
@@ -14,6 +15,7 @@ class Impli extends WasmWebTerm.default {
     // The WASM binary will print its own welcome message
     await this.runWasmCommand("impli");
   }
+  */
 }
 
 // Wait for DOM to be ready
@@ -87,6 +89,9 @@ async function init() {
   // Create Impli addon (extends wasm-webterm)
   // The first parameter is the path to predelivered binaries
   const impli = new Impli("./");
+
+  // Run impli WASM REPL
+  impli.runWasmCommand("impli");
 
   // Load the addon into the terminal
   terminal.loadAddon(impli);
