@@ -105,9 +105,7 @@
                   });
                   # Build only the impli-web executable (impli requires ansi-terminal/haskeline not available in WASM)
                   impli = (hfinal.callCabal2nix "impli" ./. { }).overrideAttrs (old: {
-                    configureFlags = (old.configureFlags or []) ++ [
-                      "--disable-executable-impli"
-                    ];
+                    buildTarget = "exe:impli-web";
                   });
                 })
               ];
