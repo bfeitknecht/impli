@@ -3,15 +3,11 @@
 
 // Impli subclass of WasmWebTerm that auto-launches the impli REPL
 class Impli extends WasmWebTerm.default {
-  // Override to provide custom welcome message for impli
-  async printWelcomeMessage() {
-    return "Loading impli REPL...";
-  }
-
   async activate(xterm) {
     await super.activate(xterm); // sets up addons, registers JS commands
     // Skip the default REPL by not calling this.repl()
     // Instead, directly launch impli WASM in interactive mode
+    // The WASM binary will print its own welcome message
     await this.runWasmCommand("impli");
   }
 }
