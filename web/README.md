@@ -25,12 +25,13 @@ The `REPL.Web` module implements the full REPL without dependencies on `haskelin
 
 ### Web Infrastructure
 
-**Files in `web/static/`**:
+**Files in `web/`**:
 - `index.html` - Terminal interface using XTerm.js + wasm-webterm
 - `main.js` - Integration code that auto-launches impli.wasm and registers service worker
 - `sw.js` - Service worker that enables Cross-Origin Isolation for WebWorkers
 - `style.css` - Terminal styling
 - `impli.wasm` - The WASM binary (generated during build)
+- `*.imp` - Example IMP programs (copied from docs/examples/ during build)
 
 #### WebWorkers Support
 
@@ -54,7 +55,7 @@ nix develop
 nix build .#impli-web
 
 # The WASM binary will be in result/bin/impli-web
-cp result/bin/impli-web web/static/impli.wasm
+cp result/bin/impli-web.wasm web/impli.wasm
 ```
 
 ### Manual Build (Without Nix)
@@ -67,7 +68,7 @@ wasm32-wasi-cabal build exe:impli-web
 
 # Copy to web directory
 BIN=$(wasm32-wasi-cabal list-bin exe:impli-web -v0)
-cp "$BIN" web/static/impli.wasm
+cp "$BIN" web/impli.wasm
 ```
 
 ## Testing Locally
@@ -76,9 +77,9 @@ To test the web interface locally:
 
 1. Build the WASM binary (see above)
 
-2. Serve the static directory:
+2. Serve the web directory:
    ```bash
-   cd web/static
+   cd web
    python3 -m http.server 8000
    ```
 
@@ -88,12 +89,12 @@ To test the web interface locally:
 
 ## GitHub Pages Deployment
 
-The GitHub Actions workflow (`.github/workflows/deploy-github-pages.yaml`) automatically:
+The GitHub Actions workflow (`.github/workflows/deploy.yaml`) automatically:
 
 1. Uses the Nix flake to build `impli-web` with the WASM backend
-2. Copies the WASM binary and web assets
-3. Copies example IMP programs from `docs/examples/`
-4. Deploys to GitHub Pages
+2. Copies the WASM binary to `web/`
+3. Copies example IMP programs from `docs/examples/` to `web/`
+4. Deploys the `web/` directory to GitHub Pages
 
 Access the deployed version at: https://bfeitknecht.github.io/impli/
 
@@ -101,14 +102,17 @@ Access the deployed version at: https://bfeitknecht.github.io/impli/
 
 ```
 web/
-├── static/
-│   ├── index.html          # Terminal UI (wasm-webterm)
-│   ├── main.js             # Auto-launches impli.wasm
-│   ├── style.css           # Terminal styling
-│   ├── impli.wasm          # WASM binary (build artifact)
-│   ├── *.imp               # Example programs (copied from docs/examples/)
-│   └── fonts/              # Fonts and favicons
-└── README.md               # This file
+├── index.html          # Terminal UI (wasm-webterm)
+├── main.js             # Auto-launches impli.wasm
+├── sw.js               # Service worker for Cross-Origin Isolation
+├── style.css           # Terminal styling
+├── impli.wasm          # WASM binary (build artifact, not in git)
+├── *.imp               # Example programs (copied during build, not in git)
+├── CommitMonoV143-VF.woff2  # Font file
+├── favicon.ico         # Favicon
+├── favicon.png         # Favicon
+├── 404.html            # Custom 404 page
+└── README.md           # This file
 ```
 
 ## Migration from JS Backend

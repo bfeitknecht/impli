@@ -40,33 +40,24 @@ jobs:
           # Build the WASM binary using nix build with --accept-flake-config to trust binary cache
           nix build .#impli-web -L --accept-flake-config
 
-          # Copy the built WASM binary to web/static with the correct name (impli.wasm)
-          mkdir -p web/static
-          cp result/bin/impli-web.wasm web/static/impli.wasm
+          # Copy the built WASM binary to web/ with the correct name (impli.wasm)
+          cp result/bin/impli-web.wasm web/impli.wasm
 
           echo "WASM binary built successfully"
-          ls -lh web/static/impli.wasm
+          ls -lh web/impli.wasm
 
       - name: Prepare web assets
         run: |
-          # Copy web interface files to static directory
-          # Using a loop to handle files gracefully
-          for file in web/*.html web/*.js web/*.css web/*.woff2 web/*.ico web/*.png; do
-            if [ -f "$file" ]; then
-              cp "$file" web/static/
-            fi
-          done
-          
-          # Copy example IMP programs
-          cp docs/examples/*.imp web/static/
+          # Copy example IMP programs to web/
+          cp docs/examples/*.imp web/
 
-          echo "Web assets prepared in web/static/"
-          ls -la web/static/
+          echo "Web assets prepared in web/"
+          ls -la web/
 
       - name: Upload artifact for GitHub Pages
         uses: actions/upload-pages-artifact@v3
         with:
-          path: "web/static"
+          path: "web"
 
   deploy:
     runs-on: ubuntu-latest
