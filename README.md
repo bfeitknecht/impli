@@ -41,20 +41,6 @@ The table below depicts the correspondence between semantics functions defined i
 | $\mathcal{A}[[a]]\sigma$                                          | `IMP.Expression.evaluate a state`              |
 | $\mathcal{B}[[b]]\sigma$                                          | `IMP.Expression.evaluate b state`              |
 
-## Roadmap
-
-There are some crucial points for further improvement.
-
-- ~~Add web-support (probably via compilation to WASM)~~
-- Improve the REPL
-    - Support tab-autocompletion
-    - Handle multi-line input
-- Ability to load source modules for interpretation
-- Package binary and distribute (Homebrew, APT, Nixpkgs, Hackage ...)
-- Improve documentation with examples
-- Write standard library
-- Extend test suite
-
 ## Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=bfeitknecht/impli&type=date&legend=top-left)](https://www.star-history.com/#bfeitknecht/impli&type=date&legend=top-left)
