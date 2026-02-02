@@ -27,9 +27,18 @@ The `REPL.Web` module implements the full REPL without dependencies on `haskelin
 
 **Files in `web/static/`**:
 - `index.html` - Terminal interface using XTerm.js + wasm-webterm
-- `main.js` - Integration code that auto-launches impli.wasm
+- `main.js` - Integration code that auto-launches impli.wasm and registers service worker
+- `sw.js` - Service worker that enables Cross-Origin Isolation for WebWorkers
 - `style.css` - Terminal styling
 - `impli.wasm` - The WASM binary (generated during build)
+
+#### WebWorkers Support
+
+To enable WebWorkers in wasm-webterm, the page requires specific HTTP headers for [Cross-Origin Isolation](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/SharedArrayBuffer#security_requirements):
+- `Cross-Origin-Embedder-Policy: require-corp`
+- `Cross-Origin-Opener-Policy: same-origin`
+
+Since GitHub Pages doesn't support custom HTTP headers, we use a service worker (`sw.js`) to inject these headers. The service worker is automatically registered by `main.js` on page load. Without these headers, wasm-webterm falls back to using `window.prompt()` for stdin, which blocks the main thread and provides a poor user experience.
 
 ## Building for WASM
 

@@ -19,6 +19,8 @@
     <script src="https://cdn.jsdelivr.net/gh/cryptool-org/wasm-webterm/webterm.bundle.js"></script>
     
     <!-- Main application script -->
+    <!-- Note: A service worker (sw.js) is registered in main.js to enable -->
+    <!-- Cross-Origin Isolation headers required for WebWorkers support -->
     <script type="module" src="./main.js"></script>
     
     <noscript><p>This website needs JavaScript to work.</p></noscript>
