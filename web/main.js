@@ -16,10 +16,10 @@ class Impli extends WasmWebTerm.default {
     };
 
     // https://patorjk.com/software/taag/#p=display&f=Broadway+KB&t=impli
-    const logo = dedent`\x1bc
-       _   _      ___   _     _
-      | | | |\\/| | |_) | |   | |
-      |_| |_|  | |_|   |_|__ |_|`;
+    const logo = dedent`\x1bc\x1b[1m\
+      ,_  ,_     ,___  ,_    ,_
+      | | | |\/| | |_) | |   | |
+      |_| |_|  | |_|   |_|__ |_|\x1b[0m`;
 
     const message = dedent`\
       Execute IMP statements in the browser and inspect the resulting state.
@@ -27,6 +27,9 @@ class Impli extends WasmWebTerm.default {
 
     return logo + message;
   }
+
+  // Disable REPL
+  repl() {}
 
   async activate(xterm) {
     // Set up addons, registers JS commands
@@ -47,7 +50,7 @@ async function init() {
 
   // If service worker was just registered, reload the page to apply headers
   if (serviceWorker && !navigator.serviceWorker.controller) {
-    console.log("Service Worker registered, reloading page to apply headers...");
+    console.log("[INFO] Service Worker registered, reloading page to apply headers");
     window.location.reload();
     return;
   }
@@ -92,7 +95,7 @@ async function init() {
   terminal.focus();
 
   // impli WASM will be automatically launched by the Impli.activate() method
-  console.log("Launching impli WASM...");
+  console.log("[INFO] Launching WASM impli REPL");
 
   // Run impli WASM REPL
   // impli.runWasmCommand("impli", []);
@@ -120,7 +123,7 @@ async function registerServiceWorker() {
         scope: "./",
       });
 
-      console.log("Service Worker registered successfully:", registration);
+      console.log("[INFO] Service Worker registered successfully:", registration);
 
       // Wait for the service worker to be active
       if (registration.active) {
