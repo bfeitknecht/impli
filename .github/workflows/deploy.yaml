@@ -49,8 +49,13 @@ jobs:
 
       - name: Prepare web assets
         run: |
-          # Copy web interface files
-          cp web/*.html web/*.js web/*.css web/*.woff2 web/*.ico web/*.png web/static/
+          # Copy web interface files to static directory
+          # Using a loop to handle files gracefully
+          for file in web/*.html web/*.js web/*.css web/*.woff2 web/*.ico web/*.png; do
+            if [ -f "$file" ]; then
+              cp "$file" web/static/
+            fi
+          done
           
           # Copy example IMP programs
           cp docs/examples/*.imp web/static/
