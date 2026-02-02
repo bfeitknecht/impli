@@ -1,6 +1,19 @@
 // Main script for impli WASM web interface
 // Uses wasm-webterm to run the impli WASM binary in the browser
 
+// Impli subclass of WasmWebTerm that auto-launches the impli REPL
+class Impli extends WasmWebTerm.default {
+  async activate(xterm) {
+    await super.activate(xterm); // sets up addons, registers JS commands
+    // Skip the default REPL by not calling this.repl()
+    // Instead, directly launch impli WASM
+    await this.printWelcomeMessage().then(msg => {
+      this._xterm.writeln(msg);
+    });
+    this.runWasmCommand('impli');
+  }
+}
+
 // Wait for DOM to be ready
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', init);
@@ -69,12 +82,12 @@ async function init() {
     }
   });
 
-  // Create wasm-webterm addon
+  // Create Impli addon (extends wasm-webterm)
   // The first parameter is the path to predelivered binaries
-  const driver = new WasmWebTerm.default('./');
+  const impliAddon = new Impli('./');
 
   // Load the addon into the terminal
-  terminal.loadAddon(driver);
+  terminal.loadAddon(impliAddon);
 
   // Open terminal in the div
   const div = document.getElementById('terminal');
@@ -83,12 +96,6 @@ async function init() {
   // Focus the terminal
   terminal.focus();
 
-  // Auto-launch impli.wasm on startup
-  // Wait for terminal to be ready before executing
-  const TERMINAL_READY_DELAY = 100; // ms - allows terminal to finish initialization
+  // impli WASM will be automatically launched by the Impli.activate() method
   console.log('Launching impli WASM...');
-  
-  setTimeout(() => {
-    driver.exec('impli');
-  }, TERMINAL_READY_DELAY);
 }
