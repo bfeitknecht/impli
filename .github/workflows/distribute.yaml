@@ -10,39 +10,21 @@ permissions:
   contents: write
 
 jobs:
-  # Hackage publication
+  # Hackage publication using marketplace action
   hackage:
     name: Publish to Hackage
     runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Haskell
-        uses: haskell-actions/setup@v2
+      - name: Release to Hackage
+        uses: haskell-actions/hackage-publish@v1
         with:
-          ghc-version: '9.10.2'
-          cabal-version: '3.12'
-
-      - name: Build source distribution
-        run: |
-          cabal update
-          cabal sdist
-
-      - name: Publish to Hackage
-        if: startsWith(github.ref, 'refs/tags/')
-        env:
-          HACKAGE_USERNAME: ${{ secrets.HACKAGE_USERNAME }}
-          HACKAGE_TOKEN: ${{ secrets.HACKAGE_TOKEN }}
-        run: |
-          if [ -z "$HACKAGE_USERNAME" ] || [ -z "$HACKAGE_TOKEN" ]; then
-            echo "Skipping Hackage publication: credentials not configured"
-            exit 0
-          fi
-          mkdir -p ~/.config/cabal
-          echo "username: $HACKAGE_USERNAME" > ~/.config/cabal/config
-          echo "password: $HACKAGE_TOKEN" >> ~/.config/cabal/config
-          cabal upload --publish dist-newstyle/sdist/impli-*.tar.gz
+          hackageToken: ${{ secrets.HACKAGE_TOKEN }}
+          packagesPath: .
+          publish: true
 
   # Create distribution artifacts
   build-artifacts:
@@ -62,9 +44,6 @@ jobs:
       - name: Copy Homebrew formula
         run: cp package/homebrew/impli.rb artifacts/
 
-      - name: Copy Debian package files
-        run: cp -r package/debian artifacts/
-
       - name: Copy AUR PKGBUILD
         run: cp package/aur/PKGBUILD artifacts/
 
@@ -74,39 +53,26 @@ jobs:
           name: distribution-files
           path: artifacts/
 
-  # Generate Homebrew formula with correct SHA
-  update-homebrew:
-    name: Update Homebrew formula
+  # Homebrew release using marketplace action
+  homebrew:
+    name: Release to Homebrew
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Get version from tag
-        id: get_version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-
-      - name: Calculate SHA256
-        id: calc_sha
-        run: |
-          VERSION=${{ steps.get_version.outputs.VERSION }}
-          curl -L -o /tmp/impli.tar.gz "https://github.com/bfeitknecht/impli/archive/refs/tags/v${VERSION}.tar.gz"
-          SHA256=$(sha256sum /tmp/impli.tar.gz | awk '{print $1}')
-          echo "SHA256=${SHA256}" >> $GITHUB_OUTPUT
-
-      - name: Update Homebrew formula
-        run: |
-          VERSION=${{ steps.get_version.outputs.VERSION }}
-          SHA256=${{ steps.calc_sha.outputs.SHA256 }}
-          sed -i "s|url \".*\"|url \"https://github.com/bfeitknecht/impli/archive/refs/tags/v${VERSION}.tar.gz\"|" package/homebrew/impli.rb
-          sed -i "s|sha256 \".*\"|sha256 \"${SHA256}\"|" package/homebrew/impli.rb
-
-      - name: Upload updated formula
-        uses: actions/upload-artifact@v4
+      - name: Release to Homebrew tap
+        uses: Homebrew/actions/homebrew-releaser@master
         with:
-          name: homebrew-formula
-          path: package/homebrew/impli.rb
+          owner: bfeitknecht
+          repo: homebrew-tap
+          formula: package/homebrew/impli.rb
+          tap_token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          install: |
+            system "cabal", "v2-update"
+            system "cabal", "v2-install", "--install-method=copy", "--installdir=#{bin}"
+            man1.install "docs/man/impli.1"
 
   # Update AUR PKGBUILD with correct SHA
   update-aur:
@@ -142,43 +108,34 @@ jobs:
           name: aur-pkgbuild
           path: package/aur/PKGBUILD
 
-  # Update Debian changelog
-  update-debian:
-    name: Update Debian package
+  # Build Debian package using marketplace action
+  debian:
+    name: Build Debian package
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Get version from tag
-        id: get_version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+      - name: Build Debian package
+        uses: jtdor/build-deb-action@v1
+        with:
+          source-dir: .
+          buildpackage-opts: --build=binary --no-sign
+          extra-build-deps: ghc cabal-install
 
-      - name: Update Debian changelog
-        run: |
-          VERSION=${{ steps.get_version.outputs.VERSION }}
-          DATE=$(date -R)
-          cat > package/debian/changelog << EOF
-          impli (${VERSION}-1) unstable; urgency=low
-
-            * New upstream release ${VERSION}.
-
-           -- Basil Feitknecht <bfeitknecht@ethz.ch>  ${DATE}
-          EOF
-
-      - name: Upload updated Debian files
+      - name: Upload Debian package
         uses: actions/upload-artifact@v4
         with:
-          name: debian-package
-          path: package/debian/
+          name: debian-packages
+          path: debian/artifacts/*.deb
 
   # Create release with updated distribution files
   create-release-notes:
     name: Create release notes
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
-    needs: [update-homebrew, update-aur, update-debian]
+    needs: [hackage, homebrew, debian, update-aur]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -195,14 +152,10 @@ jobs:
           Published to Hackage: https://hackage.haskell.org/package/impli
 
           ### Homebrew
-          Install via Homebrew (formula needs to be submitted to homebrew-core):
+          Install via Homebrew tap:
           ```bash
+          brew tap bfeitknecht/tap
           brew install impli
-          ```
-          
-          Or install from this repository:
-          ```bash
-          brew install bfeitknecht/tap/impli
           ```
 
           ### Nix/NixOS
@@ -218,7 +171,10 @@ jobs:
           ```
 
           ### Debian/Ubuntu
-          Build and install from source using the package/debian/ directory.
+          Install the attached .deb package:
+          ```bash
+          sudo dpkg -i impli_*.deb
+          ```
 
           ---
 
@@ -230,8 +186,7 @@ jobs:
         with:
           body_path: release-notes.md
           files: |
-            homebrew-formula/impli.rb
             aur-pkgbuild/PKGBUILD
-            debian-package/*
+            debian-packages/*.deb
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
