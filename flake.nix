@@ -103,8 +103,12 @@
                       export CC_FOR_BUILD=$CC
                     '';
                   });
-                  # Build the impli package which includes both executables
-                  impli = hfinal.callCabal2nix "impli" ./. { };
+                  # Build only the impli-web executable (impli requires ansi-terminal/haskeline not available in WASM)
+                  impli = (hfinal.callCabal2nix "impli" ./. { }).overrideAttrs (old: {
+                    configureFlags = (old.configureFlags or []) ++ [
+                      "--disable-executable-impli"
+                    ];
+                  });
                 })
               ];
             };
