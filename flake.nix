@@ -195,8 +195,13 @@
         system:
         let
           pkgs = import nixpkgs { inherit system; };
+          treefmtConfig = {
+            projectRootFile = "flake.nix";
+            programs.nixfmt.enable = true;
+            programs.nixfmt.package = pkgs.nixfmt-rfc-style;
+          };
         in
-        (treefmt-nix.lib.evalModule pkgs ./treefmt.nix).config.build.wrapper
+        (treefmt-nix.lib.evalModule pkgs treefmtConfig).config.build.wrapper
       );
     };
 }
