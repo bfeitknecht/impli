@@ -17,6 +17,7 @@ Browser → XTerm.js + wasm-webterm → impli.wasm (WASI) → Basic IO REPL
 **File**: `exe/Web.hs` (and supporting modules in `exe/REPL/`)
 
 The web version uses a polymorphic REPL architecture:
+
 - `exe/REPL/State.hs`: Core REPL state and helper functions
 - `exe/REPL/Execute.hs`: Haskeline-based REPL for CLI (uses `InputT IO`)
 - `exe/REPL/Web.hs`: Basic IO REPL for WASM (uses plain `IO`)
@@ -26,6 +27,7 @@ The `REPL.Web` module implements the full REPL without dependencies on `haskelin
 ### Web Infrastructure
 
 **Files in `web/`**:
+
 - `index.html` - Terminal interface using XTerm.js + wasm-webterm
 - `main.js` - Integration code that auto-launches impli.wasm and registers service worker
 - `sw.js` - Service worker that enables Cross-Origin Isolation for WebWorkers
@@ -36,10 +38,11 @@ The `REPL.Web` module implements the full REPL without dependencies on `haskelin
 #### WebWorkers Support
 
 To enable WebWorkers in wasm-webterm, the page requires specific HTTP headers for [Cross-Origin Isolation](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/SharedArrayBuffer#security_requirements):
+
 - `Cross-Origin-Embedder-Policy: require-corp`
 - `Cross-Origin-Opener-Policy: same-origin`
 
-Since GitHub Pages doesn't support custom HTTP headers, we use a service worker (`sw.js`) to inject these headers. The service worker is automatically registered by `main.js` on page load. Without these headers, wasm-webterm falls back to using `window.prompt()` for stdin, which blocks the main thread and provides a poor user experience.
+Since GitHub Pages doesn't support custom HTTP headers, we use a service worker (`sw.js`) to inject these headers. The service worker is automatically registered by `main.js` on page load. Without these headers, wasm-webterm falls back to using `globalThis.prompt()` for stdin, which blocks the main thread and provides a poor user experience.
 
 ## Building for WASM
 
@@ -78,10 +81,11 @@ To test the web interface locally:
 1. Build the WASM binary (see above)
 
 2. Serve the web directory:
-   ```bash
-   cd web
-   python3 -m http.server 8000
-   ```
+
+    ```bash
+    cd web
+    python3 -m http.server 8000
+    ```
 
 3. Open http://localhost:8000 in your browser
 
@@ -120,7 +124,7 @@ web/
 The previous approach using the GHC JavaScript backend with emscripten-pty has been superseded by this WASM approach for several reasons:
 
 - **Simpler**: WASM is a more straightforward compilation target
-- **Better Integration**: wasm-webterm provides clean integration with xterm.js  
+- **Better Integration**: wasm-webterm provides clean integration with xterm.js
 - **No Complex Dependencies**: Avoids emscripten versioning issues
 - **Standard WASI**: Uses the WebAssembly System Interface standard
 

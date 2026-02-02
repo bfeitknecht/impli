@@ -17,9 +17,9 @@ class Impli extends WasmWebTerm.default {
 
     // https://patorjk.com/software/taag/#p=display&f=Broadway+KB&t=impli
     const logo = dedent`\x1bc\x1b[1m
-      ,_  ,_     ,___  ,_    ,_
-      | | | |\\/| | |_) | |   | |
-      |_| |_|  | |_|   |_|__ |_|
+      __ ___  __ _____ __    __
+      || || \\/ | ||_// ||    ||
+      || ||    | ||    ||__| ||
       \x1b[0m`;
 
     const message = dedent`\
@@ -57,7 +57,7 @@ async function init() {
   // If service worker was just registered, reload the page to apply headers
   if (serviceWorker && !navigator.serviceWorker.controller) {
     console.log("[INFO] Service Worker registered, reloading page to apply headers");
-    window.location.reload();
+    globalThis.location.reload();
     return;
   }
 
@@ -73,7 +73,7 @@ async function init() {
   const applyThemeStyle = () => terminal.setOption("theme", getThemeStyle());
 
   // Re-apply on system theme changes (CSS media query updates variables)
-  const mql = window.matchMedia("(prefers-color-scheme: dark)");
+  const mql = globalThis.matchMedia("(prefers-color-scheme: dark)");
   if ("addEventListener" in mql) {
     mql.addEventListener("change", applyThemeStyle);
   } else if ("addListener" in mql) {
