@@ -17,7 +17,18 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Run fourmolu
+      - name: Check Haskell formatting
         uses: haskell-actions/run-fourmolu@v11
         with:
           version: "0.19.0.1"
+          
+      - name: Install Nix
+        uses: cachix/install-nix-action@v24
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+
+      - name: Check Nix formatting
+        run: |
+          nix fmt -- --check .
