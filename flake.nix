@@ -36,85 +36,100 @@
         "aarch64-darwin"
       ];
       forAllSystems = f: nixpkgs.lib.genAttrs supportedSystems (system: f system);
-      
+
       ghc = "ghc9122";
       targetPrefix = "wasm32-wasi-";
-      
+
       # Create WASM-enabled Haskell packages using the approach from nix-wasm
-      wasmPkgs = system:
+      wasmPkgs =
+        system:
         let
           pkgs = import nixpkgs {
             inherit system;
             crossSystem = nixpkgs.lib.systems.elaborate nixpkgs.lib.systems.examples.wasi32 // {
               isStatic = false;
             };
-            config.replaceCrossStdenv = { buildPackages, baseStdenv }: buildPackages.stdenvNoCC.override {
-              inherit (baseStdenv)
-                buildPlatform
-                hostPlatform
-                targetPlatform;
-              cc = ghc-wasm-meta.packages.${system}.all_9_12 // {
-                isGNU = false;
-                isClang = true;
-                libc = ghc-wasm-meta.packages.${system}.wasi-sdk.overrideAttrs (attrs: { pname = attrs.name; version = "unstable"; });
-                inherit targetPrefix;
-                bintools = ghc-wasm-meta.packages.${system}.all_9_12 // {
+            config.replaceCrossStdenv =
+              { buildPackages, baseStdenv }:
+              buildPackages.stdenvNoCC.override {
+                inherit (baseStdenv)
+                  buildPlatform
+                  hostPlatform
+                  targetPlatform
+                  ;
+                cc = ghc-wasm-meta.packages.${system}.all_9_12 // {
+                  isGNU = false;
+                  isClang = true;
+                  libc = ghc-wasm-meta.packages.${system}.wasi-sdk.overrideAttrs (attrs: {
+                    pname = attrs.name;
+                    version = "unstable";
+                  });
                   inherit targetPrefix;
                   bintools = ghc-wasm-meta.packages.${system}.all_9_12 // {
                     inherit targetPrefix;
-                  };
-                };
-              };
-            };
-            crossOverlays = [
-              (final: prev: {
-                cabal-install = ghc-wasm-meta.packages.${system}.wasm32-wasi-cabal-9_12;
-                haskell = (prev.haskell.override (old: {
-                  buildPackages = nixpkgs.lib.recursiveUpdate old.buildPackages {
-                    haskell.compiler.${ghc} = ghc-wasm-meta.packages.${system}.wasm32-wasi-ghc-9_12 // {
+                    bintools = ghc-wasm-meta.packages.${system}.all_9_12 // {
                       inherit targetPrefix;
                     };
                   };
-                })) // {
-                  packageOverrides = nixpkgs.lib.composeManyExtensions [
-                    prev.haskell.packageOverrides
-                    (hfinal: hprev: {
-                      ghc = ghc-wasm-meta.packages.${system}.wasm32-wasi-ghc-9_12 // {
-                        inherit (nixpkgs.legacyPackages.${system}.haskell.packages.${ghc}.ghc) version haskellCompilerName;
+                };
+              };
+            crossOverlays = [
+              (final: prev: {
+                cabal-install = ghc-wasm-meta.packages.${system}.wasm32-wasi-cabal-9_12;
+                haskell =
+                  (prev.haskell.override (old: {
+                    buildPackages = nixpkgs.lib.recursiveUpdate old.buildPackages {
+                      haskell.compiler.${ghc} = ghc-wasm-meta.packages.${system}.wasm32-wasi-ghc-9_12 // {
                         inherit targetPrefix;
                       };
-                      mkDerivation = args: (hprev.mkDerivation (args // {
-                        enableLibraryProfiling = false;
-                        enableSharedLibraries = true;
-                        enableStaticLibraries = false;
-                        enableExternalInterpreter = false;
-                        doBenchmark = false;
-                        doHaddock = false;
-                        doCheck = false;
-                        jailbreak = true;
-                        configureFlags = [
-                          "--with-ld=${prev.stdenv.cc.bintools}/bin/lld"
-                          "--with-ar=${prev.stdenv.cc.bintools}/bin/ar"
-                          "--with-strip=${prev.stdenv.cc.bintools}/bin/strip"
-                        ];
-                        setupHaskellDepends = (args.setupHaskellDepends or [ ]) ++ [
-                          ghc-wasm-meta.packages.${system}.wasi-sdk
-                        ];
-                        preBuild = ''
-                          ${args.preBuild or ""}
-                          export NIX_CC=$CC
-                        '';
-                      })).overrideAttrs (attrs: {
-                        name = "${attrs.pname}-${targetPrefix}${attrs.version}";
-                        preSetupCompilerEnvironment = ''
-                          export CC_FOR_BUILD=$CC
-                        '';
-                      });
-                      # Package-specific overrides
-                      impli = hfinal.callCabal2nix "impli" ./. { };
-                    })
-                  ];
-                };
+                    };
+                  }))
+                  // {
+                    packageOverrides = nixpkgs.lib.composeManyExtensions [
+                      prev.haskell.packageOverrides
+                      (hfinal: hprev: {
+                        ghc = ghc-wasm-meta.packages.${system}.wasm32-wasi-ghc-9_12 // {
+                          inherit (nixpkgs.legacyPackages.${system}.haskell.packages.${ghc}.ghc) version haskellCompilerName;
+                          inherit targetPrefix;
+                        };
+                        mkDerivation =
+                          args:
+                          (hprev.mkDerivation (
+                            args
+                            // {
+                              enableLibraryProfiling = false;
+                              enableSharedLibraries = true;
+                              enableStaticLibraries = false;
+                              enableExternalInterpreter = false;
+                              doBenchmark = false;
+                              doHaddock = false;
+                              doCheck = false;
+                              jailbreak = true;
+                              configureFlags = [
+                                "--with-ld=${prev.stdenv.cc.bintools}/bin/lld"
+                                "--with-ar=${prev.stdenv.cc.bintools}/bin/ar"
+                                "--with-strip=${prev.stdenv.cc.bintools}/bin/strip"
+                              ];
+                              setupHaskellDepends = (args.setupHaskellDepends or [ ]) ++ [
+                                ghc-wasm-meta.packages.${system}.wasi-sdk
+                              ];
+                              preBuild = ''
+                                ${args.preBuild or ""}
+                                export NIX_CC=$CC
+                              '';
+                            }
+                          )).overrideAttrs
+                            (attrs: {
+                              name = "${attrs.pname}-${targetPrefix}${attrs.version}";
+                              preSetupCompilerEnvironment = ''
+                                export CC_FOR_BUILD=$CC
+                              '';
+                            });
+                        # Package-specific overrides
+                        impli = hfinal.callCabal2nix "impli" ./. { };
+                      })
+                    ];
+                  };
               })
             ];
           };
@@ -145,7 +160,7 @@
               fi
             '';
           });
-          
+
           default = self.packages.${system}.impli-web;
         }
       );
