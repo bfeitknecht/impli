@@ -31,4 +31,4 @@ jobs:
 
       - name: Check Nix formatting
         run: |
-          nix fmt -- --check .
+          nix fmt -- --ci .
