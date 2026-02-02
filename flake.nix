@@ -14,6 +14,10 @@
       url = "gitlab:haskell-wasm/ghc-wasm-meta?host=gitlab.haskell.org";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    treefmt-nix = {
+      url = "github:numtide/treefmt-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -21,6 +25,7 @@
       self,
       nixpkgs,
       ghc-wasm-meta,
+      treefmt-nix,
       ...
     }:
     let
@@ -191,7 +196,7 @@
         let
           pkgs = import nixpkgs { inherit system; };
         in
-        pkgs.nixfmt-rfc-style
+        (treefmt-nix.lib.evalModule pkgs ./treefmt.nix).config.build.wrapper
       );
     };
 }
