@@ -36,8 +36,7 @@
       ghc = "ghc9122";
       targetPrefix = "wasm32-wasi-";
       
-      # Create WASM-enabled Haskell packages using the approach from nix-wasm
-      # Only available on x86_64-linux
+      # Create WASM-enabled Haskell packages following nix-wasm approach
       wasmPkgs = system: import nixpkgs rec {
         inherit system;
         crossSystem = lib.systems.elaborate lib.systems.examples.wasi32 // {
@@ -104,8 +103,8 @@
                       export CC_FOR_BUILD=$CC
                     '';
                   });
-                  # Package-specific overrides
-                  impli = hfinal.callCabal2nix "impli" ./. { };
+                  # Build the impli package which includes impli-web executable
+                  impli-web = hfinal.callCabal2nix "impli-web" ./. { };
                 })
               ];
             };
@@ -122,8 +121,7 @@
           haskellPackages = wasmPackages.haskell.packages.${ghc};
         in
         {
-          impli-web = haskellPackages.impli;
-          
+          impli-web = haskellPackages.impli-web;
           default = self.packages.x86_64-linux.impli-web;
         };
 
@@ -149,7 +147,7 @@
               - node (Node.js)
               - python (Python 3)
 
-            WASM build via Nix (only on x86_64-linux with ghc-wasm-meta support):
+            WASM build via Nix (only on x86_64-linux):
               ${
                 if system == "x86_64-linux" then
                   "nix build .#impli-web"
