@@ -7,15 +7,16 @@ class Impli extends WasmWebTerm.default {
     await super.activate(xterm); // sets up addons, registers JS commands
     // Skip the default REPL by not calling this.repl()
     // Instead, directly launch impli WASM
+    // TODO: Create custom welcome message
     const msg = await this.printWelcomeMessage();
     this._xterm.writeln(msg);
-    await this.runWasmCommand('impli');
+    await this.runWasmCommand("impli");
   }
 }
 
 // Wait for DOM to be ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', init);
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", init);
 } else {
   init();
 }
@@ -23,25 +24,25 @@ if (document.readyState === 'loading') {
 async function registerServiceWorker() {
   // Register service worker to enable Cross-Origin Isolation
   // Required for SharedArrayBuffer and WebWorkers support in wasm-webterm
-  if ('serviceWorker' in navigator) {
+  if ("serviceWorker" in navigator) {
     try {
-      const registration = await navigator.serviceWorker.register('./sw.js', {
-        scope: './'
+      const registration = await navigator.serviceWorker.register("./sw.js", {
+        scope: "./",
       });
-      
-      console.log('Service Worker registered successfully:', registration);
-      
+
+      console.log("Service Worker registered successfully:", registration);
+
       // Wait for the service worker to be active
       if (registration.active) {
         return registration.active;
       }
-      
+
       // Wait for the service worker to activate
       return new Promise((resolve) => {
         const serviceWorker = registration.installing || registration.waiting;
         if (serviceWorker) {
-          serviceWorker.addEventListener('statechange', (e) => {
-            if (e.target.state === 'activated') {
+          serviceWorker.addEventListener("statechange", (e) => {
+            if (e.target.state === "activated") {
               resolve(e.target);
             }
           });
@@ -50,11 +51,11 @@ async function registerServiceWorker() {
         }
       });
     } catch (error) {
-      console.error('Service Worker registration failed:', error);
+      console.error("Service Worker registration failed:", error);
       return null;
     }
   } else {
-    console.warn('Service Workers not supported in this browser');
+    console.warn("Service Workers not supported in this browser");
     return null;
   }
 }
@@ -62,10 +63,10 @@ async function registerServiceWorker() {
 async function init() {
   // Register service worker first
   const serviceWorker = await registerServiceWorker();
-  
+
   // If service worker was just registered, reload the page to apply headers
   if (serviceWorker && !navigator.serviceWorker.controller) {
-    console.log('Service Worker registered, reloading page to apply headers...');
+    console.log("Service Worker registered, reloading page to apply headers...");
     window.location.reload();
     return;
   }
@@ -76,25 +77,24 @@ async function init() {
     fontFamily: '"CommitMono", "Courier New", monospace',
     fontSize: 13,
     theme: {
-      background: '#0a0a0a',
-      foreground: '#e0e0e0'
-    }
+      background: "#0a0a0a",
+      foreground: "#e0e0e0",
+    },
   });
 
   // Create Impli addon (extends wasm-webterm)
   // The first parameter is the path to predelivered binaries
-  const impliAddon = new Impli('./');
+  const impli = new Impli("./");
 
   // Load the addon into the terminal
-  terminal.loadAddon(impliAddon);
+  terminal.loadAddon(impli);
 
   // Open terminal in the div
-  const div = document.getElementById('terminal');
-  terminal.open(div);
+  terminal.open(document.getElementById("terminal"));
 
   // Focus the terminal
   terminal.focus();
 
   // impli WASM will be automatically launched by the Impli.activate() method
-  console.log('Launching impli WASM...');
+  console.log("Launching impli WASM...");
 }
