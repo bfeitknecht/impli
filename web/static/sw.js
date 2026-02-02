@@ -2,9 +2,6 @@
 // This is required for wasm-webterm to use WebWorkers instead of prompt() fallback
 // See: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/SharedArrayBuffer
 
-// Service worker version - update this to force refresh
-const CACHE_VERSION = 'v1';
-
 // Install event - activate immediately
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -38,7 +35,14 @@ self.addEventListener('fetch', (event) => {
         })
         .catch((error) => {
           console.error('Service Worker fetch error:', error);
-          return response;
+          // Return a simple error response if fetch fails
+          return new Response('Service Worker fetch failed', {
+            status: 500,
+            statusText: 'Internal Server Error',
+            headers: new Headers({
+              'Content-Type': 'text/plain',
+            }),
+          });
         })
     );
   }
