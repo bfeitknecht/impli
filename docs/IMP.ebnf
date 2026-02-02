@@ -1,12 +1,12 @@
-Letter = 'a' | .. | 'z' | 'A' | .. | 'Z'
-Digit = '0' | .. | '9'
+Letter = 'a' | 'b' | 'c' | 'd' | 'e' | 'f' | 'g' | 'h' | 'i' | 'j' | 'k' | 'l' | 'm' | 'n' | 'o' | 'p' | 'q' | 'r' | 's' | 't' | 'u' | 'v' | 'w' | 'x' | 'y' | 'z' | 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L' | 'M' | 'N' | 'O' | 'P' | 'Q' | 'R' | 'S' | 'T' | 'U' | 'V' | 'W' | 'X' | 'Y' | 'Z'
+Digit = '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9'
 Ident = Letter { Letter | Digit }                                                   (* alphanumeric identifier *)
 Var = Ident | '_'                                                                   (* variable or placeholder *)
-Val = [ '-' ] ( Digit | Val Digit )                                                 (* unbounded integer value *)
+Val = [ '-' ] Digit { Digit }                                                       (* unbounded integer value *)
 Bool = 'true' | 'false'                                                             (* boolean value *)
 
 Aop = '+' | '-' | '*' | '/' | '%'                                                   (* arithmetic operation *)
-Aexp = Aterm { Aop Term }                                                           (* arithmetic expression *)
+Aexp = Aterm { Aop Aterm }                                                          (* arithmetic expression *)
 Aterm
     = Ident                                                                         (* variable *)
     | Val                                                                           (* value *)
@@ -42,7 +42,7 @@ Stm
     | 'revert' Stm 'if' Bexp                                                        (* conditional revert *)
     | 'break'                                                                       (* break flag *)
     | 'match' Aexp 'on' { Val ':' Stm ',' } 'default:' Stm                          (* pattern match *)
-    | 'havoc' x                                                                     (* random variable definition *)
+    | 'havoc' Var                                                                   (* random variable definition *)
     | 'assert' Bexp                                                                 (* assertion *)
     | 'flip' '(' Val ')' Stm 'flop' Stm 'end'                                       (* alternating branching *)
     | 'raise' Aexp                                                                  (* raise exception *)
