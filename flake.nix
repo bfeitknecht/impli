@@ -51,7 +51,7 @@
               cc = ghc-wasm-meta.packages.${system}.all_9_12 // {
                 isGNU = false;
                 isClang = true;
-                libc = ghc-wasm-meta.packages.${system}.wasi-sdk.overrideAttrs (attrs: { pname = attrs.name; version = "unstable1"; });
+                libc = ghc-wasm-meta.packages.${system}.wasi-sdk.overrideAttrs (attrs: { pname = attrs.name; version = "unstable"; });
                 inherit targetPrefix;
                 bintools = ghc-wasm-meta.packages.${system}.all_9_12 // {
                   inherit targetPrefix;
@@ -134,7 +134,8 @@
               elif [ -f $out/bin/impli-web ]; then
                 cp $out/bin/impli-web $out/bin/impli-web.wasm
               else
-                echo "Warning: Could not find impli-web binary"
+                echo "Warning: impli-web binary not found at expected locations ($out/bin/impli-web.wasm or $out/bin/impli-web)"
+                echo "Build may have failed or binary name may have changed. Contents of $out/bin/:"
                 ls -la $out/bin/ || true
               fi
             '';
