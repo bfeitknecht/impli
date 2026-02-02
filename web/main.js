@@ -90,9 +90,6 @@ async function init() {
   // The first parameter is the path to predelivered binaries
   const impli = new Impli("./");
 
-  // Run impli WASM REPL
-  impli.runWasmCommand("impli");
-
   // Load the addon into the terminal
   terminal.loadAddon(impli);
 
@@ -102,6 +99,9 @@ async function init() {
   // Focus the terminal
   terminal.focus();
 
+  // Run impli WASM REPL
+  impli.runWasmCommand("impli");
+  
   // impli WASM will be automatically launched by the Impli.activate() method
   console.log("Launching impli WASM...");
 }
