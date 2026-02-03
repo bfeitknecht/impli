@@ -4,7 +4,7 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 {- |
-Module      : REPL.Execute
+Module      : REPL.Execute.Native
 Description : Read-Evaluate-Print-Loop for the IMP language interpreter
 Copyright   : (c) Basil Feitknecht, 2025
 License     : MIT
@@ -18,7 +18,7 @@ with 'IMP.Expression.evaluate' or 'IMP.Statement.execute'.
 Supports various metacommands, such as inspection of interpreter state, interpret source file,
 print AST of IMP language construct and save execution history to disk.
 -}
-module REPL.Execute where
+module REPL.Execute.Native where
 
 import Control.Monad.Except
 import Control.Monad.State hiding (State, state)
