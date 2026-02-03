@@ -95,7 +95,6 @@ executable impli-web
     REPL.Meta
     REPL.Preset
     REPL.State
-    REPL.Web
 
   autogen-modules:
     Paths_impli
