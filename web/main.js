@@ -30,20 +30,16 @@ class Impli extends WasmWebTerm.default {
     return "\x1bc\x1b[1m" + logo + "\x1b[0m" + message;
   }
 
-  // Disable xterm prompt
-  _xtermPrompt() {
-    return "";
-  }
-
-  // Disable line splitting and pass input to WebWorker
-  runline(line) {
-    _setStdinBuffer(line);
-  }
-
   // Start impli REPL
   async activate(xterm) {
     // Set up addons, registers JS commands
     await super.activate(xterm);
+
+    // Disable xterm prompt
+    this._xtermPrompt = () => "";
+
+    // Disable line splitting and pass input to WebWorker
+    this.runline = (line) => _setStdinBuffer(line);
 
     // Run WASM impli REPL
     await this.runWasmCommand("impli", []);
