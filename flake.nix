@@ -146,6 +146,7 @@
         in
         {
           impli-web = haskellPackages.impli.overrideAttrs (old: {
+            nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [ pkgs.binaryen ];
             postInstall = ''
               ${old.postInstall or ""}
               # Copy the WASM binary with the expected name
@@ -157,6 +158,14 @@
                 echo "Warning: impli-web binary not found at expected locations ($out/bin/impli-web.wasm or $out/bin/impli-web)"
                 echo "Build may have failed or binary name may have changed. Contents of $out/bin/:"
                 ls -la $out/bin/ || true
+              fi
+
+              # Optimize the WASM binary with wasm-opt
+              if [ -f $out/bin/impli-web.wasm ]; then
+                echo "Running wasm-opt on impli-web.wasm..."
+                wasm-opt -Os $out/bin/impli-web.wasm -o $out/bin/impli-web.wasm.opt
+                mv $out/bin/impli-web.wasm.opt $out/bin/impli-web.wasm
+                echo "WASM optimization complete"
               fi
             '';
           });
