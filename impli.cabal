@@ -80,13 +80,12 @@ common browser
   build-depends:
     impli
 
-  -- cabal-gild: discover src --include=src/REPL/** --include=src/Web.hs --exclude=src/REPL/Execute/Native.hs
+  -- cabal-gild: discover src --include=src/REPL/** --exclude=src/REPL/Execute/Native.hs
   other-modules:
     REPL.Execute.Browser
     REPL.Meta
     REPL.Preset
     REPL.State
-    Web
 
 library
   import: dependencies
