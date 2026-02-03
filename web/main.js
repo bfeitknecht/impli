@@ -39,7 +39,7 @@ class Impli extends WasmWebTerm.default {
     this._xtermPrompt = () => "";
 
     // Disable line splitting and pass input to WebWorker
-    this.runline = (line) => _setStdinBuffer(line);
+    this.runLine = (line) => _setStdinBuffer(line);
 
     // Run WASM impli REPL
     await this.runWasmCommand("impli", []);
