@@ -3,6 +3,7 @@
 
 // Impli subclass of WasmWebTerm that auto-launches impli REPL
 class Impli extends WasmWebTerm.default {
+  // Nice welcome message
   printWelcomeMessagePlusControlSequences() {
     const dedent = (strings, ...values) => {
       let raw = "";
@@ -29,23 +30,34 @@ class Impli extends WasmWebTerm.default {
     return "\x1bc\x1b[1m" + logo + "\x1b[0m" + message;
   }
 
-  // Disable WasmWebTerm REPL
-  repl() {}
+  // Disable xterm prompt
+  _xtermPrompt = () => "";
+
+  // Disable line splitting and pass input to WebWorker
+  runline = (line) => _setStdinBuffer(line);
 
   // Start impli REPL
   async activate(xterm) {
-    const backup = console.log;
-    // Suppress annoying log messages
-    console.log = () => {};
-    try {
-      await super.activate(xterm); // Set up addons, registers JS commands
-      await this.runWasmCommand("impli", []); // Run WASM impli REPL
-    } catch (err) {
-      console.log = backup;
-      console.log(err);
-    } finally {
-      console.log = backup;
-    }
+    // Set up addons, registers JS commands
+    await super.activate(xterm);
+
+    // Run WASM impli REPL
+    await this.runWasmCommand("impli", []);
+  }
+
+  // Write impli REPL trace to plaintext blob in new browser tab
+  writeTrace(trace) {
+    // Create blob from trace
+    const blob = new Blob([trace], { type: "text/plain" });
+
+    // Create URL for blob
+    const url = URL.createObjectURL(blob);
+
+    // Open blob in new tab
+    globalThis.open(url, "_blank");
+
+    // Revoke URL after delay to free memory
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 }
 
@@ -90,6 +102,9 @@ async function init() {
   // Create Impli addon (extends wasm-webterm)
   // The first parameter is the path to predelivered binaries
   const impli = new Impli("./");
+
+  // Expose Impli instance to global scope to allow for JSFFI
+  globalThis.impli = impli;
 
   // Load the addon into the terminal
   terminal.loadAddon(impli);
