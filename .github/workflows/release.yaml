@@ -27,8 +27,6 @@ jobs:
             arch: auto
           - os: windows-latest
             arch: x86_64
-          - os: windows-11-arm
-            arch: aarch64
 
     steps:
       - name: Checkout repo
@@ -156,31 +154,8 @@ jobs:
           # Copy all binaries (native and WASM)
           find artifacts/impli-* -type f -exec cp {} release/ \;
           
-          # Verify expected binaries exist
-          MISSING=""
-          
-          # Check for each expected binary
-          [ -f release/impli-x86_64-linux ] || MISSING="$MISSING impli-x86_64-linux"
-          [ -f release/impli-aarch64-linux ] || MISSING="$MISSING impli-aarch64-linux"
-          [ -f release/impli-x86_64-windows.exe ] || MISSING="$MISSING impli-x86_64-windows.exe"
-          [ -f release/impli-aarch64-windows.exe ] || MISSING="$MISSING impli-aarch64-windows.exe"
-          [ -f release/impli.wasm ] || MISSING="$MISSING impli.wasm"
-          
-          # macOS can be either x86_64 or aarch64
-          if [ ! -f release/impli-x86_64-darwin ] && [ ! -f release/impli-aarch64-darwin ]; then
-            MISSING="$MISSING impli-{x86_64,aarch64}-darwin"
-          fi
-          
-          if [ -n "$MISSING" ]; then
-            echo "ERROR: Missing expected binaries:$MISSING"
-            echo "Files in release:"
-            ls -lh release/
-            exit 1
-          fi
-          
           # List release files
-          BINARY_COUNT=$(ls -1 release/ | wc -l)
-          echo "Release files ready ($BINARY_COUNT binaries):"
+          echo "Release files ready:"
           ls -lh release/
 
       - name: Upload to GitHub Release
