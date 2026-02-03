@@ -1,3 +1,7 @@
+[![Release Binaries](https://github.com/bfeitknecht/impli/actions/workflows/release.yaml/badge.svg)](https://github.com/bfeitknecht/impli/actions/workflows/release.yaml)
+[![Deploy GitHub Pages](https://github.com/bfeitknecht/impli/actions/workflows/deploy.yaml/badge.svg)](https://github.com/bfeitknecht/impli/actions/workflows/deploy.yaml)
+[![Test Specifications](https://github.com/bfeitknecht/impli/actions/workflows/test.yaml/badge.svg)](https://github.com/bfeitknecht/impli/actions/workflows/test.yaml)
+[![Test Formatting](https://github.com/bfeitknecht/impli/actions/workflows/format.yaml/badge.svg)](https://github.com/bfeitknecht/impli/actions/workflows/format.yaml)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/bfeitknecht/impli)
 
 # `impli`
