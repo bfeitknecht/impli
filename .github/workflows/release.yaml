@@ -12,6 +12,41 @@ permissions:
   contents: write
 
 jobs:
+  build-wasm:
+    name: Build WASM binary
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v24
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+            extra-substituters = https://ghc-wasm-meta.cachix.org
+            extra-trusted-public-keys = ghc-wasm-meta.cachix.org-1:6C9S967v6XvAizKovS/I844z6o0qR2r3/2DkY7vXGgY=
+
+      - name: Build WASM binary
+        run: |
+          # Build the WASM binary using nix build with --accept-flake-config to trust binary cache
+          nix build .#impli-web -L --accept-flake-config
+
+          # Copy the built WASM binary with the correct name (impli.wasm)
+          mkdir -p artifacts
+          cp result/bin/impli-web.wasm artifacts/impli.wasm
+
+          echo "WASM binary built successfully"
+          ls -lh artifacts/impli.wasm
+
+      - name: Upload WASM to artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: wasm-binary
+          path: artifacts/impli.wasm
+
   build:
     name: Build on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
@@ -42,7 +77,7 @@ jobs:
           cabal update
           cabal build exe:impli
 
-      - name: Upload executable to artifacts
+      - name: Prepare native binaries
         shell: bash
         run: |
           mkdir -p artifacts
@@ -94,10 +129,36 @@ jobs:
         run: |
           echo "tag=$(git describe --tags --abbrev=0)" >> "$GITHUB_OUTPUT"
 
+      - name: Upload native binaries to artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-binaries-${{ matrix.os }}
+          path: artifacts/*
+
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [build, build-wasm]
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: all-artifacts
+
+      - name: Prepare release assets
+        run: |
+          mkdir -p release-assets
+          # Copy all native binaries
+          find all-artifacts/native-binaries-* -type f -exec cp {} release-assets/ \;
+          # Copy WASM binary
+          cp all-artifacts/wasm-binary/impli.wasm release-assets/
+          ls -lh release-assets/
+
       - name: Upload to GitHub Release
-        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v1
         with:
-          files: artifacts/*
+          files: release-assets/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
