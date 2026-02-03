@@ -149,11 +149,20 @@ jobs:
         run: |
           mkdir -p release
           
-          # Copy all native binaries
+          # Copy all binaries (native and WASM)
           find artifacts/impli-* -type f -exec cp {} release/ \;
           
+          # Verify we have the expected files
+          BINARY_COUNT=$(ls -1 release/ | wc -l)
+          if [ "$BINARY_COUNT" -lt 5 ]; then
+            echo "ERROR: Expected at least 5 binaries, found $BINARY_COUNT"
+            echo "Files in release:"
+            ls -lh release/
+            exit 1
+          fi
+          
           # List release files
-          echo "Release files ready:"
+          echo "Release files ready ($BINARY_COUNT binaries):"
           ls -lh release/
 
       - name: Upload to GitHub Release
