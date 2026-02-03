@@ -154,7 +154,8 @@ jobs:
           if ls all-artifacts/native-binaries-*/impli-* 1> /dev/null 2>&1; then
             find all-artifacts/native-binaries-* -type f -exec cp {} release-assets/ \;
           else
-            echo "Warning: No native binaries found in artifacts"
+            echo "ERROR: No native binaries found in artifacts"
+            exit 1
           fi
           
           # Copy WASM binary
