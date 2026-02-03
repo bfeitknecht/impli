@@ -35,7 +35,7 @@ class Impli extends WasmWebTerm.default {
   // Start impli REPL
   async activate(xterm) {
     const backup = console.log;
-    // Surpress annoying log messages
+    // Suppress annoying log messages
     console.log = () => {};
     try {
       await super.activate(xterm); // Set up addons, registers JS commands
