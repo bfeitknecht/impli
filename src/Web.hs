@@ -18,4 +18,4 @@ import REPL.State
 
 -- | Entrypoint for web/WASM IMP interpreter
 main :: IO ()
-main = repl start
+main = repl start >> main -- escape is impossible

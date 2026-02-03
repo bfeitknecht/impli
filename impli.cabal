@@ -118,6 +118,9 @@ executable impli-web
   other-modules:
     Paths_impli
 
+  ghc-options:
+    -rtsopts
+
 test-suite impli-test
   import: dependencies
   type: exitcode-stdio-1.0
