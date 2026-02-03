@@ -120,7 +120,7 @@ executable impli-web
     Paths_impli
 
 test-suite impli-test
-  import: dependencies, shared
+  import: dependencies
   type: exitcode-stdio-1.0
   hs-source-dirs: test
   main-is: Spec.hs
