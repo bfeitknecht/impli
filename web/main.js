@@ -31,10 +31,14 @@ class Impli extends WasmWebTerm.default {
   }
 
   // Disable xterm prompt
-  _xtermPrompt = () => "";
+  _xtermPrompt() {
+    return "";
+  }
 
   // Disable line splitting and pass input to WebWorker
-  runline = (line) => _setStdinBuffer(line);
+  runline(line) {
+    _setStdinBuffer(line);
+  }
 
   // Start impli REPL
   async activate(xterm) {
