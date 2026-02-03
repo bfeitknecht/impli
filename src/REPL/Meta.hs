@@ -115,9 +115,9 @@ instance Parses Command where
             ]
         where
             command cmd = try (symbol cmd) <|> symbol [head cmd] -- INFO: case of empty string not possible
-            set = symbol "set" *> parses
+            set = try (symbol "set") *> parses
             unset =
-                symbol "unset"
+                try (symbol "unset")
                     *> choice
                         [ Welcome <$ symbol "welcome" <*> return welcome
                         , Prompt <$ symbol "prompt" <*> return prompt
