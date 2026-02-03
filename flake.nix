@@ -161,13 +161,13 @@
               fi
 
               # Optimize the WASM binary with wasm-opt
-              if [ -f $out/bin/impli-web.wasm ]; then
+              if [ -f "$out/bin/impli-web.wasm" ]; then
                 echo "Running wasm-opt on impli-web.wasm..."
-                wasm-opt -Os $out/bin/impli-web.wasm -o $out/bin/impli-web.wasm.opt || {
+                wasm-opt -Os "$out/bin/impli-web.wasm" -o "$out/bin/impli-web.wasm.opt" || {
                   echo "ERROR: wasm-opt optimization failed"
                   exit 1
                 }
-                mv $out/bin/impli-web.wasm.opt $out/bin/impli-web.wasm
+                mv "$out/bin/impli-web.wasm.opt" "$out/bin/impli-web.wasm"
                 echo "WASM optimization complete"
               fi
             '';
