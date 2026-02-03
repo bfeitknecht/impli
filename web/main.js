@@ -15,18 +15,18 @@ class Impli extends WasmWebTerm.default {
       return normalized.join("\r\n") + "\r\n";
     };
 
-    // https://patorjk.com/software/taag/#p=display&f=Broadway+KB&t=impli
-    const logo = dedent`\x1bc\x1b[1m
-      __ ___  __ _____ __    __
-      || || \\/ | ||_// ||    ||
-      || ||    | ||    ||__| ||
-      \x1b[0m`;
+    const logo = dedent`\
+      ,_  ,_     ,___  ,_    ,_
+      | | | |\\/| | |_) | |   | |
+      |_| |_|  | |_|   |_|__ |_|
+      `;
 
     const message = dedent`\
       Execute IMP statements in the browser and inspect the resulting state.
       Made with <3 by Basil Feitknecht`;
 
-    return logo + message;
+    // Bold control characters for logo
+    return "\x1bc\x1b[1m" + logo + "\x1b[0m" + message;
   }
 
   // Disable WasmWebTerm REPL
