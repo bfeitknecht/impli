@@ -23,7 +23,6 @@ jobs:
       - name: Install Nix
         uses: cachix/install-nix-action@v24
         with:
-          nix_path: nixpkgs=channel:nixos-unstable
           extra_nix_config: |
             experimental-features = nix-command flakes
             extra-substituters = https://ghc-wasm-meta.cachix.org
@@ -150,10 +149,23 @@ jobs:
       - name: Prepare release assets
         run: |
           mkdir -p release-assets
+          
           # Copy all native binaries
-          find all-artifacts/native-binaries-* -type f -exec cp {} release-assets/ \;
+          if ls all-artifacts/native-binaries-*/impli-* 1> /dev/null 2>&1; then
+            find all-artifacts/native-binaries-* -type f -exec cp {} release-assets/ \;
+          else
+            echo "Warning: No native binaries found in artifacts"
+          fi
+          
           # Copy WASM binary
-          cp all-artifacts/wasm-binary/impli.wasm release-assets/
+          if [ -f all-artifacts/wasm-binary/impli.wasm ]; then
+            cp all-artifacts/wasm-binary/impli.wasm release-assets/
+          else
+            echo "ERROR: WASM binary not found"
+            exit 1
+          fi
+          
+          echo "Release assets prepared:"
           ls -lh release-assets/
 
       - name: Upload to GitHub Release
