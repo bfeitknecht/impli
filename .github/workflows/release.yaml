@@ -137,8 +137,17 @@ jobs:
       - name: Prepare release files
         run: |
           mkdir -p release
-          cp artifacts/impli-*/* release/
+          
+          # Copy native binaries from each OS
+          cp artifacts/impli-ubuntu-latest/* release/
+          cp artifacts/impli-macos-latest/* release/
+          cp artifacts/impli-windows-latest/* release/
+          
+          # Copy WASM binary
           cp artifacts/impli-wasm/impli.wasm release/
+          
+          # List release files
+          echo "Release files ready:"
           ls -lh release/
 
       - name: Upload to GitHub Release
