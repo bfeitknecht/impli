@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build:
@@ -140,6 +140,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build, build-wasm]
     if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
 
     steps:
       - name: Download artifacts
@@ -154,16 +156,30 @@ jobs:
           # Copy all binaries (native and WASM)
           find artifacts/impli-* -type f -exec cp {} release/ \;
           
-          # Verify we have the expected files
-          BINARY_COUNT=$(ls -1 release/ | wc -l)
-          if [ "$BINARY_COUNT" -lt 6 ]; then
-            echo "ERROR: Expected at least 6 binaries, found $BINARY_COUNT"
+          # Verify expected binaries exist
+          MISSING=""
+          
+          # Check for each expected binary
+          [ -f release/impli-x86_64-linux ] || MISSING="$MISSING impli-x86_64-linux"
+          [ -f release/impli-aarch64-linux ] || MISSING="$MISSING impli-aarch64-linux"
+          [ -f release/impli-x86_64-windows.exe ] || MISSING="$MISSING impli-x86_64-windows.exe"
+          [ -f release/impli-aarch64-windows.exe ] || MISSING="$MISSING impli-aarch64-windows.exe"
+          [ -f release/impli.wasm ] || MISSING="$MISSING impli.wasm"
+          
+          # macOS can be either x86_64 or aarch64
+          if [ ! -f release/impli-x86_64-darwin ] && [ ! -f release/impli-aarch64-darwin ]; then
+            MISSING="$MISSING impli-{x86_64,aarch64}-darwin"
+          fi
+          
+          if [ -n "$MISSING" ]; then
+            echo "ERROR: Missing expected binaries:$MISSING"
             echo "Files in release:"
             ls -lh release/
             exit 1
           fi
           
           # List release files
+          BINARY_COUNT=$(ls -1 release/ | wc -l)
           echo "Release files ready ($BINARY_COUNT binaries):"
           ls -lh release/
 
