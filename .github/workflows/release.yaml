@@ -12,40 +12,6 @@ permissions:
   contents: write
 
 jobs:
-  build-wasm:
-    name: Build WASM binary
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-
-      - name: Install Nix
-        uses: cachix/install-nix-action@v24
-        with:
-          extra_nix_config: |
-            experimental-features = nix-command flakes
-            extra-substituters = https://ghc-wasm-meta.cachix.org
-            extra-trusted-public-keys = ghc-wasm-meta.cachix.org-1:6C9S967v6XvAizKovS/I844z6o0qR2r3/2DkY7vXGgY=
-
-      - name: Build WASM binary
-        run: |
-          # Build the WASM binary using nix build with --accept-flake-config to trust binary cache
-          nix build .#impli-web -L --accept-flake-config
-
-          # Copy the built WASM binary with the correct name (impli.wasm)
-          mkdir -p artifacts
-          cp result/bin/impli-web.wasm artifacts/impli.wasm
-
-          echo "WASM binary built successfully"
-          ls -lh artifacts/impli.wasm
-
-      - name: Upload WASM to artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: wasm-binary
-          path: artifacts/impli.wasm
-
   build:
     name: Build on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
@@ -122,56 +88,61 @@ jobs:
             strip "artifacts/impli-${SYSTEM}${EXT}" 2>/dev/null || true
           fi
 
-      - name: Get latest Git tag (fallback)
-        if: github.event_name == 'workflow_dispatch'
-        id: get_tag
-        run: |
-          echo "tag=$(git describe --tags --abbrev=0)" >> "$GITHUB_OUTPUT"
-
-      - name: Upload native binaries to artifacts
+      - name: Upload native binaries
         uses: actions/upload-artifact@v4
         with:
-          name: native-binaries-${{ matrix.os }}
+          name: impli-${{ matrix.os }}
           path: artifacts/*
 
+  build-wasm:
+    name: Build WASM
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v24
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+            extra-substituters = https://ghc-wasm-meta.cachix.org
+            extra-trusted-public-keys = ghc-wasm-meta.cachix.org-1:6C9S967v6XvAizKovS/I844z6o0qR2r3/2DkY7vXGgY=
+
+      - name: Build and upload WASM binary
+        run: |
+          nix build .#impli-web -L --accept-flake-config
+          mkdir -p artifacts
+          cp result/bin/impli-web.wasm artifacts/impli.wasm
+
+      - name: Upload WASM binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: impli-wasm
+          path: artifacts/impli.wasm
+
   release:
-    name: Create GitHub Release
+    name: Release
     runs-on: ubuntu-latest
     needs: [build, build-wasm]
     if: startsWith(github.ref, 'refs/tags/')
 
     steps:
-      - name: Download all artifacts
+      - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
-          path: all-artifacts
+          path: artifacts
 
-      - name: Prepare release assets
+      - name: Prepare release files
         run: |
-          mkdir -p release-assets
-          
-          # Copy all native binaries
-          if ls all-artifacts/native-binaries-*/impli-* 1> /dev/null 2>&1; then
-            find all-artifacts/native-binaries-* -type f -exec cp {} release-assets/ \;
-          else
-            echo "ERROR: No native binaries found in artifacts"
-            exit 1
-          fi
-          
-          # Copy WASM binary
-          if [ -f all-artifacts/wasm-binary/impli.wasm ]; then
-            cp all-artifacts/wasm-binary/impli.wasm release-assets/
-          else
-            echo "ERROR: WASM binary not found"
-            exit 1
-          fi
-          
-          echo "Release assets prepared:"
-          ls -lh release-assets/
+          mkdir -p release
+          find artifacts -type f -exec cp {} release/ \;
+          ls -lh release/
 
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          files: release-assets/*
+          files: release/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
