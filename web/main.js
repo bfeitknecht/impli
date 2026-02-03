@@ -22,7 +22,7 @@ class Impli extends WasmWebTerm.default {
       `;
 
     const message = dedent`\
-      Execute IMP statements in the browser and inspect the resulting state.
+      Execute IMP in the browser and inspect resulting state.
       Made with <3 by Basil Feitknecht`;
 
     // Bold control characters for logo

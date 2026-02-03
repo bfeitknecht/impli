@@ -15,8 +15,8 @@ description:
 
 extra-doc-files:
   CHANGELOG.md
-  docs/IMP.ebnf
   README.md
+  docs/IMP.ebnf
 
 extra-source-files:
   docs/IMP.ebnf
@@ -46,7 +46,7 @@ common shared
 library
   import: shared
   hs-source-dirs: src
-  -- cabal-gild: discover src/IMP
+  -- cabal-gild: discover src/ --include=src/IMP/**
   exposed-modules:
     IMP.Config
     IMP.Exception
@@ -70,7 +70,7 @@ executable impli
     impli,
     optparse-applicative >=0.15 && <0.19,
 
-  -- cabal gild: discover src/** --exclude=**/Web.hs --exclude=**/IMP/**
+  -- cabal gild: discover src/** --exclude=src/IMP/** --exclude=src/Web.hs
   other-modules:
     CLI
     Paths_impli
@@ -87,9 +87,9 @@ executable impli-web
   hs-source-dirs: src
   main-is: Web.hs
   build-depends:
-    impli,
+    impli
 
-  -- cabal gild: discover src/** --exclude=**/Main.hs --exclude=**/CLI.hs --exclude=**/IMP/** --exclude=**/REPL/Execute.hs
+  -- cabal gild: discover src/** --exclude=src/IMP/** --exclude=src/Main.hs --exclude=src/CLI.hs --exclude=src/REPL/Execute.hs
   other-modules:
     Paths_impli
     REPL.Meta
@@ -98,10 +98,6 @@ executable impli-web
 
   autogen-modules:
     Paths_impli
-
-  -- Note: No -threaded flag for WASM (threading not supported in wasm32-wasi)
-  ghc-options:
-    -rtsopts
 
 test-suite impli-test
   import: shared

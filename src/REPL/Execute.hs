@@ -1,7 +1,7 @@
-{-# LANGUAGE ConstrainedClassMethods #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeApplications #-}
+{-# OPTIONS_GHC -Wno-orphans #-}
 
 {- |
 Module      : REPL.Execute

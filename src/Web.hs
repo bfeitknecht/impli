@@ -96,7 +96,7 @@ instance Dispatches IO Command where
             Write path -> writeIMP path
             AST element -> ast element
             Set option -> set option
-        >> loop
+            >> loop
 
 -- | Dispatcher for 'IMP.Exception.Exception' with IO backend.
 instance Dispatches IO Exception where
