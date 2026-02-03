@@ -1,0 +1,27 @@
+Source: impli
+Section: misc
+Priority: optional
+Maintainer: Basil Feitknecht <bfeitknecht@ethz.ch>
+Build-Depends: debhelper (>= 11),
+               ghc (>= 9.10),
+               cabal-install,
+               libghc-async-dev,
+               libghc-containers-dev,
+               libghc-mtl-dev,
+               libghc-parsec3-dev,
+               libghc-prettyprinter-dev,
+               libghc-random-dev,
+               libghc-transformers-dev,
+               libghc-ansi-terminal-dev,
+               libghc-haskeline-dev,
+               libghc-optparse-applicative-dev
+Standards-Version: 4.5.0
+Homepage: https://github.com/bfeitknecht/impli
+
+Package: impli
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Interpreter for an imperative toy language
+ Minimal imperative language interpreter built for educational purposes.
+ This is an interpreter for the imperative toy language IMP from the course
+ Formal Methods and Functional Programming at ETHZ.

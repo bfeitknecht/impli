@@ -1,0 +1,223 @@
+name: Distribute packages
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  # Hackage publication using marketplace action
+  hackage:
+    name: Publish to Hackage
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Release to Hackage
+        uses: haskell-actions/hackage-publish@v1
+        with:
+          hackageToken: ${{ secrets.HACKAGE_TOKEN }}
+          packagesPath: .
+          publish: true
+
+  # Create distribution artifacts
+  build-artifacts:
+    name: Build distribution artifacts
+    runs-on: ubuntu-latest
+    needs: []
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create artifacts directory
+        run: mkdir -p artifacts
+
+      - name: Copy Nix package
+        run: cp -r package/nixpkgs artifacts/
+
+      - name: Copy Homebrew formula
+        run: cp package/homebrew/impli.rb artifacts/
+
+      - name: Copy Debian package files
+        run: cp -r package/debian artifacts/
+
+      - name: Copy AUR PKGBUILD
+        run: cp package/aur/PKGBUILD artifacts/
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: distribution-files
+          path: artifacts/
+
+  # Update Homebrew formula for homebrew-core submission
+  homebrew:
+    name: Update Homebrew formula
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get version from tag
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Calculate SHA256
+        id: calc_sha
+        run: |
+          VERSION=${{ steps.get_version.outputs.VERSION }}
+          curl -L -o /tmp/impli.tar.gz "https://github.com/bfeitknecht/impli/archive/refs/tags/v${VERSION}.tar.gz"
+          SHA256=$(sha256sum /tmp/impli.tar.gz | awk '{print $1}')
+          echo "SHA256=${SHA256}" >> $GITHUB_OUTPUT
+
+      - name: Update Homebrew formula
+        run: |
+          VERSION=${{ steps.get_version.outputs.VERSION }}
+          SHA256=${{ steps.calc_sha.outputs.SHA256 }}
+          sed -i "s|url \".*\"|url \"https://github.com/bfeitknecht/impli/archive/refs/tags/v${VERSION}.tar.gz\"|" package/homebrew/impli.rb
+          sed -i "s|sha256 \".*\"|sha256 \"${SHA256}\"|" package/homebrew/impli.rb
+
+      - name: Create PR to homebrew-core
+        uses: mislav/bump-homebrew-formula-action@v3
+        if: "!contains(github.ref, '-')" # Skip for pre-releases
+        with:
+          formula-name: impli
+          formula-path: package/homebrew/impli.rb
+          homebrew-tap: Homebrew/homebrew-core
+          download-url: https://github.com/bfeitknecht/impli/archive/refs/tags/v${{ steps.get_version.outputs.VERSION }}.tar.gz
+        env:
+          COMMITTER_TOKEN: ${{ secrets.HOMEBREW_GITHUB_API_TOKEN }}
+
+      - name: Upload updated formula
+        uses: actions/upload-artifact@v4
+        with:
+          name: homebrew-formula
+          path: package/homebrew/impli.rb
+
+  # Update AUR PKGBUILD with correct SHA
+  update-aur:
+    name: Update AUR PKGBUILD
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get version from tag
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Calculate SHA256
+        id: calc_sha
+        run: |
+          VERSION=${{ steps.get_version.outputs.VERSION }}
+          curl -L -o /tmp/impli.tar.gz "https://github.com/bfeitknecht/impli/archive/refs/tags/v${VERSION}.tar.gz"
+          SHA256=$(sha256sum /tmp/impli.tar.gz | awk '{print $1}')
+          echo "SHA256=${SHA256}" >> $GITHUB_OUTPUT
+
+      - name: Update PKGBUILD
+        run: |
+          VERSION=${{ steps.get_version.outputs.VERSION }}
+          SHA256=${{ steps.calc_sha.outputs.SHA256 }}
+          sed -i "s|pkgver=.*|pkgver=${VERSION}|" package/aur/PKGBUILD
+          sed -i "s|sha256sums=.*|sha256sums=('${SHA256}')|" package/aur/PKGBUILD
+
+      - name: Upload updated PKGBUILD
+        uses: actions/upload-artifact@v4
+        with:
+          name: aur-pkgbuild
+          path: package/aur/PKGBUILD
+
+  # Build Debian package
+  debian:
+    name: Build Debian package
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Copy debian directory to root for build
+        run: cp -r package/debian .
+
+      - name: Build Debian package
+        uses: jtdor/build-deb-action@v1
+        with:
+          source-dir: .
+          buildpackage-opts: --build=binary --no-sign
+          extra-build-deps: ghc cabal-install
+
+      - name: Upload Debian package
+        uses: actions/upload-artifact@v4
+        with:
+          name: debian-packages
+          path: debian/artifacts/*.deb
+
+  # Create release with updated distribution files
+  create-release-notes:
+    name: Create release notes
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [hackage, homebrew, debian, update-aur]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Create release notes
+        run: |
+          cat > release-notes.md << 'EOF'
+          ## Distribution
+
+          ### Hackage
+          Published to Hackage: https://hackage.haskell.org/package/impli
+
+          ### Homebrew
+          After initial PR to homebrew-core is merged, updates are automatic.
+          Install via:
+          ```bash
+          brew install impli
+          ```
+
+          ### Nix/NixOS
+          Install via Nix (package needs to be submitted to nixpkgs):
+          ```bash
+          nix-env -iA nixpkgs.impli
+          ```
+
+          ### Arch Linux (AUR)
+          Install via AUR helper (package needs to be published to AUR):
+          ```bash
+          yay -S impli
+          ```
+
+          ### Debian/Ubuntu
+          Install the attached .deb package:
+          ```bash
+          sudo dpkg -i impli_*.deb
+          ```
+
+          ---
+
+          See the attached artifacts for the latest distribution files.
+          EOF
+
+      - name: Append to release
+        uses: softprops/action-gh-release@v1
+        with:
+          body_path: release-notes.md
+          files: |
+            homebrew-formula/impli.rb
+            aur-pkgbuild/PKGBUILD
+            debian-packages/*.deb
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

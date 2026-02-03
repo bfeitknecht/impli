@@ -1,0 +1,18 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	cabal v2-update
+	cabal v2-build exe:impli
+
+override_dh_auto_install:
+	mkdir -p debian/impli/usr/bin
+	cabal v2-install --install-method=copy --installdir=debian/impli/usr/bin exe:impli
+	mkdir -p debian/impli/usr/share/man/man1
+	cp docs/man/impli.1 debian/impli/usr/share/man/man1/
+
+override_dh_auto_clean:
+	cabal v2-clean || true
+	dh_clean
