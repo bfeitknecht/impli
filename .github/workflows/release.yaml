@@ -110,7 +110,7 @@ jobs:
             extra-substituters = https://ghc-wasm-meta.cachix.org
             extra-trusted-public-keys = ghc-wasm-meta.cachix.org-1:6C9S967v6XvAizKovS/I844z6o0qR2r3/2DkY7vXGgY=
 
-      - name: Build and upload WASM binary
+      - name: Build WASM binary
         run: |
           nix build .#impli-web -L --accept-flake-config
           mkdir -p artifacts
@@ -137,7 +137,8 @@ jobs:
       - name: Prepare release files
         run: |
           mkdir -p release
-          find artifacts -type f -exec cp {} release/ \;
+          cp artifacts/impli-*/* release/
+          cp artifacts/impli-wasm/impli.wasm release/
           ls -lh release/
 
       - name: Upload to GitHub Release
