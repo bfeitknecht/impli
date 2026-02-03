@@ -27,6 +27,8 @@ jobs:
             arch: auto
           - os: windows-latest
             arch: x86_64
+          - os: windows-11-arm
+            arch: aarch64
 
     steps:
       - name: Checkout repo
@@ -154,8 +156,8 @@ jobs:
           
           # Verify we have the expected files
           BINARY_COUNT=$(ls -1 release/ | wc -l)
-          if [ "$BINARY_COUNT" -lt 5 ]; then
-            echo "ERROR: Expected at least 5 binaries, found $BINARY_COUNT"
+          if [ "$BINARY_COUNT" -lt 6 ]; then
+            echo "ERROR: Expected at least 6 binaries, found $BINARY_COUNT"
             echo "Files in release:"
             ls -lh release/
             exit 1
