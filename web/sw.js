@@ -3,7 +3,7 @@
 // See: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/SharedArrayBuffer
 
 // Install event - activate immediately
-self.addEventListener("install", (event) => {
+self.addEventListener("install", (_) => {
   self.skipWaiting();
 });
 

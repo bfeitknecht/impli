@@ -78,7 +78,8 @@ common native
 
 common browser
   build-depends:
-    impli
+    ghc-experimental,
+    impli,
 
   -- cabal-gild: discover src --include=src/REPL/** --exclude=src/REPL/Execute/Native.hs
   other-modules:
@@ -120,6 +121,9 @@ executable impli-web
 
   ghc-options:
     -rtsopts
+    -no-hs-main
+    -optl-mexec-model=reactor
+    "-optl-Wl,--export=start"
 
 test-suite impli-test
   import: dependencies
