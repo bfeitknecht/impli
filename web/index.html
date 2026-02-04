@@ -3,26 +3,26 @@
   <head>
     <meta charset="utf-8" />
     <title>impli - Web REPL</title>
-    <link rel="icon" href="./favicon.png" type="image/png" sizes="192x192" />
     <link rel="shortcut icon" href="./favicon.ico" />
     <link rel="preload" href="./CommitMonoV143-VF.woff2" as="font" type="font/woff2" crossorigin />
-
-    <!-- XTerm.js CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@4.19.0/css/xterm.css" />
-    <link rel="stylesheet" href="style.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "xterm": "https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/+esm",
+          "xterm-pty": "https://cdn.jsdelivr.net/npm/xterm-pty@0.11.1/+esm",
+          "xterm-fit": "https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/+esm",
+          "impli": "./impli.wasm",
+          "stub": "./stub.js"
+        }
+      }
+    </script>
   </head>
   <body>
     <div id="terminal"></div>
 
-    <!-- Load XTerm.js and wasm-webterm -->
-    <script src="https://cdn.jsdelivr.net/npm/xterm@4.19.0/lib/xterm.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/cryptool-org/wasm-webterm@a5986e8/webterm.bundle.js"></script>
-
-    <!-- Main application script -->
-    <!-- Note: A service worker (sw.js) is registered in main.js -->
-    <!-- to enable Cross-Origin Isolation headers required for WebWorkers support -->
+    <!-- NOTE: ServiceWorker (sw.js) is registered to enable -->
+    <!--  Cross-Origin Isolation Headers required for WebWorkers -->
     <script type="module" src="./main.js"></script>
-
     <noscript><p>This website needs JavaScript to work.</p></noscript>
   </body>
 </html>

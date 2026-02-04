@@ -56,19 +56,6 @@ async function main() {
   }
 }
 
-// Get xterm theme from CSS variables
-function getThemeStyle() {
-  const getStyleVar = (name) =>
-    getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-
-  return {
-    background: getStyleVar("--terminal-bg") || undefined,
-    foreground: getStyleVar("--terminal-fg") || undefined,
-    cursor: getStyleVar("--terminal-cursor") || undefined,
-    selectionBackground: getStyleVar("--terminal-selection") || undefined,
-  };
-}
-
 // Wait for DOM to be ready, then start
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", main);
