@@ -34,7 +34,7 @@ self.addEventListener("fetch", (event) => {
           });
         })
         .catch((error) => {
-          console.error("Service Worker fetch error:", error);
+          console.error("[ERROR] Service Worker fetch error:", error);
           // Return a simple error response if fetch fails
           return new Response("Service Worker fetch failed", {
             status: 500,
