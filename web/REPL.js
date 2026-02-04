@@ -1,4 +1,6 @@
-// Impli subclass of WasmWebTerm that auto-launches impli REPL
+// Impli subclass of WasmWebTerm with alternating control:
+// - local-echo controls input (editing, navigation, history)
+// - WASM controls execution and output only
 export class REPL extends WasmWebTerm.default {
   // Nice welcome message
   printWelcomeMessagePlusControlSequences() {
@@ -27,33 +29,37 @@ export class REPL extends WasmWebTerm.default {
     return "\x1bc\x1b[1m" + logo + "\x1b[0m" + message;
   }
 
-  // Disable xterm prompt
+  // Disable xterm prompt (WASM will print its own)
   _xtermPrompt() {
     return "";
   }
 
-  // Disable line splitting and pass input to WebWorker
-  runLine(line) {
-    super._setStdinBuffer(line);
+  // Override repl to do nothing - WASM drives its own REPL loop
+  // WasmWebTerm's default activate() tries to start a REPL, we prevent it
+  async repl() {
+    // Do nothing - the WASM impli binary runs its own REPL
+    // It will call _stdinProxy when it needs input
   }
 
-  // Custom REPL
-  async repl() {
-    // Read
+  // Override stdin proxy - WASM asking for input
+  // Read from terminal when WASM requests it
+  async _stdinProxy(message) {
+    console.log("[INFO] WASM requesting input, reading from terminal");
+
+    // Read line from terminal (local-echo provides editing/navigation)
     const line = await this._xtermEcho.read("");
-    this._xterm.write("\r\n");
-    if (line.trim() == "") return this.repl();
 
-    // Evaluate
-    this.runLine(line);
+    // Clear the line that local-echo just echoed
+    // Move cursor to beginning of line and clear it
+    this._xterm.write("\r\x1b[K");
 
-    // Print
-    // WASM impli REPL automatically prints output
-    if (this._outputBuffer.slice(-1) != "\n") this._xterm.write("\u23CE\r\n");
-    this._xterm.write("\r\n");
+    console.log("[INFO] User entered:", line);
 
-    // Loop
-    this.repl();
+    // Set stdin buffer with the user's input
+    this._setStdinBuffer(line + "\n");
+
+    // Resume the worker so it can read from the buffer
+    this._resumeWorker();
   }
 
   // Start impli REPL
@@ -61,7 +67,9 @@ export class REPL extends WasmWebTerm.default {
     // Set up addons, registers JS commands
     await super.activate(xterm);
 
-    // Run WASM impli REPL
+    // Start the WASM impli REPL
+    // WASM will drive the REPL loop and call _stdinProxy when it needs input
+    console.log("[INFO] Starting WASM impli REPL");
     await this.runWasmCommand("impli", []);
   }
 
