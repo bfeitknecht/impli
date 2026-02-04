@@ -40,13 +40,13 @@ function dedent(strings, ...values) {
   return lines.map((line) => line.slice(indent)).join("\n");
 }
 
-const logo = dedent`
+const logo = dedent`\
   ,_  ,_     ,___  ,_    ,_
   | | | |\\/| | |_) | |   | |
   |_| |_|  | |_|   |_|__ |_|
   `;
 
-const message = dedent`
+const message = dedent`\
   Execute IMP in the browser and inspect resulting state.
   Made with <3 by Basil Feitknecht
   `;
@@ -96,12 +96,6 @@ export class Impli {
     this.master = master;
     this.slave = slave;
 
-    // Define private input buffer
-    slave.onReadable(() => {
-      // Called when data is available
-      this._buffer = new Uint8Array(slave.read());
-    });
-
     // Focus terminal
     terminal.focus();
 
@@ -127,12 +121,6 @@ export class Impli {
     const wasi = new WASI({
       // args: ["impli"], // CHECK: What does this do and is it needed?
       // env: {}, // ditto
-      // stdin: () => {
-      //   // Read from slave pty
-      //   const data = this._buffer;
-      //   this._buffer = null;
-      //   return data;
-      // },
       stdin: () =>
         this.slave.onReadable(() => {
           // Read from slave pty
@@ -149,7 +137,7 @@ export class Impli {
       },
     });
 
-    // Placeholder for exports (will be filled after instantiation)
+    // Placeholder exports
     const exports = {};
 
     try {
@@ -159,7 +147,7 @@ export class Impli {
         ghc_wasm_jsffi: stub(exports),
       });
 
-      // Knot-tying: fill exports with actual instance exports
+      // Knot-tying, fill exports with actual instance exports
       Object.assign(exports, wasm.instance.exports);
 
       // Initialize WASI
@@ -167,11 +155,8 @@ export class Impli {
         ghc_wasm_jsffi: stub(exports),
       });
 
-      // Call start if it exists
-      if (wasm.instance.exports.start) {
-        wasm.instance.exports.start();
-      }
-
+      // Start WASM
+      wasm.instance.exports.start();
       console.log("[INFO] WASM module loaded and started");
     } catch (error) {
       console.error("[ERROR] Failed to load WASM module:", error);
