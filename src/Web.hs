@@ -22,4 +22,4 @@ foreign export javascript "start" main :: IO ()
 
 -- | Entrypoint for web/WASM IMP interpreter
 main :: IO ()
-main = repl start >> main -- escape is impossible
+main = repl start >> error "how did we get here?"

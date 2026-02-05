@@ -40,7 +40,7 @@ repl store = do
     result <- runExceptT (execStateT loop store)
     case result of
         Left e -> print e >> Exit.exitFailure
-        Right _ -> putStrLn goodbye
+        Right _ -> putStrLn goodbye >> loop -- escape is impossible
 
 -- | Main REPL loop using basic IO
 loop :: REPL IO ()

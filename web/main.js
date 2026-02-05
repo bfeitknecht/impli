@@ -1,4 +1,3 @@
-import { setup } from "./setup.js";
 import { Impli } from "./impli.js";
 
 /**
@@ -6,9 +5,6 @@ import { Impli } from "./impli.js";
  */
 async function main() {
   try {
-    // Setup service worker and verify browser support
-    await setup();
-
     // Create and start Impli instance, expose to global scope
     const impli = new Impli();
     await impli.start();
@@ -20,7 +16,7 @@ async function main() {
   }
 }
 
-// Wait for DOM to be ready, then start
+// Wait for DOM to be ready
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", main);
 } else {

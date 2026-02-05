@@ -93,28 +93,13 @@ export class Impli {
       attributeFilter: ["style", "class"],
     });
 
-    // Create PTY pair (master connects to terminal, slave for I/O)
+    // Create PTY pair (master connects to xterm, slave for IO)
     const { master, slave } = openpty();
     terminal.loadAddon(master);
-    this.master = master;
     this.slave = slave;
 
-    // Queue input
-    this.pending = null;
-    this.waiters = [];
-    slave.onReadable(() => {
-      const data = new Uint8Array(slave.read());
-      if (this.waiters.length > 0) {
-        const resolve = this.waiters.shift();
-        resolve(data);
-      } else {
-        this.pending = data;
-      }
-    });
-
-    // Focus terminal
+    // Enter terminal
     terminal.focus();
-
     this.terminal = terminal;
   }
 
@@ -127,6 +112,16 @@ export class Impli {
   }
 
   /**
+   * Write to the terminal
+   */
+  writeOut(data) {}
+
+  /**
+   * Read from the terminal
+   */
+  readIn() {}
+
+  /**
    * Start the impli REPL
    */
   async start() {
@@ -137,25 +132,9 @@ export class Impli {
     const wasi = new WASI({
       args: ["impli"],
       env: {},
-      stdin: () => {
-        if (this.pending) {
-          const data = this.pending;
-          this.pending = null;
-          return data;
-        }
-        // Block until data arrives
-        return new Promise((resolve) => this.waiters.push(resolve));
-      },
-      stdout: (data) => {
-        // Write to slave pty
-        // console.log("[DEBUG] stdout write:", data);
-        this.slave.write(data);
-      },
-      stderr: (data) => {
-        // Write to slave pty
-        // console.log("[DEBUG] stderr write:", data);
-        this.slave.write(data);
-      },
+      stdin: () => {}, // TODO: todo
+      stdout: (data) => this.slave.write(data),
+      stderr: (data) => this.slave.write(data),
     });
 
     // Placeholder exports
