@@ -98,6 +98,18 @@ export class Impli {
     terminal.loadAddon(master);
     this.slave = slave;
 
+    // Promise chain for input
+    this.resolver = null;
+    this.promiser = new Promise((resolve) => (this.resolver = resolve));
+    this.slave.onReadable(() => {
+      const data = this.slave.read();
+      if (data && this.resolver) {
+        const resolve = this.resolver;
+        this.promiser = new Promise((r) => (this.resolver = r)); // Next promise
+        resolve(data);
+      }
+    });
+
     // Enter terminal
     terminal.focus();
     this.terminal = terminal;
@@ -112,14 +124,11 @@ export class Impli {
   }
 
   /**
-   * Write to the terminal
-   */
-  writeOut(data) {}
-
-  /**
    * Read from the terminal
    */
-  readIn() {}
+  async readIn() {
+    return await this.promiser;
+  }
 
   /**
    * Start the impli REPL
@@ -132,7 +141,10 @@ export class Impli {
     const wasi = new WASI({
       args: ["impli"],
       env: {},
-      stdin: () => {}, // TODO: todo
+      stdin: () => {
+        // INFO: Not used, no-op
+        console.log("[ERROR] Impli: WASI.stdin called");
+      },
       stdout: (data) => this.slave.write(data),
       stderr: (data) => this.slave.write(data),
     });
