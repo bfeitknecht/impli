@@ -148,17 +148,13 @@ export class Impli {
       },
       stdout: (data) => {
         // Write to slave pty
-        console.log("[DEBUG] stdout write:", data);
+        // console.log("[DEBUG] stdout write:", data);
         this.slave.write(data);
-        // const text = typeof data === "string" ? data : new TextDecoder().decode(data);
-        // this.slave.write(text);
       },
       stderr: (data) => {
         // Write to slave pty
-        console.log("[DEBUG] stderr write:", data);
+        // console.log("[DEBUG] stderr write:", data);
         this.slave.write(data);
-        // const text = typeof data === "string" ? data : new TextDecoder().decode(data);
-        // this.slave.write(text);
       },
     });
 
@@ -207,6 +203,3 @@ export class Impli {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 }
-
-// Expose Impli globally for JSFFI access
-globalThis.Impli = Impli;

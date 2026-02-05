@@ -9,9 +9,10 @@ async function main() {
     // Setup service worker and verify browser support
     await setup();
 
-    // Create and start Impli instance
+    // Create and start Impli instance, expose to global scope
     const impli = new Impli();
     await impli.start();
+    globalThis.impli = impli;
 
     console.log("[INFO] impli started successfully");
   } catch (error) {
