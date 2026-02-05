@@ -21,8 +21,9 @@ module REPL.Execute.Browser where
 
 import Control.Monad.Except
 import Control.Monad.State hiding (State, state)
+import Data.IORef
 import GHC.Wasm.Prim
-import System.IO (hFlush, stdout)
+import System.IO.Unsafe (unsafePerformIO)
 import Prelude hiding (getLine, print, putStr, putStrLn)
 
 import qualified System.Exit as Exit
@@ -35,10 +36,26 @@ import IMP.Statement
 import IMP.Syntax
 import REPL.Meta
 import REPL.Preset
-import REPL.State
+import REPL.State hiding (writeIMP)
 
 -- | Read input from JavaScript (awaits promise from @impli.readIn()@)
-foreign import javascript safe "await globalThis.impli.readIn()" js_readInput :: IO JSString
+foreign import javascript safe "await globalThis.impli.readInput()" js_readInput :: IO JSString
+
+-- | Write IMP trace to plaintext blob in new browser tab
+foreign import javascript unsafe "globalThis.impli.writeIMP($1)" js_writeIMP :: JSString -> IO ()
+
+-- | Clear terminal screen and print welcome message
+foreign import javascript unsafe "globalThis.impli.writeWelcome()" js_clear :: IO ()
+
+-- | Prompt to display before user input in terminal (exported to JS)
+foreign export javascript "getPrompt" getPrompt :: JSString
+
+-- | Get the current prompt from the REPL state (prompt + separator + space)
+getPrompt :: JSString
+getPrompt = toJSString promptString
+    where
+        store = unsafePerformIO (readIORef ref)
+        promptString = _prompt store ++ [_separator store] ++ " "
 
 -- | Get line from terminal via JSFFI
 getLine :: IO String
@@ -60,22 +77,28 @@ print = Prelude.print
 isEOF :: IO Bool
 isEOF = return False
 
+-- | Global IORef to store the current REPL state
+{-# NOINLINE ref #-}
+ref :: IORef Store
+ref = unsafePerformIO (newIORef start)
+
 -- | Run the REPL with the given initial store
 repl :: Store -> IO ()
 repl store = do
+    writeIORef ref store -- Initialize the global store
     putStrLn (_welcome store)
     result <- runExceptT (execStateT loop store)
     case result of
         Left e -> print e >> Exit.exitFailure
-        Right _ -> putStrLn goodbye >> repl store -- escape is impossible
+        Right final -> do
+            writeIORef ref final -- Update global store
+            putStrLn goodbye >> repl start -- escape is impossible -- TODO: Easter egg?
 
 -- | Main REPL loop using basic IO
 loop :: REPL IO ()
 loop = do
-    prompt' <- gets _prompt
-    separator' <- gets _separator
-    liftIO $ putStr (prompt' ++ separator' : " ") >> hFlush stdout
-
+    current <- get
+    liftIO $ writeIORef ref current -- Update global store for prompt export
     line <- liftIO getLine
     case line of
         "" -> loop
@@ -118,7 +141,7 @@ instance Dispatches IO Command where
             Reset aspect -> reset aspect
             Show aspect -> shower aspect
             Load path -> loadIMP path
-            Write path -> writeIMP path
+            Write _ -> writeIMP
             AST element -> ast element
             Set option -> set option
             >> loop
@@ -134,4 +157,8 @@ instance Dispatches IO Exception where
 
 -- | Clear the terminal (simple version for web).
 clear :: REPL IO ()
-clear = liftIO $ putStrLn $ replicate 50 '\n'
+clear = undefined -- TODO: put js_clear in REPL monad
+
+-- | TODO: Document
+writeIMP :: REPL IO ()
+writeIMP = undefined -- TODO: access trace and pass to js_writeIMP

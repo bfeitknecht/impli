@@ -1,12 +1,16 @@
 {
   "version": "5",
   "specifiers": {
+    "npm:@gytx/xterm-local-echo@~0.1.8": "0.1.8",
     "npm:@runno/wasi@0.10": "0.10.0",
     "npm:xterm-addon-fit@0.8": "0.8.0_xterm@5.3.0",
     "npm:xterm-pty@~0.11.1": "0.11.1",
     "npm:xterm@^5.3.0": "5.3.0"
   },
   "npm": {
+    "@gytx/xterm-local-echo@0.1.8": {
+      "integrity": "sha512-JKq/J9fLfcP4af+FNv5zW2hzokio/0KO+iOVtuKpCXBCWsShV74n5bZhU8/KiuHquAq7emVHxFCapSZftqrZVg=="
+    },
     "@runno/wasi@0.10.0": {
       "integrity": "sha512-xP9z38WCmR9ZAQf3F9FwbFV4xTjaNmM9Qvk2LWOBZZAhggteL2RQ730YGOIxx9bb9nj7e2/boo0B3AJkAJfDvw=="
     },
@@ -33,6 +37,7 @@
   },
   "workspace": {
     "dependencies": [
+      "npm:@gytx/xterm-local-echo@~0.1.8",
       "npm:@runno/wasi@0.10",
       "npm:xterm-addon-fit@0.8",
       "npm:xterm-pty@~0.11.1",

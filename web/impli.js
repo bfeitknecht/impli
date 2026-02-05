@@ -1,6 +1,6 @@
 import { Terminal } from "@xterm/xterm";
-import { openpty } from "xterm-pty";
 import { FitAddon } from "@xterm/addon-fit";
+import { LocalEchoAddon } from "@gytx/xterm-local-echo";
 import { WASI } from "@runno/wasi";
 import stub from "./stub.js";
 
@@ -37,7 +37,10 @@ function dedent(strings, ...values) {
 
   if (indent === Infinity) return raw;
 
-  return lines.map((line) => line.slice(indent)).join("\n");
+  return lines
+    .map((line) => line.slice(indent))
+    .join("\n")
+    .replace(/\n/g, "\r\n");
 }
 
 const logo = dedent`\
@@ -93,22 +96,9 @@ export class Impli {
       attributeFilter: ["style", "class"],
     });
 
-    // Create PTY pair (master connects to xterm, slave for IO)
-    const { master, slave } = openpty();
-    terminal.loadAddon(master);
-    this.slave = slave;
-
-    // Promise chain for input
-    this.resolver = null;
-    this.promiser = new Promise((resolve) => (this.resolver = resolve));
-    this.slave.onReadable(() => {
-      const data = this.slave.read();
-      if (data && this.resolver) {
-        const resolve = this.resolver;
-        this.promiser = new Promise((r) => (this.resolver = r)); // Next promise
-        resolve(data);
-      }
-    });
+    // Create local-echo addon for line editing and history
+    this.localEcho = new LocalEchoAddon();
+    terminal.loadAddon(this.localEcho);
 
     // Enter terminal
     terminal.focus();
@@ -120,37 +110,24 @@ export class Impli {
    */
   writeWelcome() {
     // Clear screen and write bold logo
-    this.slave.write("\x1bc\x1b[1m" + logo + "\x1b[0m\n" + message + "\n\n");
+    this.terminal.write("\x1bc\x1b[1m" + logo + "\x1b[0m\n" + message + "\n\n");
   }
 
   /**
-   * Read from the terminal
+   * Read from the terminal (called by JSFFI)
    */
-  async readIn() {
-    // console.log("[DEBUG] readIn() called, waiting for input...");
-    const data = await this.promiser;
-    // console.log("[DEBUG] readIn() received raw data:", data);
-
-    // Decode data to string (xterm-pty may return Array, Uint8Array, or string)
-    let input;
-    if (typeof data === "string") {
-      input = data;
-    } else if (Array.isArray(data)) {
-      input = new TextDecoder().decode(new Uint8Array(data));
-    } else {
-      input = new TextDecoder().decode(data);
-    }
-    // console.log("[DEBUG] readIn() decoded to:", input);
-
-    return input;
+  async readInput() {
+    // Use local-echo to read a line with full editing support
+    const prompt = await this.exports.getPrompt();
+    const line = await this.localEcho.read(prompt);
+    return line + "\n";
   }
 
   /**
    * Start the impli REPL
    */
   async start() {
-    // Expose this instance globally BEFORE WASM starts
-    // so JSFFI can access it immediately
+    // Immediately globally expose instance before WASM starts
     globalThis.impli = this;
     // console.log("[DEBUG] Impli instance exposed globally");
 
@@ -162,18 +139,26 @@ export class Impli {
       args: ["impli"],
       env: {},
       stdin: () => {
-        // INFO: Not used, no-op
-        console.log("[ERROR] Impli: WASI.stdin called");
+        // Not used - input comes through JSFFI
+        console.log("[WARN] WASI stdin called (should not happen)");
       },
-      stdout: (data) => this.slave.write(data),
-      stderr: (data) => this.slave.write(data),
+      stdout: (data) => {
+        const text = typeof data === "string" ? data : new TextDecoder().decode(data);
+        // Write directly to terminal, normalize line endings
+        this.terminal.write(text.replace(/\n/g, "\r\n"));
+      },
+      stderr: (data) => {
+        const text = typeof data === "string" ? data : new TextDecoder().decode(data);
+        // Write directly to terminal, normalize line endings
+        this.terminal.write(text.replace(/\n/g, "\r\n"));
+      },
     });
 
     // Placeholder exports
     const exports = {};
 
+    // Instantiate WASM
     // console.log("[DEBUG] Starting WASM instantiation...");
-
     try {
       // Fetch and instantiate WASM module
       const wasm = await WebAssembly.instantiateStreaming(fetch("./impli.wasm"), {
@@ -188,6 +173,9 @@ export class Impli {
       wasi.initialize(wasm, {
         ghc_wasm_jsffi: stub(exports),
       });
+
+      // Expose exports
+      this.exports = exports;
 
       // Start WASM
       // console.log("[DEBUG] Calling wasi.instance.exports.start()...");
@@ -217,3 +205,6 @@ export class Impli {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 }
+
+// Expose Impli class globally
+globalThis.Impli = Impli;
