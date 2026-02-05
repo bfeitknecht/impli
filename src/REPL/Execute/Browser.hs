@@ -21,8 +21,12 @@ module REPL.Execute.Browser where
 
 import Control.Monad.Except
 import Control.Monad.State hiding (State, state)
+import GHC.Wasm.Prim
+import System.IO (hFlush, stdout)
+import Prelude hiding (getLine, print, putStr, putStrLn)
+
 import qualified System.Exit as Exit
-import System.IO (hFlush, isEOF, stdout)
+import qualified Prelude
 
 import IMP.Exception
 import IMP.Expression
@@ -33,6 +37,29 @@ import REPL.Meta
 import REPL.Preset
 import REPL.State
 
+-- | Read input from JavaScript (awaits promise from @impli.readIn()@)
+foreign import javascript safe "await globalThis.impli.readIn()" js_readInput :: IO JSString
+
+-- | Get line from terminal via JSFFI
+getLine :: IO String
+getLine = fromJSString <$> js_readInput
+
+-- | Put string to terminal via WASI output
+putStr :: String -> IO ()
+putStr = Prelude.putStr
+
+-- | Put string with newline to terminal via WASI output
+putStrLn :: String -> IO ()
+putStrLn = Prelude.putStrLn
+
+-- | Print to terminal via WASI output
+print :: (Show a) => a -> IO ()
+print = Prelude.print
+
+-- | Never EOF in browser context
+isEOF :: IO Bool
+isEOF = return False
+
 -- | Run the REPL with the given initial store
 repl :: Store -> IO ()
 repl store = do
@@ -40,7 +67,7 @@ repl store = do
     result <- runExceptT (execStateT loop store)
     case result of
         Left e -> print e >> Exit.exitFailure
-        Right _ -> putStrLn goodbye >> loop -- escape is impossible
+        Right _ -> putStrLn goodbye >> repl store -- escape is impossible
 
 -- | Main REPL loop using basic IO
 loop :: REPL IO ()
@@ -49,25 +76,21 @@ loop = do
     separator' <- gets _separator
     liftIO $ putStr (prompt' ++ separator' : " ") >> hFlush stdout
 
-    eof <- liftIO isEOF
-    if eof
-        then return ()
-        else do
-            line <- liftIO getLine
-            case line of
-                "" -> loop
-                ":)" -> liftIO (putStrLn "You look good today!") >> loop
-                (':' : meta) ->
-                    either
-                        (const $ liftIO (putStrLn $ unlines ["unrecognized meta command: :" ++ meta, hint]) >> loop)
-                        (dispatch @IO @Command)
-                        (parser "meta" meta)
-                input ->
-                    either
-                        (\e -> throwError . ParseFail $ unlines [input, show e])
-                        (\c -> dispatch @IO @Construct c >> loop)
-                        (parser "interactive" input)
-                `catchError` dispatch @IO @Exception
+    line <- liftIO getLine
+    case line of
+        "" -> loop
+        ":)" -> liftIO (putStrLn "You look good today!") >> loop
+        (':' : meta) ->
+            either
+                (const $ liftIO (putStrLn $ unlines ["unrecognized meta command: :" ++ meta, hint]) >> loop)
+                (dispatch @IO @Command)
+                (parser "meta" meta)
+        input ->
+            either
+                (\e -> throwError . ParseFail $ unlines [input, show e])
+                (\c -> dispatch @IO @Construct c >> loop)
+                (parser "interactive" input)
+        `catchError` dispatch @IO @Exception
 
 -- | Dispatcher for 'IMP.Syntax.Construct' with IO backend.
 instance Dispatches IO Construct where

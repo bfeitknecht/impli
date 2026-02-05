@@ -127,13 +127,33 @@ export class Impli {
    * Read from the terminal
    */
   async readIn() {
-    return await this.promiser;
+    // console.log("[DEBUG] readIn() called, waiting for input...");
+    const data = await this.promiser;
+    // console.log("[DEBUG] readIn() received raw data:", data);
+
+    // Decode data to string (xterm-pty may return Array, Uint8Array, or string)
+    let input;
+    if (typeof data === "string") {
+      input = data;
+    } else if (Array.isArray(data)) {
+      input = new TextDecoder().decode(new Uint8Array(data));
+    } else {
+      input = new TextDecoder().decode(data);
+    }
+    // console.log("[DEBUG] readIn() decoded to:", input);
+
+    return input;
   }
 
   /**
    * Start the impli REPL
    */
   async start() {
+    // Expose this instance globally BEFORE WASM starts
+    // so JSFFI can access it immediately
+    globalThis.impli = this;
+    // console.log("[DEBUG] Impli instance exposed globally");
+
     // Write welcome message
     this.writeWelcome();
 
@@ -152,6 +172,8 @@ export class Impli {
     // Placeholder exports
     const exports = {};
 
+    // console.log("[DEBUG] Starting WASM instantiation...");
+
     try {
       // Fetch and instantiate WASM module
       const wasm = await WebAssembly.instantiateStreaming(fetch("./impli.wasm"), {
@@ -168,6 +190,7 @@ export class Impli {
       });
 
       // Start WASM
+      // console.log("[DEBUG] Calling wasi.instance.exports.start()...");
       wasi.instance.exports.start();
       console.log("[INFO] WASM module loaded and started");
     } catch (error) {

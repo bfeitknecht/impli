@@ -5,10 +5,9 @@ import { Impli } from "./impli.js";
  */
 async function main() {
   try {
-    // Create and start Impli instance, expose to global scope
+    // Create and start Impli instance (exposed globally in start())
     const impli = new Impli();
     await impli.start();
-    globalThis.impli = impli;
 
     console.log("[INFO] impli started successfully");
   } catch (error) {
