@@ -2,7 +2,7 @@ import { Terminal } from "@xterm/xterm";
 import { openpty } from "xterm-pty";
 import { FitAddon } from "@xterm/addon-fit";
 import { WASI } from "@runno/wasi";
-import stub from "stub";
+import stub from "./stub.js";
 
 /**
  * Get xterm theme from CSS variables
@@ -68,12 +68,15 @@ export class Impli {
     terminal.open(document.getElementById("terminal"));
 
     // Create and register FitAddon
-    const fitter = new FitAddon();
-    terminal.loadAddon(fitter);
-    globalThis.addEventListener("resize", () => fitter.fit());
+    const fitAddon = new FitAddon();
+    terminal.loadAddon(fitAddon);
+    fitAddon.fit();
+    globalThis.addEventListener("resize", () => fitAddon.fit());
 
     // Setup dynamic theme handling
-    const applyTheme = () => terminal.setOptions("theme", getTheme());
+    const applyTheme = () => {
+      terminal.options.theme = getTheme();
+    };
 
     // Re-apply on system theme changes
     const mql = globalThis.matchMedia("(prefers-color-scheme: dark)");
@@ -95,6 +98,19 @@ export class Impli {
     terminal.loadAddon(master);
     this.master = master;
     this.slave = slave;
+
+    // Queue input
+    this.pending = null;
+    this.waiters = [];
+    slave.onReadable(() => {
+      const data = new Uint8Array(slave.read());
+      if (this.waiters.length > 0) {
+        const resolve = this.waiters.shift();
+        resolve(data);
+      } else {
+        this.pending = data;
+      }
+    });
 
     // Focus terminal
     terminal.focus();
@@ -119,21 +135,30 @@ export class Impli {
 
     // Create WASI instance with pty slave for stdin/stdout/stderr
     const wasi = new WASI({
-      // args: ["impli"], // CHECK: What does this do and is it needed?
-      // env: {}, // ditto
-      stdin: () =>
-        this.slave.onReadable(() => {
-          // Read from slave pty
-          const data = new Uint8Array(this.slave.read());
+      args: ["impli"],
+      env: {},
+      stdin: () => {
+        if (this.pending) {
+          const data = this.pending;
+          this.pending = null;
           return data;
-        }),
+        }
+        // Block until data arrives
+        return new Promise((resolve) => this.waiters.push(resolve));
+      },
       stdout: (data) => {
         // Write to slave pty
+        console.log("[DEBUG] stdout write:", data);
         this.slave.write(data);
+        // const text = typeof data === "string" ? data : new TextDecoder().decode(data);
+        // this.slave.write(text);
       },
       stderr: (data) => {
         // Write to slave pty
+        console.log("[DEBUG] stderr write:", data);
         this.slave.write(data);
+        // const text = typeof data === "string" ? data : new TextDecoder().decode(data);
+        // this.slave.write(text);
       },
     });
 
@@ -156,7 +181,7 @@ export class Impli {
       });
 
       // Start WASM
-      wasm.instance.exports.start();
+      wasi.instance.exports.start();
       console.log("[INFO] WASM module loaded and started");
     } catch (error) {
       console.error("[ERROR] Failed to load WASM module:", error);
