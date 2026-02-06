@@ -43,8 +43,11 @@ jobs:
           # Copy the built WASM binary to web/ with the correct name (impli.wasm)
           cp result/bin/impli-web.wasm web/impli.wasm
 
-          echo "WASM binary built successfully"
-          ls -lh web/impli.wasm
+          # Copy the generated stub.js to web/
+          cp result/web/stub.js web/stub.js
+
+          echo "WASM binary and stub.js built successfully"
+          ls -lh web/impli.wasm web/stub.js
 
       - name: Prepare web assets
         run: |
