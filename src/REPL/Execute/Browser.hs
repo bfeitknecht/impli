@@ -24,10 +24,9 @@ import Control.Monad.State hiding (State, state)
 import Data.IORef
 import GHC.Wasm.Prim
 import System.IO.Unsafe (unsafePerformIO)
-import Prelude hiding (getLine, print, putStr, putStrLn)
+import Prelude hiding (getLine)
 
 import qualified System.Exit as Exit
-import qualified Prelude
 
 import IMP.Exception
 import IMP.Expression
@@ -42,11 +41,11 @@ import REPL.State hiding (writeIMP)
 -- | Read input from JavaScript (awaits promise from @impli.readIn()@)
 foreign import javascript safe "await globalThis.impli.readInput()" js_readInput :: IO JSString
 
--- | Write IMP trace to plaintext blob in new browser tab
-foreign import javascript unsafe "globalThis.impli.writeIMP($1)" js_writeIMP :: JSString -> IO ()
-
 -- | Clear terminal screen and write welcome message
 foreign import javascript unsafe "globalThis.impli.writeWelcome()" js_writeWelcome :: IO ()
+
+-- | Write IMP trace to plaintext blob in new browser tab
+foreign import javascript unsafe "globalThis.impli.writeIMP($1)" js_writeIMP :: JSString -> IO ()
 
 -- | Prompt to display before user input in terminal (exported to JS)
 foreign export javascript "getPrompt" getPrompt :: JSString
@@ -61,18 +60,6 @@ getPrompt = toJSString prompts
 -- | Get line from terminal via JSFFI
 getLine :: IO String
 getLine = fromJSString <$> js_readInput
-
--- | Put string to terminal via WASI output
-putStr :: String -> IO ()
-putStr = Prelude.putStr
-
--- | Put string with newline to terminal via WASI output
-putStrLn :: String -> IO ()
-putStrLn = Prelude.putStrLn
-
--- | Print to terminal via WASI output
-print :: (Show a) => a -> IO ()
-print = Prelude.print
 
 -- | Never EOF in browser context
 isEOF :: IO Bool
