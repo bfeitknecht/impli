@@ -114,6 +114,23 @@ export class Impli {
   }
 
   /**
+   * Write IMP trace to new browser tab
+   */
+  writeIMP(trace) {
+    // Create blob from trace
+    const blob = new Blob([trace], { type: "text/plain" });
+
+    // Create URL for blob
+    const url = URL.createObjectURL(blob);
+
+    // Open blob in new tab
+    globalThis.open(url, "_blank");
+
+    // Revoke URL after delay to free memory
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  /**
    * Read from the terminal (called by JSFFI)
    */
   async readInput() {
@@ -134,10 +151,51 @@ export class Impli {
     // Write welcome message
     this.writeWelcome();
 
-    // Create WASI instance with pty slave for stdin/stdout/stderr
+    // Load example IMP files from server
+    const examples = [
+      "countdown.imp",
+      "divmod.imp",
+      "factorial.imp",
+      "fibonacci.imp",
+      "gauss.imp",
+      "local.imp",
+      "nondeterminism.imp",
+      "parallel.imp",
+      "primes.imp",
+      "procedure.imp",
+      "turing.imp",
+    ];
+
+    const files = await Promise.all(
+      examples.map(async (filename) => {
+        try {
+          const response = await fetch(`./examples/${filename}`);
+          if (!response.ok) {
+            console.warn(`[WARN] Failed to fetch example file: ${filename}`);
+            return null;
+          }
+          const content = await response.text();
+          return { path: `/${filename}`, content };
+        } catch (error) {
+          console.warn(`[WARN] Error fetching ${filename}:`, error);
+          return null;
+        }
+      }),
+    );
+
+    const fs = files
+      .filter((f) => f !== null)
+      .reduce((acc, file) => {
+        acc[file.path] = { path: file.path, content: file.content };
+        return acc;
+      }, {});
+    console.log(`[INFO] Loaded ${Object.keys(fs).length} example files to WASI FS`);
+
+    // Create WASI instance
     const wasi = new WASI({
       args: ["impli"],
       env: {},
+      fs,
       stdin: () => {
         // Not used - input comes through JSFFI
         console.log("[WARN] WASI stdin called (should not happen)");
@@ -183,26 +241,9 @@ export class Impli {
       console.log("[INFO] WASM module loaded and started");
     } catch (error) {
       console.error("[ERROR] Failed to load WASM module:", error);
-      this.slave.write("\r\n\x1b[31mError: Failed to load WASM module\x1b[0m\r\n");
-      this.slave.write(`${error.message}\r\n`);
+      this.terminal.write("\r\n\x1b[31mError: Failed to load WASM module\x1b[0m\r\n");
+      this.terminal.write(`${error.message}\r\n`);
     }
-  }
-
-  /**
-   * Write trace to new browser tab
-   */
-  writeTrace(trace) {
-    // Create blob from trace
-    const blob = new Blob([trace], { type: "text/plain" });
-
-    // Create URL for blob
-    const url = URL.createObjectURL(blob);
-
-    // Open blob in new tab
-    globalThis.open(url, "_blank");
-
-    // Revoke URL after delay to free memory
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 }
 

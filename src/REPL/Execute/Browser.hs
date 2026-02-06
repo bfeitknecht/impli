@@ -32,6 +32,7 @@ import qualified Prelude
 import IMP.Exception
 import IMP.Expression
 import IMP.Parser
+import IMP.Pretty
 import IMP.Statement
 import IMP.Syntax
 import REPL.Meta
@@ -44,18 +45,18 @@ foreign import javascript safe "await globalThis.impli.readInput()" js_readInput
 -- | Write IMP trace to plaintext blob in new browser tab
 foreign import javascript unsafe "globalThis.impli.writeIMP($1)" js_writeIMP :: JSString -> IO ()
 
--- | Clear terminal screen and print welcome message
-foreign import javascript unsafe "globalThis.impli.writeWelcome()" js_clear :: IO ()
+-- | Clear terminal screen and write welcome message
+foreign import javascript unsafe "globalThis.impli.writeWelcome()" js_writeWelcome :: IO ()
 
 -- | Prompt to display before user input in terminal (exported to JS)
 foreign export javascript "getPrompt" getPrompt :: JSString
 
 -- | Get the current prompt from the REPL state (prompt + separator + space)
 getPrompt :: JSString
-getPrompt = toJSString promptString
+getPrompt = toJSString prompts
     where
         store = unsafePerformIO (readIORef ref)
-        promptString = _prompt store ++ [_separator store] ++ " "
+        prompts = _prompt store ++ [_separator store] ++ " "
 
 -- | Get line from terminal via JSFFI
 getLine :: IO String
@@ -86,7 +87,7 @@ ref = unsafePerformIO (newIORef start)
 repl :: Store -> IO ()
 repl store = do
     writeIORef ref store -- Initialize the global store
-    putStrLn (_welcome store)
+    js_writeWelcome
     result <- runExceptT (execStateT loop store)
     case result of
         Left e -> print e >> Exit.exitFailure
@@ -155,10 +156,13 @@ instance Dispatches IO Exception where
         Info msg -> liftIO (putStrLn msg) >> loop -- informational message
         _ -> liftIO (print e) >> loop -- recoverable errors
 
--- | Clear the terminal (simple version for web).
+-- | Clear the terminal and display welcome message.
 clear :: REPL IO ()
-clear = undefined -- TODO: put js_clear in REPL monad
+clear = liftIO js_writeWelcome
 
--- | TODO: Document
+-- | Write trace to new browser tab as plaintext blob.
 writeIMP :: REPL IO ()
-writeIMP = undefined -- TODO: access trace and pass to js_writeIMP
+writeIMP = do
+    content <- gets (prettytrace . _trace)
+    liftIO . js_writeIMP $ toJSString content
+    throwError . Info $ "wrote trace to new tab"

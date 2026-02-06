@@ -48,11 +48,13 @@ jobs:
 
       - name: Prepare web assets
         run: |
-          # Copy example IMP programs to web/
-          cp docs/examples/*.imp web/
+          # Copy example IMP programs to web/examples/
+          mkdir -p web/examples
+          cp docs/examples/*.imp web/examples/
 
           echo "Web assets prepared in web/"
           ls -la web/
+          ls -la web/examples/
 
       - name: Upload artifact for GitHub Pages
         uses: actions/upload-pages-artifact@v3
