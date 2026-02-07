@@ -24,7 +24,6 @@ import Control.Monad.State hiding (State, state)
 import Data.IORef
 import GHC.Wasm.Prim
 import System.IO.Unsafe (unsafePerformIO)
-import Prelude hiding (getLine)
 
 import qualified System.Exit as Exit
 
@@ -58,8 +57,8 @@ getPrompt = toJSString prompts
         prompts = _prompt store ++ [_separator store] ++ " "
 
 -- | Get line from terminal via JSFFI
-getLine :: IO String
-getLine = fromJSString <$> js_readInput
+getInput :: IO String
+getInput = fromJSString <$> js_readInput
 
 -- | Never EOF in browser context
 isEOF :: IO Bool
@@ -87,7 +86,7 @@ loop :: REPL IO ()
 loop = do
     current <- get
     liftIO $ writeIORef ref current -- Update global store for prompt export
-    line <- liftIO getLine
+    line <- liftIO getInput
     case line of
         "" -> loop
         ":)" -> liftIO (putStrLn "You look good today!") >> loop
