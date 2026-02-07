@@ -16,6 +16,10 @@ module Main where
 import REPL.Execute.Browser
 import REPL.State
 
+import GHC.Wasm.Prim
+
+foreign export javascript "start" main :: IO ()
+
 -- | Entrypoint for web/WASM IMP interpreter
 main :: IO ()
-main = repl start
+main = repl start >> error "how did we get here?"

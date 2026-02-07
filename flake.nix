@@ -146,7 +146,10 @@
         in
         {
           impli-web = haskellPackages.impli.overrideAttrs (old: {
-            nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [ pkgs.binaryen ];
+            nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [
+              pkgs.binaryen
+              pkgs.nodejs
+            ];
             postInstall = ''
               ${old.postInstall or ""}
               # Copy the WASM binary with the expected name
@@ -169,6 +172,17 @@
                 }
                 echo "WASM optimization complete"
               fi
+
+              # Generate stub.js using post-link.mjs
+              echo "Generating stub.js..."
+              mkdir -p $out/web
+              ${ghc-wasm-meta.packages.${system}.wasm32-wasi-ghc-9_12}/lib/post-link.mjs \
+                -i $out/bin/impli-web.wasm \
+                -o $out/web/stub.js || {
+                echo "ERROR: stub.js generation failed"
+                exit 1
+              }
+              echo "stub.js generated successfully"
             '';
           });
 

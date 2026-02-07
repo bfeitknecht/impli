@@ -1,4 +1,4 @@
-name: Build WASM and deploy GitHub Pages
+name: Deploy GitHub Pages
 
 on:
   push:
@@ -43,16 +43,21 @@ jobs:
           # Copy the built WASM binary to web/ with the correct name (impli.wasm)
           cp result/bin/impli-web.wasm web/impli.wasm
 
-          echo "WASM binary built successfully"
-          ls -lh web/impli.wasm
+          # Copy the generated stub.js to web/
+          cp result/web/stub.js web/stub.js
+
+          echo "WASM binary and stub.js built successfully"
+          ls -lh web/impli.wasm web/stub.js
 
       - name: Prepare web assets
         run: |
-          # Copy example IMP programs to web/
-          cp docs/examples/*.imp web/
+          # Copy example IMP programs to web/examples/
+          mkdir -p web/examples
+          cp docs/examples/*.imp web/examples/
 
           echo "Web assets prepared in web/"
           ls -la web/
+          ls -la web/examples/
 
       - name: Upload artifact for GitHub Pages
         uses: actions/upload-pages-artifact@v3

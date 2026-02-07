@@ -1,4 +1,4 @@
-name: Build binary and release
+name: Release Binaries
 
 on:
   push:
@@ -150,10 +150,10 @@ jobs:
       - name: Prepare release files
         run: |
           mkdir -p release
-          
+
           # Copy all binaries (native and WASM)
           find artifacts/impli-* -type f -exec cp {} release/ \;
-          
+
           # List release files
           echo "Release files ready:"
           ls -lh release/
