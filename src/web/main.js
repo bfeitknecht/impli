@@ -1,4 +1,4 @@
-import { Impli } from "./impli.js";
+import { Impli } from "@/impli.js";
 
 /**
  * Main entry point

@@ -2,7 +2,7 @@ import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { LocalEchoAddon } from "@gytx/xterm-local-echo";
 import { WASI } from "@runno/wasi";
-import stub from "./stub.js";
+import stub from "@/stub.js";
 
 /**
  * Get xterm theme from CSS variables
