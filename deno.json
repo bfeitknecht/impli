@@ -1,6 +1,6 @@
 {
   "tasks": {
-    "dev": "deno run --watch main.ts"
+    "build": "deno run --allow-read --allow-write build.ts"
   },
   "imports": {
     "@/": "./src/web/",

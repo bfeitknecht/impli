@@ -3,6 +3,7 @@ import { FitAddon } from "@xterm/addon-fit";
 import { LocalEchoAddon } from "@gytx/xterm-local-echo";
 import { WASI } from "@runno/wasi";
 import stub from "@/stub.js";
+import { examples } from "@/examples.js";
 
 /**
  * Get xterm theme from CSS variables
@@ -50,6 +51,7 @@ const logo = dedent`\
   `;
 
 const message = dedent`\
+  The IMP language interpreter - Web REPL.
   Execute IMP in the browser and inspect resulting state.
   Made with <3 by Basil Feitknecht
   `;
@@ -151,44 +153,8 @@ export class Impli {
     // Write welcome message
     this.writeWelcome();
 
-    // Load example IMP files from server
-    const examples = [
-      "countdown.imp",
-      "divmod.imp",
-      "factorial.imp",
-      "fibonacci.imp",
-      "gauss.imp",
-      "local.imp",
-      "nondeterminism.imp",
-      "parallel.imp",
-      "primes.imp",
-      "procedure.imp",
-      "turing.imp",
-    ];
-
-    const files = await Promise.all(
-      examples.map(async (filename) => {
-        try {
-          const response = await fetch(`./examples/${filename}`);
-          if (!response.ok) {
-            console.warn(`[WARN] Failed to fetch example file: ${filename}`);
-            return null;
-          }
-          const content = await response.text();
-          return { path: `/${filename}`, content };
-        } catch (error) {
-          console.warn(`[WARN] Error fetching ${filename}:`, error);
-          return null;
-        }
-      }),
-    );
-
-    const fs = files
-      .filter((f) => f !== null)
-      .reduce((acc, file) => {
-        acc[file.path] = { path: file.path, content: file.content };
-        return acc;
-      }, {});
+    // Use pre-loaded example IMP files from examples.js
+    const fs = examples;
     console.log(`[INFO] Loaded ${Object.keys(fs).length} example files to WASI FS`);
 
     // Create WASI instance

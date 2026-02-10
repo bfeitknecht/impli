@@ -7,24 +7,12 @@
     <link rel="preload" href="./CommitMonoV143-VF.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@6.0.0/css/xterm.css" />
     <link rel="stylesheet" href="./style.css" />
-    <!--<script type="importmap">
-      {
-        "imports": {
-          "@xterm/xterm": "https://cdn.jsdelivr.net/npm/@xterm/xterm@6.0.0/+esm",
-          "@xterm/addon-fit": "https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.11.0/+esm",
-          "@gytx/xterm-local-echo": "https://cdn.jsdelivr.net/npm/@gytx/xterm-local-echo@0.1.8/+esm",
-          "@runno/wasi": "https://cdn.jsdelivr.net/npm/@runno/wasi@0.10.0/+esm"
-        }
-      }
-    </script>-->
   </head>
   <body>
     <div id="terminal"></div>
-    <noscript><meta http-equiv="refresh" content="0; url=./unsupported.html" /></noscript>
-    <script>
-      // Redirect to unsupported.html if WebAssembly not available
-      if (typeof WebAssembly === "undefined") window.location.href = "./unsupported.html";
-    </script>
-    <script type="module" src="./main.js"></script>
+    <noscript>
+      <meta http-equiv="refresh" content="0; url=./unsupported.html" />
+    </noscript>
+    <script type="module" src="./setup.js"></script>
   </body>
 </html>
