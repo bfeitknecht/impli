@@ -4,8 +4,8 @@
  */
 
 import { WASI } from "@runno/wasi";
-import stub from "./stub.js";
-import { examples } from "./examples.js";
+import stub from "@/stub.js";
+import { examples } from "@/examples.js";
 // State values for lock
 const STATE_WAITING = 1;
 
