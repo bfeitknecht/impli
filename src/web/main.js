@@ -5,13 +5,15 @@ import { Impli } from "@/impli.js";
  */
 async function main() {
   try {
-    // Create and start Impli instance (exposed globally in start())
+    // Create and expose impli instance globally
     const impli = new Impli();
-    await impli.start();
+    globalThis.impli = impli;
 
-    console.log("[INFO] impli started successfully");
+    // Start impli
+    await impli.start();
+    console.log("[DEBUG] Main: impli started successfully");
   } catch (error) {
-    console.error("[ERROR] Failed to initialize impli:", error);
+    console.error("[DEBUG] Main: Failed to initialize impli:", error);
   }
 }
 

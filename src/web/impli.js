@@ -1,9 +1,13 @@
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { LocalEchoAddon } from "@gytx/xterm-local-echo";
-import { WASI } from "@runno/wasi";
-import stub from "@/stub.js";
-import { examples } from "@/examples.js";
+const DEBUG = true;
+
+function log(...args) {
+  if (DEBUG) {
+    console.log("[DEBUG] Impli:", ...args);
+  }
+}
 
 /**
  * Get xterm theme from CSS variables
@@ -51,10 +55,14 @@ const logo = dedent`\
   `;
 
 const message = dedent`\
-  The IMP language interpreter - Web REPL.
   Execute IMP in the browser and inspect resulting state.
   Made with <3 by Basil Feitknecht
   `;
+
+// State values for lock
+const STATE_IDLE = 0;
+
+const DATA_BUFFER_SIZE = 4096; // 4KB for input data
 
 /**
  * Impli REPL class
@@ -98,120 +106,104 @@ export class Impli {
       attributeFilter: ["style", "class"],
     });
 
-    // Create local-echo addon for line editing and history
+    // Create local-echo addon
     this.localEcho = new LocalEchoAddon();
     terminal.loadAddon(this.localEcho);
 
-    // Enter terminal
     terminal.focus();
     this.terminal = terminal;
+
+    // Worker
+    this.worker = null;
   }
 
   /**
-   * Write welcome message to terminal
+   * Write welcome message
    */
   writeWelcome() {
-    // Clear screen and write bold logo
     this.terminal.write("\x1bc\x1b[1m" + logo + "\x1b[0m\n" + message + "\n\n");
   }
 
   /**
-   * Write IMP trace to new browser tab
+   * Write to terminal
    */
-  writeIMP(trace) {
-    // Create blob from trace
-    const blob = new Blob([trace], { type: "text/plain" });
-
-    // Create URL for blob
-    const url = URL.createObjectURL(blob);
-
-    // Open blob in new tab
-    globalThis.open(url, "_blank");
-
-    // Revoke URL after delay to free memory
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  write(text) {
+    this.terminal.write(text.replace(/\n/g, "\r\n"));
   }
 
   /**
-   * Read from the terminal (called by JSFFI)
+   * Handle stdin request from worker
    */
-  async readInput() {
-    // Use local-echo to read a line with full editing support
-    const prompt = await this.exports.getPrompt();
+  async stdin(lock, buffer, prompt) {
     const line = await this.localEcho.read(prompt);
-    return line + "\n";
+    log("Input received:", line);
+
+    // Write input to buffer
+    const text = line + "\n";
+    const encoded = new TextEncoder().encode(text);
+    const bufferView = new Uint8Array(buffer);
+    bufferView.fill(0);
+    bufferView.set(encoded);
+
+    // Signal ready (return to idle) and wake worker
+    Atomics.store(lock, 0, STATE_IDLE);
+    Atomics.notify(lock, 0, 1);
+
+    log("Input sent to worker");
   }
 
   /**
-   * Start the impli REPL
+   * Start the worker
    */
   async start() {
-    // Immediately globally expose instance before WASM starts
-    globalThis.impli = this;
-    // console.log("[DEBUG] Impli instance exposed globally");
+    log("Starting impli...");
 
     // Write welcome message
     this.writeWelcome();
 
-    // Use pre-loaded example IMP files from examples.js
-    const fs = examples;
-    console.log(`[INFO] Loaded ${Object.keys(fs).length} example files to WASI FS`);
+    // Create shared buffers
+    const lock = new Int32Array(new SharedArrayBuffer(4));
+    const buffer = new SharedArrayBuffer(DATA_BUFFER_SIZE);
+    log("Shared buffers created");
 
-    // Create WASI instance
-    const wasi = new WASI({
-      args: ["impli"],
-      env: {},
-      fs,
-      stdin: () => {
-        // Not used - input comes through JSFFI
-        console.log("[WARN] WASI stdin called (should not happen)");
-      },
-      stdout: (data) => {
-        const text = typeof data === "string" ? data : new TextDecoder().decode(data);
-        // Write directly to terminal, normalize line endings
-        this.terminal.write(text.replace(/\n/g, "\r\n"));
-      },
-      stderr: (data) => {
-        const text = typeof data === "string" ? data : new TextDecoder().decode(data);
-        // Write directly to terminal, normalize line endings
-        this.terminal.write(text.replace(/\n/g, "\r\n"));
-      },
-    });
+    // Create worker
+    this.worker = new Worker("./worker.js", { type: "module" });
+    log("Worker created");
 
-    // Placeholder exports
-    const exports = {};
+    // Handle worker messages
+    this.worker.onmessage = async (event) => {
+      const { type, text, prompt } = event.data;
 
-    // Instantiate WASM
-    // console.log("[DEBUG] Starting WASM instantiation...");
-    try {
-      // Fetch and instantiate WASM module
-      const wasm = await WebAssembly.instantiateStreaming(fetch("./impli.wasm"), {
-        ...wasi.getImportObject(),
-        ghc_wasm_jsffi: stub(exports),
-      });
+      switch (type) {
+        case "stdout":
+          this.write(text);
+          break;
 
-      // Knot-tying, fill exports with actual instance exports
-      Object.assign(exports, wasm.instance.exports);
+        case "stderr":
+          this.write(text);
+          break;
 
-      // Initialize WASI
-      wasi.initialize(wasm, {
-        ghc_wasm_jsffi: stub(exports),
-      });
+        case "stdin":
+          log("Stdin requested by worker");
+          await this.stdin(lock, buffer, prompt);
+          break;
 
-      // Expose exports
-      this.exports = exports;
+        default:
+          log("Unknown message type:", type);
+      }
+    };
 
-      // Start WASM
-      // console.log("[DEBUG] Calling wasi.instance.exports.start()...");
-      wasi.instance.exports.start();
-      console.log("[INFO] WASM module loaded and started");
-    } catch (error) {
-      console.error("[ERROR] Failed to load WASM module:", error);
-      this.terminal.write("\r\n\x1b[31mError: Failed to load WASM module\x1b[0m\r\n");
-      this.terminal.write(`${error.message}\r\n`);
-    }
+    this.worker.onerror = (error) => {
+      log("Worker error event:", error);
+      this.write(`\r\n\x1b[31mWorker error: ${error.message}\x1b[0m\r\n`);
+    };
+
+    // Initialize and start worker
+    this.worker.postMessage({ lock, buffer, wasmURL: "./impli.wasm" });
+
+    log("Initialization complete");
   }
 }
 
-// Expose Impli class globally
-globalThis.Impli = Impli;
+// Export Impli class
+export { Impli };
