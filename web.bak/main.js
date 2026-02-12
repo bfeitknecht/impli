@@ -1,13 +1,16 @@
+import { Impli } from "@/impli.js";
+
 /**
- * Setup script for impli web REPL
- * Checks requirements and registers service worker
+ * Combined setup and main entry point for impli web REPL.
+ * This file handles requirement checks, service worker registration
+ * for cross-origin isolation, and application initialization.
  */
 
 const DEBUG = true;
 
 function log(...args) {
   if (DEBUG) {
-    console.log("[DEBUG] Setup:", ...args);
+    console.log("[DEBUG] Main:", ...args);
   }
 }
 
@@ -83,18 +86,28 @@ function verifyCrossOriginIsolation() {
 }
 
 /**
- * Load main application
+ * Initialize and start the Impli application core
  */
-async function launch() {
-  log("Launching application...");
-  await import("./main.js");
-  log("Launched application");
+async function startImpli() {
+  try {
+    log("Initializing Impli...");
+    // Create and expose impli instance globally
+    const impli = new Impli();
+    globalThis.impli = impli;
+
+    // Start impli
+    await impli.start();
+    log("Impli started successfully");
+  } catch (error) {
+    console.error("[DEBUG] Main: Failed to initialize Impli:", error);
+    throw error;
+  }
 }
 
 /**
- * Main initialization
+ * Main initialization flow
  */
-async function setup() {
+async function main() {
   log("Starting setup...");
 
   // Check requirements
@@ -120,7 +133,7 @@ async function setup() {
     }
 
     // Launch app
-    await launch();
+    await startImpli();
   } catch (error) {
     log("Launch failed:", error);
     globalThis.location.href = "./unsupported.html";
@@ -129,7 +142,7 @@ async function setup() {
 
 // Start when DOM is ready
 if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", setup);
+  document.addEventListener("DOMContentLoaded", main);
 } else {
-  setup();
+  main();
 }

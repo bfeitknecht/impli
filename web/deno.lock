@@ -1,0 +1,52 @@
+{
+  "version": "5",
+  "specifiers": {
+    "npm:@gytx/xterm-local-echo@~0.1.8": "0.1.8",
+    "npm:@runno/wasi@0.10": "0.10.0",
+    "npm:preact@^10.28.3": "10.28.3",
+    "npm:xterm-addon-fit@0.8": "0.8.0_xterm@5.3.0",
+    "npm:xterm-pty@~0.11.1": "0.11.1",
+    "npm:xterm@^5.3.0": "5.3.0"
+  },
+  "npm": {
+    "@gytx/xterm-local-echo@0.1.8": {
+      "integrity": "sha512-JKq/J9fLfcP4af+FNv5zW2hzokio/0KO+iOVtuKpCXBCWsShV74n5bZhU8/KiuHquAq7emVHxFCapSZftqrZVg=="
+    },
+    "@runno/wasi@0.10.0": {
+      "integrity": "sha512-xP9z38WCmR9ZAQf3F9FwbFV4xTjaNmM9Qvk2LWOBZZAhggteL2RQ730YGOIxx9bb9nj7e2/boo0B3AJkAJfDvw=="
+    },
+    "@xterm/xterm@5.5.0": {
+      "integrity": "sha512-hqJHYaQb5OptNunnyAnkHyM8aCjZ1MEIDTQu1iIbbTD/xops91NB5yq1ZK/dC2JDbVWtF23zUtl9JE2NqwT87A=="
+    },
+    "preact@10.28.3": {
+      "integrity": "sha512-tCmoRkPQLpBeWzpmbhryairGnhW9tKV6c6gr/w+RhoRoKEJwsjzipwp//1oCpGPOchvSLaAPlpcJi9MwMmoPyA=="
+    },
+    "xterm-addon-fit@0.8.0_xterm@5.3.0": {
+      "integrity": "sha512-yj3Np7XlvxxhYF/EJ7p3KHaMt6OdwQ+HDu573Vx1lRXsVxOcnVJs51RgjZOouIZOczTsskaS+CpXspK81/DLqw==",
+      "dependencies": [
+        "xterm"
+      ],
+      "deprecated": true
+    },
+    "xterm-pty@0.11.1": {
+      "integrity": "sha512-vQISyzSgO+Cud8lOOFNbHI37s0AG/Mpsf2HmILgGHvsJI7hzq2qfEoLWD+fpNkJbICJ9yMoIdZ7u3czDtZQKWg==",
+      "dependencies": [
+        "@xterm/xterm"
+      ]
+    },
+    "xterm@5.3.0": {
+      "integrity": "sha512-8QqjlekLUFTrU6x7xck1MsPzPA571K5zNqWm0M0oroYEWVOptZ0+ubQSkQ3uxIEhcIHRujJy6emDWX4A7qyFzg==",
+      "deprecated": true
+    }
+  },
+  "workspace": {
+    "dependencies": [
+      "npm:@gytx/xterm-local-echo@~0.1.8",
+      "npm:@runno/wasi@0.10",
+      "npm:preact@^10.28.3",
+      "npm:xterm-addon-fit@0.8",
+      "npm:xterm-pty@~0.11.1",
+      "npm:xterm@^5.3.0"
+    ]
+  }
+}
