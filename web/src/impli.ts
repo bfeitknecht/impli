@@ -18,7 +18,7 @@ const message = dedent`\
  * Get xterm theme from CSS variables
  */
 function getTheme() {
-  if (typeof window === "undefined") return {};
+  if (typeof globalThis === "undefined") return {};
   const getVar = (name: string) =>
     getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 
@@ -60,13 +60,13 @@ export class Impli {
   }
 
   private setupEventListeners() {
-    window.addEventListener("resize", () => this.fitAddon.fit());
+    globalThis.addEventListener("resize", () => this.fitAddon.fit());
 
     const applyTheme = () => {
       this.terminal.options.theme = getTheme();
     };
 
-    const mql = window.matchMedia("(prefers-color-scheme: dark)");
+    const mql = globalThis.matchMedia("(prefers-color-scheme: dark)");
     mql.addEventListener("change", applyTheme);
 
     const observer = new MutationObserver(applyTheme);
@@ -106,7 +106,7 @@ export class Impli {
 
       if (!navigator.serviceWorker.controller) {
         await new Promise((r) => setTimeout(r, 100));
-        window.location.reload();
+        globalThis.location.reload();
         return;
       }
 
