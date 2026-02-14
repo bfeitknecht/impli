@@ -10,6 +10,6 @@ Install dependencies with `deno install`. Build with `deno task build`.
 ### TODO
 
 - Include `setup.js` functionality
-  - Add `unsupported.html` as conditional component in `App.tsx` based on setup
-    check
+    - Add `unsupported.html` as conditional component in `App.tsx` based on setup check
 - Bundle in build script
+- Make layout device-width aware

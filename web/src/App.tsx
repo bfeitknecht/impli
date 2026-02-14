@@ -5,7 +5,7 @@ export class App extends Component {
   private terminalElementRef = createRef<HTMLDivElement>();
   private impli: Impli | null = null;
 
-  componentDidMount() {
+  override componentDidMount() {
     if (this.terminalElementRef.current) {
       // Initialize the Impli terminal application
       this.impli = new Impli(this.terminalElementRef.current);
@@ -15,7 +15,7 @@ export class App extends Component {
     }
   }
 
-  componentWillUnmount() {
+  override componentWillUnmount() {
     // Cleanup on unmount
     if (this.impli) {
       this.impli.dispose();
@@ -23,7 +23,7 @@ export class App extends Component {
     }
   }
 
-  render() {
+  override render() {
     return <div ref={this.terminalElementRef} id="terminal" />;
   }
 }
