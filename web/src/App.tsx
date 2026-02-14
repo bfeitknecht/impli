@@ -1,28 +1,29 @@
-import { useEffect, useRef } from "preact/hooks";
+import { Component, createRef } from "preact";
 import { Impli } from "@/impli.ts";
 
-export function App() {
-  const terminalElementRef = useRef<HTMLDivElement>(null);
-  const impliRef = useRef<Impli | null>(null);
+export class App extends Component {
+  private terminalElementRef = createRef<HTMLDivElement>();
+  private impli: Impli | null = null;
 
-  useEffect(() => {
-    if (!terminalElementRef.current) return;
+  componentDidMount() {
+    if (this.terminalElementRef.current) {
+      // Initialize the Impli terminal application
+      this.impli = new Impli(this.terminalElementRef.current);
 
-    // Initialize the Impli terminal application
-    const impli = new Impli(terminalElementRef.current);
-    impliRef.current = impli;
+      // Start the application (Service Worker, WASM, etc.)
+      this.impli.start();
+    }
+  }
 
-    // Start the application (Service Worker, WASM, etc.)
-    impli.start();
-
+  componentWillUnmount() {
     // Cleanup on unmount
-    return () => {
-      if (impliRef.current) {
-        impliRef.current.dispose();
-        impliRef.current = null;
-      }
-    };
-  }, []);
+    if (this.impli) {
+      this.impli.dispose();
+      this.impli = null;
+    }
+  }
 
-  return <div ref={terminalElementRef} id="terminal" />;
+  render() {
+    return <div ref={this.terminalElementRef} id="terminal" />;
+  }
 }

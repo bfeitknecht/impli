@@ -120,7 +120,6 @@ executable impli-web
     Paths_impli
 
   ghc-options:
-    -rtsopts
     -no-hs-main
     -optl-mexec-model=reactor
     "-optl-Wl,--export=start"

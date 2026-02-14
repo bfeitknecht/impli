@@ -12,7 +12,7 @@
  * but these headers are required for SharedArrayBuffer and Atomics to work.
  */
 
-import { log } from "./util.ts";
+import { log } from "@/util.ts";
 
 declare const self: ServiceWorkerGlobalScope;
 

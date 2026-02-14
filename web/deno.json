@@ -4,7 +4,12 @@
   },
   "compilerOptions": {
     "jsx": "react-jsx",
-    "jsxImportSource": "preact"
+    "jsxImportSource": "preact",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "lib": ["dom", "dom.iterable", "deno.ns", "esnext"]
   },
   "imports": {
     "@/": "./src/",
@@ -13,6 +18,7 @@
     "xterm-pty": "npm:xterm-pty@^0.11.1",
     "@runno/wasi": "npm:@runno/wasi@^0.10.0",
     "@gytx/xterm-local-echo": "npm:@gytx/xterm-local-echo@^0.1.8",
-    "preact": "npm:preact@^10.28.3"
+    "preact": "npm:preact@^10.28.3",
+    "std/path": "https://deno.land/std/path/mod.ts"
   }
 }

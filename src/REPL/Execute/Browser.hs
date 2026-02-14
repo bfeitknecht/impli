@@ -37,14 +37,11 @@ import REPL.Meta
 import REPL.Preset
 import REPL.State hiding (writeIMP)
 
--- | Read input from JavaScript (awaits promise from @impli.readIn()@)
-foreign import javascript safe "await globalThis.impli.readInput()" js_readInput :: IO JSString
-
 -- | Clear terminal screen and write welcome message
 foreign import javascript unsafe "globalThis.impli.writeWelcome()" js_writeWelcome :: IO ()
 
 -- | Write IMP trace to plaintext blob in new browser tab
-foreign import javascript unsafe "globalThis.impli.writeIMP($1)" js_writeIMP :: JSString -> IO ()
+foreign import javascript unsafe "globalThis.impli.writeTrace($1)" js_writeTrace :: JSString -> IO ()
 
 -- | Prompt to display before user input in terminal (exported to JS)
 foreign export javascript "getPrompt" getPrompt :: JSString
@@ -55,14 +52,6 @@ getPrompt = toJSString prompts
     where
         store = unsafePerformIO (readIORef ref)
         prompts = _prompt store ++ [_separator store] ++ " "
-
--- | Get line from terminal via JSFFI
-getInput :: IO String
-getInput = fromJSString <$> js_readInput
-
--- | Never EOF in browser context
-isEOF :: IO Bool
-isEOF = return False
 
 -- | Global IORef to store the current REPL state
 {-# NOINLINE ref #-}
@@ -86,7 +75,7 @@ loop :: REPL IO ()
 loop = do
     current <- get
     liftIO $ writeIORef ref current -- Update global store for prompt export
-    line <- liftIO getInput
+    line <- liftIO getLine
     case line of
         "" -> loop
         ":)" -> liftIO (putStrLn "You look good today!") >> loop
@@ -150,5 +139,5 @@ clear = liftIO js_writeWelcome
 writeIMP :: REPL IO ()
 writeIMP = do
     content <- gets (prettytrace . _trace)
-    liftIO . js_writeIMP $ toJSString content
+    liftIO . js_writeTrace $ toJSString content
     throwError . Info $ "wrote trace to new tab"

@@ -1,7 +1,7 @@
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { LocalEchoAddon } from "@gytx/xterm-local-echo";
-import { DATA_BUFFER_SIZE, STATE_IDLE, log, dedent } from "./util.ts";
+import { CAPACITY, dedent, IDLE, log } from "@/util.ts";
 
 const logo = dedent`\x1b[1m\
   ,_  ,_     ,___  ,_    ,_
@@ -31,12 +31,14 @@ function getTheme() {
 }
 
 export class Impli {
-  private terminal: Terminal;
-  private fitAddon: FitAddon;
-  private localEcho: LocalEchoAddon;
-  private worker: Worker | null = null;
-  private lock: Int32Array | null = null;
-  private buffer: SharedArrayBuffer | null = null;
+  public terminal: Terminal;
+  private fitter: FitAddon;
+  private echo: LocalEchoAddon;
+  private lock: Int32Array = new Int32Array(new SharedArrayBuffer(4));
+  private buffer: SharedArrayBuffer = new SharedArrayBuffer(CAPACITY);
+  private worker: Worker = new Worker(new URL("./worker.ts", import.meta.url), {
+    type: "module",
+  });
 
   constructor(container: HTMLElement) {
     this.terminal = new Terminal({
@@ -46,21 +48,21 @@ export class Impli {
       theme: getTheme(),
     });
 
-    this.fitAddon = new FitAddon();
-    this.terminal.loadAddon(this.fitAddon);
+    this.fitter = new FitAddon();
+    this.terminal.loadAddon(this.fitter);
 
-    this.localEcho = new LocalEchoAddon();
-    this.terminal.loadAddon(this.localEcho);
+    this.echo = new LocalEchoAddon();
+    this.terminal.loadAddon(this.echo);
 
     this.terminal.open(container);
-    this.fitAddon.fit();
+    this.fitter.fit();
     this.terminal.focus();
 
     this.setupEventListeners();
   }
 
   private setupEventListeners() {
-    globalThis.addEventListener("resize", () => this.fitAddon.fit());
+    globalThis.addEventListener("resize", () => this.fitter.fit());
 
     const applyTheme = () => {
       this.terminal.options.theme = getTheme();
@@ -85,10 +87,20 @@ export class Impli {
   }
 
   /**
-   * Called by JSFFI stub
+   * Write IMP trace to new browser tab
    */
-  public writeIMP(text: string) {
-    this.write(text);
+  public writeTrace(trace: string) {
+    // Create blob from trace
+    const blob = new Blob([trace], { type: "text/plain" });
+
+    // Create URL for blob
+    const url = URL.createObjectURL(blob);
+
+    // Open blob in new tab
+    globalThis.open(url, "_blank");
+
+    // Revoke URL after delay to free memory
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
   public async start() {
@@ -96,7 +108,7 @@ export class Impli {
     this.writeWelcome();
 
     try {
-      // 1. Service Worker for cross-origin isolation
+      // Service Worker for cross-origin isolation
       log("Impli", "Registering service worker...");
       await navigator.serviceWorker.register("./sw.ts", {
         scope: "./",
@@ -110,17 +122,6 @@ export class Impli {
         return;
       }
 
-      // 2. Shared buffers for sync communication
-      log("Impli", "Creating shared buffers...");
-      this.lock = new Int32Array(new SharedArrayBuffer(4));
-      this.buffer = new SharedArrayBuffer(DATA_BUFFER_SIZE);
-
-      // 3. Start backend worker
-      log("Impli", "Starting worker...");
-      this.worker = new Worker(new URL("./worker.ts", import.meta.url), {
-        type: "module",
-      });
-
       this.worker.onmessage = async (event) => {
         const { type, text, prompt } = event.data;
         switch (type) {
@@ -131,13 +132,13 @@ export class Impli {
           case "stdin": {
             if (!this.lock || !this.buffer) return;
             log("Impli", "Stdin requested:", prompt);
-            const line = await this.localEcho.read(prompt);
+            const line = await this.echo.read(prompt);
             const encoded = new TextEncoder().encode(line + "\n");
-            const bufferView = new Uint8Array(this.buffer);
-            bufferView.fill(0);
-            bufferView.set(encoded);
+            const view = new Uint8Array(this.buffer);
+            view.fill(0);
+            view.set(encoded);
 
-            Atomics.store(this.lock, 0, STATE_IDLE);
+            Atomics.store(this.lock, 0, IDLE);
             Atomics.notify(this.lock, 0, 1);
             log("Impli", "Input sent to worker");
             break;
@@ -146,10 +147,10 @@ export class Impli {
       };
 
       this.worker.onerror = (error) => {
-        this.write(`\r\n\x1b[31mWorker error: ${error.message}\x1b[0m\r\n`);
+        log("Impli", `Worker error: ${error.message}`);
       };
 
-      // 4. Initialize worker
+      // Initialize worker
       log("Impli", "Posting initialization message to worker...");
       this.worker.postMessage({
         lock: this.lock,
@@ -158,7 +159,6 @@ export class Impli {
       });
     } catch (err) {
       console.error("Initialization failed:", err);
-      this.write(`\r\n\x1b[31mInitialization failed: ${err}\x1b[0m\r\n`);
     }
   }
 

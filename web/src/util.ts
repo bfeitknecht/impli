@@ -1,21 +1,18 @@
-export const DEBUG = true;
-
 /**
  * Constants for SharedArrayBuffer communication
  */
-export const DATA_BUFFER_SIZE = 4096;
+export const CAPACITY = 4096;
 
 /**
  * State values for the atomic lock
  */
-export const STATE_IDLE = 0;
-export const STATE_WAITING = 1;
+export const IDLE = 0;
+export const WAITING = 1;
 
 /**
  * Context-aware logger for debug mode
- * @param context The component or module name (e.g., "Impli", "Worker", "SW")
- * @param args Additional arguments to log
  */
+const DEBUG = true;
 export function log(context: string, ...args: any[]) {
   if (DEBUG) {
     console.log(`[DEBUG] ${context}:`, ...args);
