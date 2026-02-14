@@ -49,7 +49,7 @@ ${entries.join(",\n")}
   console.log(`✓ Generated ${OUTPUT} with ${entries.length} examples`);
 
   // Bundling step using deno bundle
-  console.log("Bundling application with deno bundle...");
+  console.log("Bundling application...");
   const result = await Deno.bundle({
     entrypoints: ["src/App.tsx"],
     outputPath: "src/module.mjs",

@@ -15,10 +15,8 @@
     "@/": "./src/",
     "@xterm/xterm": "npm:xterm@^5.3.0",
     "@xterm/addon-fit": "npm:xterm-addon-fit@^0.8.0",
-    "xterm-pty": "npm:xterm-pty@^0.11.1",
     "@runno/wasi": "npm:@runno/wasi@^0.10.0",
     "@gytx/xterm-local-echo": "npm:@gytx/xterm-local-echo@^0.1.8",
-    "preact": "npm:preact@^10.28.3",
-    "std/path": "https://deno.land/std/path/mod.ts"
+    "preact": "npm:preact@^10.28.3"
   }
 }

@@ -155,7 +155,7 @@ export class Impli {
       this.worker.postMessage({
         lock: this.lock,
         buffer: this.buffer,
-        wasmURL: "./impli.wasm",
+        wasmURL: "./static/impli.wasm",
       });
     } catch (err) {
       console.error("Initialization failed:", err);
