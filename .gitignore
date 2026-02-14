@@ -6,3 +6,4 @@ hie.yaml
 impli.wasm
 stub.js
 examples.js
+module.mjs

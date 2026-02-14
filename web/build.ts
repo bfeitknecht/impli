@@ -51,8 +51,8 @@ ${entries.join(",\n")}
   // Bundling step using deno bundle
   console.log("Bundling application with deno bundle...");
   const result = await Deno.bundle({
-    entrypoints: ["index.tsx"],
-    outputDir: "dist",
+    entrypoints: ["src/App.tsx"],
+    outputPath: "src/module.mjs",
     platform: "browser",
     format: "esm",
     minify: true,
