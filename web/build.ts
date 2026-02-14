@@ -47,6 +47,23 @@ ${entries.join(",\n")}
 
   await Deno.writeTextFile(OUTPUT, output);
   console.log(`✓ Generated ${OUTPUT} with ${entries.length} examples`);
+
+  // Bundling step using deno bundle
+  console.log("Bundling application with deno bundle...");
+  const result = await Deno.bundle({
+    entrypoints: ["index.tsx"],
+    outputDir: "dist",
+    platform: "browser",
+    format: "esm",
+    minify: true,
+  });
+  if (result.success) {
+    console.log("✓ Successfully bundled");
+  } else {
+    console.error("✗ Bundling failed:");
+    console.error(result.errors);
+    Deno.exit(1);
+  }
 }
 
 if (import.meta.main) {
