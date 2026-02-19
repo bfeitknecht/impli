@@ -1,3 +1,5 @@
+{-# LANGUAGE JavaScriptFFI #-}
+
 {- |
 Module      : Main
 Description : Web entrypoint for the IMP language interpreter
@@ -17,6 +19,13 @@ import REPL.Execute.Browser
 import REPL.State
 
 import GHC.Wasm.Prim
+
+-- | Read input from JavaScript (awaits promise from @impli.readIn()@)
+foreign import javascript safe "await globalThis.impli.readInput()" js_readInput :: IO JSString
+
+-- | Get line from terminal via JSFFI
+getInput :: IO String
+getInput = fromJSString <$> js_readInput
 
 foreign export javascript "start" main :: IO ()
 

@@ -37,9 +37,6 @@ import REPL.Meta
 import REPL.Preset
 import REPL.State hiding (writeIMP)
 
--- | Read input from JavaScript (awaits promise from @impli.readIn()@)
-foreign import javascript safe "await globalThis.impli.readInput()" js_readInput :: IO JSString
-
 -- | Clear terminal screen and write welcome message
 foreign import javascript unsafe "globalThis.impli.writeWelcome()" js_writeWelcome :: IO ()
 
@@ -56,11 +53,8 @@ getPrompt = toJSString prompts
         store = unsafePerformIO (readIORef ref)
         prompts = _prompt store ++ [_separator store] ++ " "
 
--- | Get line from terminal via JSFFI
-getInput :: IO String
-getInput = fromJSString <$> js_readInput
-
 -- | Never EOF in browser context
+-- CHECK: Is this needed with new stdin handle override approach
 isEOF :: IO Bool
 isEOF = return False
 
@@ -86,7 +80,7 @@ loop :: REPL IO ()
 loop = do
     current <- get
     liftIO $ writeIORef ref current -- Update global store for prompt export
-    line <- liftIO getInput
+    line <- liftIO getLine
     case line of
         "" -> loop
         ":)" -> liftIO (putStrLn "You look good today!") >> loop
