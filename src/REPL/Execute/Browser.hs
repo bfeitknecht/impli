@@ -5,17 +5,18 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 {- |
-Module      : Main
-Description : Web entrypoint for the IMP language interpreter
+Module      : REPL.Execute.Browser
+Description : Browser-based REPL execution backend
 Copyright   : (c) Basil Feitknecht, 2025
 License     : MIT
 Maintainer  : bfeitknecht@ethz.ch
 Stability   : stable
-Portability : portable
+Portability : WASM/JavaScript
 
-Provides web/WASM entrypoint for the IMP language interpreter.
-This module implements the REPL loop without haskeline dependency.
-Uses the polymorphic REPL monad from REPL.State with IO as the base monad.
+Browser-based execution backend for the IMP language REPL.
+Implements 'Dispatches' instances for 'IO' monad to handle REPL commands,
+constructs, and exceptions in the browser environment via JavaScript FFI.
+Manages global REPL state through an 'IORef' for interop with JavaScript.
 -}
 module REPL.Execute.Browser where
 
@@ -73,7 +74,8 @@ repl store = do
         Left e -> print e >> Exit.exitFailure
         Right final -> do
             writeIORef ref final -- Update global store
-            putStrLn goodbye >> repl start -- escape is impossible -- TODO: Easter egg?
+            putStrLn goodbye
+            repl start -- escape is impossible -- TODO: Easter egg?
 
 -- | Main REPL loop using basic IO
 loop :: REPL IO ()

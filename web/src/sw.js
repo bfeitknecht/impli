@@ -6,8 +6,7 @@
  * - Cross-Origin-Embedder-Policy: require-corp
  * - Cross-Origin-Opener-Policy: same-origin
  *
- * This is necessary because GitHub Pages doesn't allow custom HTTP headers,
- * but these headers are required for SharedArrayBuffer and Atomics to work.
+ * This is necessary because GitHub Pages doesn't allow custom HTTP headers.
  */
 
 import { log } from "@/util.ts";

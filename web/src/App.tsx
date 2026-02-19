@@ -5,9 +5,12 @@ import { Impli } from "@/impli.ts";
 export class App extends Component {
   override render() {
     // TODO: Check if ServiceWorker and WebAssembly are supported
-    if (true) {
-      return Unsupported;
+    const old = false;
+    if (old) {
+      return <Unsupported />;
     }
+
+    return <>Hello, World!</>;
   }
 }
 

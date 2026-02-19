@@ -37,7 +37,7 @@ export class Impli {
   public terminal: Terminal;
   private fitter: FitAddon;
   private echo: LocalEchoAddon;
-  private exports: any;
+  public exports: any;
 
   constructor(container: HTMLElement) {
     this.terminal = new Terminal({

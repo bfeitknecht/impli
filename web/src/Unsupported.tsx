@@ -14,11 +14,11 @@ export class Unsupported extends Component {
         <h1>Browser Not Supported</h1>
 
         <p>
-          Your browser doesn't support all features required to run
-          <strong>
-            <code>impli</code>
-          </strong>
-          in the web.
+          Your browser doesn't support all features required to run {
+            <strong>
+              <code>impli</code>
+            </strong>
+          } in the web.
         </p>
 
         <h2>Required Features</h2>

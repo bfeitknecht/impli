@@ -2,33 +2,46 @@
 
 {- |
 Module      : Main
-Description : Web entrypoint for the IMP language interpreter
+Description : WASM entrypoint with JavaScript stdin bridging
 Copyright   : (c) Basil Feitknecht, 2025
 License     : MIT
 Maintainer  : bfeitknecht@ethz.ch
 Stability   : stable
-Portability : portable
+Portability : WASM
 
-Provides web/WASM entrypoint for the IMP language interpreter.
-This module implements the REPL loop without haskeline dependency.
-Uses the polymorphic REPL monad from REPL.State with IO as the base monad.
+Provides the main entrypoint for the web/WASM IMP interpreter.
+Sets up a custom stdin handle that bridges JavaScript input via JSFFI,
+allowing the Haskell REPL to read from the browser terminal.
 -}
 module Main where
 
 import REPL.Execute.Browser
 import REPL.State
 
+import GHC.IO.Handle
 import GHC.Wasm.Prim
 
--- | Read input from JavaScript (awaits promise from @impli.readIn()@)
+import System.IO
+
+-- | Read input from JavaScript (awaits promise from @impli.readIn()@).
 foreign import javascript safe "await globalThis.impli.readInput()" js_readInput :: IO JSString
 
--- | Get line from terminal via JSFFI
+-- | Get line from terminal via JSFFI.
 getInput :: IO String
 getInput = fromJSString <$> js_readInput
 
+-- | Custom stdin handle.
+handler :: IO Handle
+handler = openFileWith getInput "<JSFFI stdin>"
+
+-- | Export main entrypoint.
 foreign export javascript "start" main :: IO ()
 
--- | Entrypoint for web/WASM IMP interpreter
+-- | Entrypoint for web/WASM IMP interpreter.
 main :: IO ()
-main = repl start >> error "how did we get here?"
+main = do
+    h <- handler
+    hSetBuffering h LineBuffering
+    hDuplicateTo h stdin
+    repl start -- INFO: Should never return
+    error "how did we get here?"

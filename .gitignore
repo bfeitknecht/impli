@@ -3,6 +3,9 @@
 dist-newstyle
 cabal.project.local
 hie.yaml
-impli.wasm
-stub.js
-examples.js
+
+web/static/impli.wasm
+web/static/stub.js
+web/static/examples.js
+web/static/App.js
+web/static/sw.js

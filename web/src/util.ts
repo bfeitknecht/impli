@@ -9,7 +9,7 @@ export function log(context: string, ...args: any[]) {
 }
 
 /**
- * Dedent template literal helper
+ * Dedent template literal
  */
 export function dedent(strings: TemplateStringsArray, ...values: any[]) {
   let raw = "";

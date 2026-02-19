@@ -6,23 +6,23 @@ const OUTPUT = "./static";
 async function generateExamples() {
   console.log("Generating examples.js from IMP files...");
 
-  const entries: string[] = [];
+  const entries: { [key: string]: any } = {};
 
   for await (const entry of Deno.readDir(EXAMPLES)) {
     if (!entry.isFile || !entry.name.endsWith(".imp")) continue;
 
-    const path = `/${entry.name}`;
-    const content = await Deno.readTextFile(`${EXAMPLES}${path}`);
+    const path = `${entry.name}`;
+    const content = await Deno.readTextFile(`${EXAMPLES}/${path}`);
 
     // Escape characters that would break the template literal in the generated file
-    const escaped = content.replace(/\\/g, "\\\\").replace(/`/g, "\\`").replace(
-      /\$/g,
-      "\\$",
-    );
+    const escaped = content
+      .replace(/\\/g, "\\\\")
+      .replace(/`/g, "\\`")
+      .replace(/\$/g, "\\$");
 
     // CHECK: Does this work?
     const now = new Date();
-    const fd = JSON.stringify({
+    const fd = {
       path: path,
       timestamps: {
         access: now,
@@ -30,34 +30,17 @@ async function generateExamples() {
         modification: now,
       },
       mode: "string",
-      content: escaped,
-    });
-    entries.push(`"${path}": "${fd}"`);
+      content: escaped.replace(/\s+/g, " "),
+    };
 
-    /*
-    entries.push(`\
-  "${path}": {
-    path: "${path}",
-    timestamps: {
-      access: now,
-      change: now,
-      modification: now,
-    },
-    mode: "string",
-    content: \`${escaped}\`,
-  }`);
-    */
-
+    entries[path] = fd;
     console.log(`  ✓ ${entry.name}`);
   }
-
   const output = dedent`\
     // DO NOT EDIT MANUALLY
     // This file is auto-generated from docs/examples
 
-    export const examples = {
-      ${entries.join(",\n")}
-    };`;
+    export const examples = ${JSON.stringify(entries)};`;
 
   await Deno.writeTextFile(OUTPUT + "/examples.js", output);
   console.log(`✓ Generated ${OUTPUT} with ${entries.length} examples`);
