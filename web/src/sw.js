@@ -10,26 +10,20 @@
  * but these headers are required for SharedArrayBuffer and Atomics to work.
  */
 
-const DEBUG = true;
-
-function log(...args) {
-  if (DEBUG) {
-    console.log("[DEBUG] SW:", ...args);
-  }
-}
+import { log } from "@/util.ts";
 
 // Install event - skip waiting to activate immediately
-self.addEventListener("install", (_) => {
-  log("Installing...");
+self.addEventListener("install", (_event) => {
+  log("SW", "Installing...");
   self.skipWaiting();
 });
 
 // Activate event - claim clients immediately
 self.addEventListener("activate", (event) => {
-  log("Activating...");
+  log("SW", "Activating...");
   event.waitUntil(
-    clients.claim().then(() => {
-      log("Service worker activated and claimed clients");
+    self.clients.claim().then(() => {
+      log("SW", "Service worker activated and claimed clients");
     }),
   );
 });
@@ -39,6 +33,10 @@ self.addEventListener("fetch", (event) => {
   event.respondWith(
     fetch(event.request)
       .then((response) => {
+        if (response.status === 0) {
+          return response;
+        }
+
         // Clone the response so we can modify headers
         const newHeaders = new Headers(response.headers);
 
@@ -57,7 +55,7 @@ self.addEventListener("fetch", (event) => {
         });
       })
       .catch((error) => {
-        log("Fetch failed:", error);
+        log("SW", "Fetch failed:", error);
         throw error;
       }),
   );
