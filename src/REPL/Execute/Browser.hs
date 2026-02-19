@@ -54,7 +54,7 @@ getPrompt = toJSString prompts
         prompts = _prompt store ++ [_separator store] ++ " "
 
 -- | Never EOF in browser context
--- CHECK: Is this needed with new stdin handle override approach
+-- CHECK: Is this needed with new stdin handle override approach?
 isEOF :: IO Bool
 isEOF = return False
 

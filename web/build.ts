@@ -20,6 +20,7 @@ async function generateExamples() {
       "\\$",
     );
 
+    // CHECK: Does this work?
     const now = new Date();
     const fd = JSON.stringify({
       path: path,

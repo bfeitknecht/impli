@@ -64,7 +64,7 @@ instance Evaluate Bexp Bool where
                     Geq -> v1 >= v2
 
 -- | Evaluate statement to integer.
--- CHECK: rewrite to count steps in operational semantics
+-- TODO: rewrite to count steps in operational semantics
 instance Evaluate Stm Integer where
     evaluate stm state = case stm of
         Skip -> 0
