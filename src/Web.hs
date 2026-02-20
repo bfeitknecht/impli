@@ -18,9 +18,9 @@ module Main where
 import REPL.Execute.Browser
 import REPL.State
 
-import GHC.IO.Handle
-import GHC.Wasm.Prim
-
+import Control.Monad (forever)
+import GHC.IO.Handle (BufferMode (..), hDuplicateTo, hSetBuffering)
+import GHC.Wasm.Prim (JSString, fromJSString)
 import System.IO
 
 -- | Read input from JavaScript (awaits promise from @impli.readIn()@).
