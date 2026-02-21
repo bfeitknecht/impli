@@ -17,7 +17,9 @@ module IMP.State where
 import Control.Exception (IOException, try)
 import Control.Monad.Except (MonadError, throwError)
 import Control.Monad.IO.Class
+import Data.IORef
 import System.IO
+import System.IO.Unsafe (unsafePerformIO)
 import Text.Read (readMaybe)
 
 import qualified Control.Monad.Except as Except
@@ -47,12 +49,18 @@ zero = Map.empty
 initial :: State
 initial = (zero, [], False)
 
+-- | Global IORef to store the current input action.
+{-# NOINLINE inputAction #-}
+inputAction :: IORef (IO String)
+inputAction = unsafePerformIO (newIORef getLine)
+
 -- | Get value for provided variable with prompt.
 getVal :: String -> IMP Integer
 getVal x = do
     output (x ++ " := ") >> flush
+    action <- liftIO $ readIORef inputAction
     input <-
-        liftIO (try getLine :: IO (Either IOException String))
+        liftIO (try action :: IO (Either IOException String))
             >>= either (\_ -> Except.throwError Empty) return
     case readMaybe input of
         Nothing -> do

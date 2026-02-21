@@ -32,6 +32,7 @@ import IMP.Exception
 import IMP.Expression
 import IMP.Parser
 import IMP.Pretty
+import IMP.State (inputAction)
 import IMP.Statement
 import IMP.Syntax
 import REPL.Meta
@@ -82,7 +83,8 @@ loop :: REPL IO ()
 loop = do
     current <- get
     liftIO $ writeIORef ref current -- Update global store for prompt export
-    line <- liftIO getLine
+    action <- liftIO $ readIORef inputAction
+    line <- liftIO action
     case line of
         "" -> loop
         ":)" -> liftIO (putStrLn "You look good today!") >> loop
