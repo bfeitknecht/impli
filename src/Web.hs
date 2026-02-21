@@ -23,25 +23,14 @@ import GHC.IO.Handle (BufferMode (..), hDuplicateTo, hSetBuffering)
 import GHC.Wasm.Prim (JSString, fromJSString)
 import System.IO
 
--- | Read input from JavaScript (awaits promise from @impli.readIn()@).
-foreign import javascript safe "await globalThis.impli.readInput()" js_readInput :: IO JSString
-
--- | Get line from terminal via JSFFI.
-getInput :: IO String
-getInput = fromJSString <$> js_readInput
-
--- | Custom stdin handle.
-handler :: IO Handle
-handler = openFileWith getInput "<JSFFI stdin>"
-
 -- | Export main entrypoint.
 foreign export javascript "start" main :: IO ()
 
 -- | Entrypoint for web/WASM IMP interpreter.
 main :: IO ()
 main = do
-    h <- handler
-    hSetBuffering h LineBuffering
-    hDuplicateTo h stdin
+    -- h <- handler
+    -- hSetBuffering h LineBuffering
+    -- hDuplicateTo h stdin
     repl start -- INFO: Should never return
     error "how did we get here?"
