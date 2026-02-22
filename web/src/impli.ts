@@ -33,6 +33,10 @@ function getTheme() {
   };
 }
 
+declare global {
+  var impli: Impli;
+}
+
 export class Impli {
   public terminal: Terminal;
   private fitter: FitAddon;
@@ -85,8 +89,7 @@ export class Impli {
     this.terminal.write("\x1bc" + logo + "\r\n" + message + "\r\n\r\n");
   }
 
-  public async readInput() {
-    const prompt = await this.exports.getPrompt();
+  public async readInput(prompt: string) {
     const line = await this.echo.read(prompt);
     return line + "\n";
   }

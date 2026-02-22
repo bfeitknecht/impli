@@ -50,25 +50,22 @@ initial :: State
 initial = (zero, [], False)
 
 -- | Global IORef to store the current input action.
-{-# NOINLINE inputAction #-}
-inputAction :: IORef (IO String)
-inputAction = unsafePerformIO (newIORef getLine)
+{-# NOINLINE inputter #-}
+inputter :: IORef (String -> IO String)
+inputter = unsafePerformIO (newIORef (\prompt -> putStr prompt >> hFlush stdout >> getLine))
 
 -- | Get value for provided variable with prompt.
 getVal :: String -> IMP Integer
 getVal x = do
-    output (x ++ " := ") >> flush
-    action <- liftIO $ readIORef inputAction
+    action <- liftIO $ readIORef inputter
     input <-
-        liftIO (try action :: IO (Either IOException String))
+        liftIO (try (action (x ++ " := ")) :: IO (Either IOException String))
             >>= either (\_ -> Except.throwError Empty) return
     case readMaybe input of
         Nothing -> do
             inform "invalid input, please enter an integer"
             getVal x
         Just i -> return i
-    where
-        flush = liftIO $ hFlush stdout
 
 -- | Get defined variables.
 getVars :: State -> Vars

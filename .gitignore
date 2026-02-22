@@ -4,8 +4,8 @@ dist-newstyle
 cabal.project.local
 hie.yaml
 
-web/static/impli.wasm
-web/static/stub.js
-web/static/examples.js
-web/static/App.js
-web/static/sw.js
+web/static/*
+!web/static/index.html
+!web/static/styles.css
+!web/static/favicon.ico
+!web/static/CommitMono*.woff2

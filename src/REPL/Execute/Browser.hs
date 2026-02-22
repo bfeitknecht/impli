@@ -24,7 +24,6 @@ import Control.Monad.Except
 import Control.Monad.State hiding (State, state)
 import Data.IORef
 import GHC.Wasm.Prim
-import System.IO.Unsafe (unsafePerformIO)
 
 import qualified System.Exit as Exit
 
@@ -32,7 +31,7 @@ import IMP.Exception
 import IMP.Expression
 import IMP.Parser
 import IMP.Pretty
-import IMP.State (inputAction)
+import IMP.State (inputter)
 import IMP.Statement
 import IMP.Syntax
 import REPL.Meta
@@ -45,46 +44,24 @@ foreign import javascript unsafe "globalThis.impli.writeWelcome()" js_writeWelco
 -- | Write IMP trace to plaintext blob in new browser tab
 foreign import javascript unsafe "globalThis.impli.writeIMP($1)" js_writeIMP :: JSString -> IO ()
 
--- | Prompt to display before user input in terminal (exported to JS)
-foreign export javascript "getPrompt" getPrompt :: JSString
-
--- | Get the current prompt from the REPL state (prompt + separator + space)
-getPrompt :: JSString
-getPrompt = toJSString prompts
-    where
-        store = unsafePerformIO (readIORef ref)
-        prompts = _prompt store ++ [_separator store] ++ " "
-
--- | Never EOF in browser context
--- CHECK: Is this needed with new stdin handle override approach?
-isEOF :: IO Bool
-isEOF = return False
-
--- | Global IORef to store the current REPL state
-{-# NOINLINE ref #-}
-ref :: IORef Store
-ref = unsafePerformIO (newIORef start)
-
 -- | Run the REPL with the given initial store
 repl :: Store -> IO ()
 repl store = do
-    writeIORef ref store -- Initialize the global store
     js_writeWelcome
     result <- runExceptT (execStateT loop store)
     case result of
         Left e -> print e >> Exit.exitFailure
-        Right final -> do
-            writeIORef ref final -- Update global store
+        Right _ -> do
             putStrLn goodbye
             repl start -- escape is impossible -- TODO: Easter egg?
 
 -- | Main REPL loop using basic IO
 loop :: REPL IO ()
 loop = do
-    current <- get
-    liftIO $ writeIORef ref current -- Update global store for prompt export
-    action <- liftIO $ readIORef inputAction
-    line <- liftIO action
+    prompt' <- gets _prompt
+    separator' <- gets _separator
+    action <- liftIO $ readIORef inputter
+    line <- liftIO $ action (prompt' ++ separator' : " ")
     case line of
         "" -> loop
         ":)" -> liftIO (putStrLn "You look good today!") >> loop

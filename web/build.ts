@@ -11,8 +11,8 @@ async function generateExamples() {
   for await (const entry of Deno.readDir(EXAMPLES)) {
     if (!entry.isFile || !entry.name.endsWith(".imp")) continue;
 
-    const path = `${entry.name}`;
-    const content = await Deno.readTextFile(`${EXAMPLES}/${path}`);
+    const file = `${entry.name}`;
+    const content = await Deno.readTextFile(`${EXAMPLES}/${file}`);
 
     // Escape characters that would break the template literal in the generated file
     const escaped = content
@@ -21,16 +21,16 @@ async function generateExamples() {
       .replace(/\$/g, "\\$");
 
     // CHECK: Does this work?
-    const now = new Date();
+    const path = "/" + file;
     const fd = {
       path: path,
       timestamps: {
-        access: now,
-        change: now,
-        modification: now,
+        access: "__DATE__",
+        change: "__DATE__",
+        modification: "__DATE__",
       },
       mode: "string",
-      content: escaped.replace(/\s+/g, " "),
+      content: escaped.replace(/^\/\/.*$/gm, "").replace(/\s+/g, " "),
     };
 
     entries[path] = fd;
@@ -40,7 +40,9 @@ async function generateExamples() {
     // DO NOT EDIT MANUALLY
     // This file is auto-generated from docs/examples
 
-    export const examples = ${JSON.stringify(entries)};`;
+    export const examples = ${
+    JSON.stringify(entries).replace(/"__DATE__"/g, "new Date()") // Sorry for the spaghetti
+  };`;
 
   await Deno.writeTextFile(OUTPUT + "/examples.js", output);
   console.log(`✓ Generated ${OUTPUT} with ${entries.length} examples`);
@@ -50,7 +52,7 @@ async function bundleApp() {
   // Bundling step using deno bundle
   console.log("Bundling application...");
   const result = await Deno.bundle({
-    entrypoints: ["src/App.tsx", "src/sw.js"],
+    entrypoints: ["src/App.tsx", "src/sw.js", "src/worker.ts"],
     outputDir: OUTPUT,
     platform: "browser",
     format: "esm",
