@@ -22,6 +22,8 @@ import IMP.State (inputter)
 import REPL.Execute.Browser
 import REPL.State
 
+import System.IO
+
 -- | Read input from JavaScript (awaits promise from @impli.readInput()@).
 -- The 'safe' keyword is crucial here: it allows GHC's WASM backend to suspend
 -- the Haskell thread and yield to the JS event loop until the Promise resolves.
@@ -37,6 +39,8 @@ foreign export javascript "start" main :: IO ()
 -- | Entrypoint for web/WASM IMP interpreter.
 main :: IO ()
 main = do
+    hSetBuffering stdout NoBuffering
+    hSetBuffering stderr NoBuffering
     -- Override the global input action to use our JSFFI bridge instead of standard getLine
     writeIORef inputter getInput
     repl start -- INFO: Should never return

@@ -14,23 +14,26 @@ async function generateExamples() {
     const file = `${entry.name}`;
     const content = await Deno.readTextFile(`${EXAMPLES}/${file}`);
 
-    // Escape characters that would break the template literal in the generated file
-    const escaped = content
+    // Escape critical characters and clean up comments
+    const clean = content
       .replace(/\\/g, "\\\\")
       .replace(/`/g, "\\`")
-      .replace(/\$/g, "\\$");
+      .replace(/\$/g, "\\$")
+      .replace(/\/\/.*$/gm, "")
+      .replace(/(\/\*.*\*\/)/gm, "")
+      .replace(/\s+/g, " ")
+      .trim();
 
-    // CHECK: Does this work?
     const path = "/" + file;
     const fd = {
       path: path,
       timestamps: {
-        access: "__DATE__",
-        change: "__DATE__",
-        modification: "__DATE__",
+        access: "__NOW__",
+        change: "__NOW__",
+        modification: "__NOW__",
       },
       mode: "string",
-      content: escaped.replace(/^\/\/.*$/gm, "").replace(/\s+/g, " "),
+      content: clean,
     };
 
     entries[path] = fd;
@@ -40,19 +43,22 @@ async function generateExamples() {
     // DO NOT EDIT MANUALLY
     // This file is auto-generated from docs/examples
 
+    const now = new Date();
     export const examples = ${
-    JSON.stringify(entries).replace(/"__DATE__"/g, "new Date()") // Sorry for the spaghetti
+    JSON.stringify(entries).replace(/"__NOW__"/g, "now") // Sorry for the spaghetti
   };`;
 
-  await Deno.writeTextFile(OUTPUT + "/examples.js", output);
-  console.log(`✓ Generated ${OUTPUT} with ${entries.length} examples`);
+  const result = OUTPUT + "/examples.js";
+  await Deno.writeTextFile(result, output);
+  console.log(
+    `✓ Generated ${result} with ${Object.keys(entries).length} examples`,
+  );
 }
 
 async function bundleApp() {
-  // Bundling step using deno bundle
   console.log("Bundling application...");
   const result = await Deno.bundle({
-    entrypoints: ["src/App.tsx", "src/sw.js", "src/worker.ts"],
+    entrypoints: ["src/App.tsx", "src/sw.js"],
     outputDir: OUTPUT,
     platform: "browser",
     format: "esm",
