@@ -42,7 +42,7 @@ import REPL.State hiding (writeIMP)
 foreign import javascript unsafe "globalThis.impli.writeWelcome()" js_writeWelcome :: IO ()
 
 -- | Write IMP trace to plaintext blob in new browser tab
-foreign import javascript unsafe "globalThis.impli.writeIMP($1)" js_writeIMP :: JSString -> IO ()
+foreign import javascript unsafe "globalThis.impli.writeTrace($1)" js_writeIMP :: JSString -> IO ()
 
 -- | Run the REPL with the given initial store
 repl :: Store -> IO ()
