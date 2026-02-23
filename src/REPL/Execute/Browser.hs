@@ -5,17 +5,18 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 {- |
-Module      : Main
-Description : Web entrypoint for the IMP language interpreter
+Module      : REPL.Execute.Browser
+Description : Browser-based REPL execution backend
 Copyright   : (c) Basil Feitknecht, 2025
 License     : MIT
 Maintainer  : bfeitknecht@ethz.ch
 Stability   : stable
-Portability : portable
+Portability : WASM/JavaScript
 
-Provides web/WASM entrypoint for the IMP language interpreter.
-This module implements the REPL loop without haskeline dependency.
-Uses the polymorphic REPL monad from REPL.State with IO as the base monad.
+Browser-based execution backend for the IMP language REPL.
+Implements 'Dispatches' instances for 'IO' monad to handle REPL commands,
+constructs, and exceptions in the browser environment via JavaScript FFI.
+Manages global REPL state through an 'IORef' for interop with JavaScript.
 -}
 module REPL.Execute.Browser where
 
@@ -23,7 +24,6 @@ import Control.Monad.Except
 import Control.Monad.State hiding (State, state)
 import Data.IORef
 import GHC.Wasm.Prim
-import System.IO.Unsafe (unsafePerformIO)
 
 import qualified System.Exit as Exit
 
@@ -31,68 +31,43 @@ import IMP.Exception
 import IMP.Expression
 import IMP.Parser
 import IMP.Pretty
+import IMP.State
 import IMP.Statement
 import IMP.Syntax
 import REPL.Meta
 import REPL.Preset
 import REPL.State hiding (writeIMP)
 
--- | Read input from JavaScript (awaits promise from @impli.readIn()@)
-foreign import javascript safe "await globalThis.impli.readInput()" js_readInput :: IO JSString
-
 -- | Clear terminal screen and write welcome message
 foreign import javascript unsafe "globalThis.impli.writeWelcome()" js_writeWelcome :: IO ()
 
 -- | Write IMP trace to plaintext blob in new browser tab
-foreign import javascript unsafe "globalThis.impli.writeIMP($1)" js_writeIMP :: JSString -> IO ()
-
--- | Prompt to display before user input in terminal (exported to JS)
-foreign export javascript "getPrompt" getPrompt :: JSString
-
--- | Get the current prompt from the REPL state (prompt + separator + space)
-getPrompt :: JSString
-getPrompt = toJSString prompts
-    where
-        store = unsafePerformIO (readIORef ref)
-        prompts = _prompt store ++ [_separator store] ++ " "
-
--- | Get line from terminal via JSFFI
-getInput :: IO String
-getInput = fromJSString <$> js_readInput
-
--- | Never EOF in browser context
-isEOF :: IO Bool
-isEOF = return False
-
--- | Global IORef to store the current REPL state
-{-# NOINLINE ref #-}
-ref :: IORef Store
-ref = unsafePerformIO (newIORef start)
+foreign import javascript unsafe "globalThis.impli.writeTrace($1, $2)" js_writeIMP :: JSString -> JSString -> IO ()
 
 -- | Run the REPL with the given initial store
 repl :: Store -> IO ()
 repl store = do
-    writeIORef ref store -- Initialize the global store
     js_writeWelcome
     result <- runExceptT (execStateT loop store)
     case result of
         Left e -> print e >> Exit.exitFailure
-        Right final -> do
-            writeIORef ref final -- Update global store
-            putStrLn goodbye >> repl start -- escape is impossible -- TODO: Easter egg?
+        Right _ -> do
+            putStrLn goodbye
+            repl start -- escape is impossible -- TODO: Easter egg?
 
 -- | Main REPL loop using basic IO
 loop :: REPL IO ()
 loop = do
-    current <- get
-    liftIO $ writeIORef ref current -- Update global store for prompt export
-    line <- liftIO getInput
+    prompt' <- gets _prompt
+    separator' <- gets _separator
+    action <- liftIO $ readIORef inputter
+    line <- liftIO $ action (prompt' ++ separator' : " ")
     case line of
         "" -> loop
-        ":)" -> liftIO (putStrLn "You look good today!") >> loop
+        ":)" -> outputln "You look good today!" >> loop
         (':' : meta) ->
             either
-                (const $ liftIO (putStrLn $ unlines ["unrecognized meta command: :" ++ meta, hint]) >> loop)
+                (const . errata $ unlines ["unrecognized meta command: :" ++ meta, hint])
                 (dispatch @IO @Command)
                 (parser "meta" meta)
         input ->
@@ -112,9 +87,9 @@ instance Dispatches IO Construct where
                 state' <- liftIMP $ execute (stm, state)
                 modify $ \st -> st {_state = state', _trace = stm : trace}
             Arithmetic aexp ->
-                liftIO . print $ evaluate aexp state
+                display $ evaluate aexp state
             Boolean bexp ->
-                liftIO . putStrLn $ if evaluate bexp state then "true" else "false"
+                outputln $ if evaluate bexp state then "true" else "false"
             Whitespace -> return ()
 
 -- | Dispatcher for 'IMP.Meta.Command' with IO backend.
@@ -128,7 +103,7 @@ instance Dispatches IO Command where
             Reset aspect -> reset aspect
             Show aspect -> shower aspect
             Load path -> loadIMP path
-            Write _ -> writeIMP
+            Write path -> writeIMP path
             AST element -> ast element
             Set option -> set option
             >> loop
@@ -139,16 +114,18 @@ instance Dispatches IO Exception where
         Empty -> return () -- EOF, exit cleanly
         AssertFail _ -> throwError e -- irrecoverable, propagate
         Raised _ -> throwError e -- ''
-        Info msg -> liftIO (putStrLn msg) >> loop -- informational message
-        _ -> liftIO (print e) >> loop -- recoverable errors
+        _ -> display e >> loop -- recoverable errors
 
 -- | Clear the terminal and display welcome message.
 clear :: REPL IO ()
 clear = liftIO js_writeWelcome
 
 -- | Write trace to new browser tab as plaintext blob.
-writeIMP :: REPL IO ()
-writeIMP = do
+writeIMP :: String -> REPL IO ()
+writeIMP path = do
     content <- gets (prettytrace . _trace)
-    liftIO . js_writeIMP $ toJSString content
-    throwError . Info $ "wrote trace to new tab"
+    let
+        js_path = toJSString path
+        js_content = toJSString content
+    liftIO $ js_writeIMP js_path js_content
+    inform $ "wrote trace to new tab"
