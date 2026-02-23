@@ -91,7 +91,7 @@ export class Impli {
 
   public async readInput(prompt: string) {
     const line = await this.echo.read(prompt);
-    return line + "\n";
+    return line;
   }
 
   public writeTrace(trace: string) {
