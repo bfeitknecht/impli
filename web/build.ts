@@ -58,7 +58,7 @@ async function generateExamples() {
 async function bundleApp() {
   console.log("Bundling application...");
   const result = await Deno.bundle({
-    entrypoints: ["src/App.tsx", "src/sw.js"],
+    entrypoints: ["src/App.tsx"],
     outputDir: OUTPUT,
     platform: "browser",
     format: "esm",

@@ -44,4 +44,4 @@ main = do
     -- Override the global input action to use our JSFFI bridge instead of standard getLine
     writeIORef inputter getInput
     repl start -- INFO: Should never return
-    error "how did we get here?"
+    error "how did you get here?"

@@ -1,7 +1,7 @@
 /**
  * Context-aware logger for debug mode
  */
-const DEBUG = true;
+const DEBUG = false;
 export function log(context: string, ...args: any[]) {
   if (DEBUG) {
     console.log(`[DEBUG] ${context}:`, ...args);

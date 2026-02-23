@@ -94,9 +94,9 @@ export class Impli {
     return line;
   }
 
-  public writeTrace(trace: string) {
-    const blob = new Blob([trace], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
+  public writeTrace(path: string, trace: string) {
+    const file = new File([trace], path, { type: "text/plain" });
+    const url = URL.createObjectURL(file);
     globalThis.open(url, "_blank");
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }

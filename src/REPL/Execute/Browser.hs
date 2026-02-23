@@ -31,7 +31,7 @@ import IMP.Exception
 import IMP.Expression
 import IMP.Parser
 import IMP.Pretty
-import IMP.State (inputter)
+import IMP.State
 import IMP.Statement
 import IMP.Syntax
 import REPL.Meta
@@ -42,7 +42,7 @@ import REPL.State hiding (writeIMP)
 foreign import javascript unsafe "globalThis.impli.writeWelcome()" js_writeWelcome :: IO ()
 
 -- | Write IMP trace to plaintext blob in new browser tab
-foreign import javascript unsafe "globalThis.impli.writeTrace($1)" js_writeIMP :: JSString -> IO ()
+foreign import javascript unsafe "globalThis.impli.writeTrace($1, $2)" js_writeIMP :: JSString -> JSString -> IO ()
 
 -- | Run the REPL with the given initial store
 repl :: Store -> IO ()
@@ -64,10 +64,10 @@ loop = do
     line <- liftIO $ action (prompt' ++ separator' : " ")
     case line of
         "" -> loop
-        ":)" -> liftIO (putStrLn "You look good today!") >> loop
+        ":)" -> outputln "You look good today!" >> loop
         (':' : meta) ->
             either
-                (const $ liftIO (putStrLn $ unlines ["unrecognized meta command: :" ++ meta, hint]) >> loop)
+                (const . errata $ unlines ["unrecognized meta command: :" ++ meta, hint])
                 (dispatch @IO @Command)
                 (parser "meta" meta)
         input ->
@@ -87,9 +87,9 @@ instance Dispatches IO Construct where
                 state' <- liftIMP $ execute (stm, state)
                 modify $ \st -> st {_state = state', _trace = stm : trace}
             Arithmetic aexp ->
-                liftIO . print $ evaluate aexp state
+                display $ evaluate aexp state
             Boolean bexp ->
-                liftIO . putStrLn $ if evaluate bexp state then "true" else "false"
+                outputln $ if evaluate bexp state then "true" else "false"
             Whitespace -> return ()
 
 -- | Dispatcher for 'IMP.Meta.Command' with IO backend.
@@ -103,7 +103,7 @@ instance Dispatches IO Command where
             Reset aspect -> reset aspect
             Show aspect -> shower aspect
             Load path -> loadIMP path
-            Write _ -> writeIMP
+            Write path -> writeIMP path
             AST element -> ast element
             Set option -> set option
             >> loop
@@ -114,16 +114,18 @@ instance Dispatches IO Exception where
         Empty -> return () -- EOF, exit cleanly
         AssertFail _ -> throwError e -- irrecoverable, propagate
         Raised _ -> throwError e -- ''
-        Info msg -> liftIO (putStrLn msg) >> loop -- informational message
-        _ -> liftIO (print e) >> loop -- recoverable errors
+        _ -> display e >> loop -- recoverable errors
 
 -- | Clear the terminal and display welcome message.
 clear :: REPL IO ()
 clear = liftIO js_writeWelcome
 
 -- | Write trace to new browser tab as plaintext blob.
-writeIMP :: REPL IO ()
-writeIMP = do
+writeIMP :: String -> REPL IO ()
+writeIMP path = do
     content <- gets (prettytrace . _trace)
-    liftIO . js_writeIMP $ toJSString content
+    let
+        js_path = toJSString path
+        js_content = toJSString content
+    liftIO $ js_writeIMP js_path js_content
     throwError . Info $ "wrote trace to new tab"
