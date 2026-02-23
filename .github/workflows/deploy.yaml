@@ -40,29 +40,28 @@ jobs:
           # Build the WASM binary using nix build with --accept-flake-config to trust binary cache
           nix build .#impli-web -L --accept-flake-config
 
-          # Copy the built WASM binary to web/ with the correct name (impli.wasm)
-          cp result/bin/impli-web.wasm web/impli.wasm
+          # Copy the built WASM binary to web/static/ with the correct name (impli.wasm)
+          cp result/bin/impli-web.wasm web/static/impli.wasm
 
-          # Copy the generated stub.js to web/
-          cp result/web/stub.js web/stub.js
+          # Copy the generated stub.js to web/static/
+          cp result/web/stub.js web/static/stub.js
 
           echo "WASM binary and stub.js built successfully"
-          ls -lh web/impli.wasm web/stub.js
+          ls -lh web/static/impli.wasm web/static/stub.js
 
-      - name: Prepare web assets
-        run: |
-          # Copy example IMP programs to web/examples/
-          mkdir -p web/examples
-          cp docs/examples/*.imp web/examples/
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.6.10
 
-          echo "Web assets prepared in web/"
-          ls -la web/
-          ls -la web/examples/
+      - name: Deno build
+        run: deno task build
+        working-directory: web
 
       - name: Upload artifact for GitHub Pages
         uses: actions/upload-pages-artifact@v3
         with:
-          path: "web"
+          path: "web/static"
 
   deploy:
     runs-on: ubuntu-latest
