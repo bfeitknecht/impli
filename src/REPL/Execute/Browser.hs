@@ -128,4 +128,4 @@ writeIMP path = do
         js_path = toJSString path
         js_content = toJSString content
     liftIO $ js_writeIMP js_path js_content
-    throwError . Info $ "wrote trace to new tab"
+    inform $ "wrote trace to new tab"

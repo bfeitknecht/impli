@@ -118,7 +118,9 @@ loadIMP path = do
             trace <- gets _trace
             state' <- liftIMP $ execute (stm, state)
             modify $ \st -> st {_state = state', _trace = stm : trace}
-    throwError . Info $ "interpreted: " ++ path
+    inform $ "interpreted: " ++ path
+
+-- throwError . Info $ "interpreted: " ++ path
 
 -- | Write trace to specified file.
 writeIMP :: (MonadIO m) => FilePath -> REPL m ()
@@ -129,7 +131,7 @@ writeIMP path = do
             `catchError` \e ->
                 throwError . IOFail $
                     unlines ["write trace to: " ++ path, show e]
-    throwError . Info $ "wrote trace to: " ++ path
+    inform $ "wrote trace to: " ++ path
 
 -- | Show abstract syntax tree of 'IMP.Meta.Element'.
 ast :: (MonadIO m) => Element -> REPL m ()
