@@ -25,8 +25,8 @@ impli/
 │       ├── Statement.hs    # Statement execution
 │       ├── State.hs        # Interpreter state management
 │       ├── Semantics/
-│       │   ├── Structural.hs  # Big-step semantics
-│       │   └── Operational.hs # Small-step semantics
+│       │   ├── Natural.hs  # Big-step semantics
+│       │   └── Structural.hs # Small-step semantics
 │       ├── Pretty.hs       # Pretty printing
 │       ├── Config.hs       # Configuration
 │       └── Exception.hs    # Error handling
@@ -46,11 +46,10 @@ impli/
 ### Core Library (`src/IMP/`)
 
 - **Syntax.hs**: Defines the abstract syntax tree (AST)
-  - `Aexp` - Arithmetic expressions
-  - `Bexp` - Boolean expressions  
-  - `Stm` - Statements (skip, assignment, sequence, if/then/else, while, etc.)
-  - `Proc` - Procedure definitions
-  
+    - `Aexp` - Arithmetic expressions
+    - `Bexp` - Boolean expressions
+    - `Stm` - Statements (skip, assignment, sequence, if/then/else, while, etc.)
+    - `Proc` - Procedure definitions
 - **Lexer.hs & Parser.hs**: Transform source code into AST using Parsec combinator library
 
 - **Expression.hs**: Evaluates arithmetic and boolean expressions in a given state
@@ -58,13 +57,13 @@ impli/
 - **Statement.hs**: Executes statements, modifying interpreter state
 
 - **State.hs**: Manages interpreter state as `(Vars, [Proc], Bool)` tuple:
-  - `Vars` - Map of variables to integer values
-  - `[Proc]` - List of defined procedures
-  - `Bool` - Break flag for loop control
+    - `Vars` - Map of variables to integer values
+    - `[Proc]` - List of defined procedures
+    - `Bool` - Break flag for loop control
 
 - **Semantics/**: Two semantic implementations
-  - **Structural.hs**: Big-step operational semantics (`⟨s, σ⟩ → σ'`)
-  - **Operational.hs**: Small-step operational semantics with configurations
+    - **Natural.hs**: Big-step operational semantics (`⟨s, σ⟩ → σ'`)
+    - **Structural.hs**: Small-step operational semantics with configurations
 
 ### Executables (`exe/`)
 
@@ -143,27 +142,27 @@ cabal run impli -- --ast "x := 5"
 ### Haskell Style Guidelines
 
 1. **Module Documentation**: Every module should have a header with:
-   - Module name
-   - Description
-   - Copyright
-   - License (MIT)
-   - Maintainer email
-   - Stability and portability
+    - Module name
+    - Description
+    - Copyright
+    - License (MIT)
+    - Maintainer email
+    - Stability and portability
 
 2. **Function Documentation**: Use Haddock comments (`-- |`) for all exported functions
 
 3. **Language Extensions**: Enable pragmas at the top when needed (e.g., `FlexibleContexts`)
 
-4. **Imports**: 
-   - Group standard library imports first
-   - Then qualified imports
-   - Finally local module imports
-   - Use explicit import lists or qualified imports to avoid namespace pollution
+4. **Imports**:
+    - Group standard library imports first
+    - Then qualified imports
+    - Finally local module imports
+    - Use explicit import lists or qualified imports to avoid namespace pollution
 
 5. **Naming Conventions**:
-   - Types: `PascalCase` (e.g., `Aexp`, `State`)
-   - Functions: `camelCase` (e.g., `evaluate`, `getVar`)
-   - Constants: `camelCase` (e.g., `initial`, `zero`)
+    - Types: `PascalCase` (e.g., `Aexp`, `State`)
+    - Functions: `camelCase` (e.g., `evaluate`, `getVar`)
+    - Constants: `camelCase` (e.g., `initial`, `zero`)
 
 6. **Type Signatures**: Always provide explicit type signatures for top-level functions
 
@@ -194,6 +193,7 @@ When adding new features:
 ### CI Testing
 
 The test workflow (`.github/workflows/test.yaml`) runs on:
+
 - Every push to `master`
 - All pull requests
 - Manual workflow dispatch
@@ -203,26 +203,30 @@ Tests use GHC 9.12.2 and Cabal 3.14 in CI.
 ## GitHub Actions Workflows
 
 ### Test (`.github/workflows/test.yaml`)
+
 - **Trigger**: Push to master, PRs, manual
 - **Purpose**: Run test suite
 - **Environment**: Ubuntu with GHC 9.12.2
 
 ### Format (`.github/workflows/format.yaml`)
+
 - **Trigger**: Push to master, PRs, manual
 - **Purpose**: Verify code formatting with fourmolu
 - **Environment**: Ubuntu with GHC 9.10.2
 - **Fails if**: Any `.hs` file is not properly formatted
 
 ### Deploy (`.github/workflows/deploy.yaml`)
+
 - **Trigger**: Push to master, PRs, manual
 - **Purpose**: Build WASM version and deploy to GitHub Pages
 - **Steps**:
-  1. Build `impli-web` with Nix WASM backend
-  2. Copy WASM binary to `web/static/`
-  3. Copy example `.imp` files to `web/static/`
-  4. Deploy to GitHub Pages (master branch only)
+    1. Build `impli-web` with Nix WASM backend
+    2. Copy WASM binary to `web/static/`
+    3. Copy example `.imp` files to `web/static/`
+    4. Deploy to GitHub Pages (master branch only)
 
 ### Release (`.github/workflows/release.yaml`)
+
 - **Trigger**: Version tags (`v*`), manual
 - **Purpose**: Build and release binaries for all platforms
 - **Platforms**: Linux (x86_64), macOS (x86_64/aarch64), Windows (x86_64)
@@ -235,8 +239,8 @@ Tests use GHC 9.12.2 and Cabal 3.14 in CI.
 1. Add constructor to `Stm` in `src/IMP/Syntax.hs`
 2. Update parser in `src/IMP/Parser.hs` to recognize the syntax
 3. Add lexer tokens if needed in `src/IMP/Lexer.hs`
-4. Implement semantics in `src/IMP/Semantics/Structural.hs`
-5. Optionally add small-step semantics in `src/IMP/Semantics/Operational.hs`
+4. Implement semantics in `src/IMP/Semantics/Natural.hs`
+5. Optionally add small-step semantics in `src/IMP/Semantics/Structural.hs`
 6. Update pretty printer in `src/IMP/Pretty.hs`
 7. Update `IMP.ebnf` grammar
 8. Add test cases
@@ -254,6 +258,7 @@ Tests use GHC 9.12.2 and Cabal 3.14 in CI.
 ### Working with the REPL
 
 REPL code is in `exe/REPL/`:
+
 - `State.hs` - REPL state management
 - `Execute.hs` - Statement execution in REPL context
 - `Meta.hs` - Meta-commands (`:help`, `:quit`, etc.)
@@ -274,6 +279,7 @@ REPL code is in `exe/REPL/`:
 ### PR Title Format
 
 Use descriptive titles:
+
 - `feat: Add support for X statement`
 - `fix: Resolve parser issue with Y`
 - `docs: Update README with Z`
@@ -283,6 +289,7 @@ Use descriptive titles:
 ### Review Process
 
 PRs automatically trigger:
+
 - Test suite execution
 - Formatting verification
 - WASM build (if applicable)
@@ -294,9 +301,9 @@ Ensure all checks pass before requesting review.
 ### Adding Dependencies
 
 1. Add to appropriate section in `impli.cabal`:
-   - `common shared` - Core library dependencies
-   - `common runnable` - CLI executable dependencies
-   - Test suite has its own `build-depends`
+    - `common shared` - Core library dependencies
+    - `common runnable` - CLI executable dependencies
+    - Test suite has its own `build-depends`
 
 2. Specify version bounds: `package >=min && <max`
 

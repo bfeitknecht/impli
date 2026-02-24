@@ -33,17 +33,17 @@ The most apparent deviations from the specifications are that parentheses are no
 
 The table below depicts the correspondence between semantics functions defined in the lectures and according functions in this library for `state` $\equiv \sigma$.
 
-| FMFP                                                              | `impli`                                        |
-| ----------------------------------------------------------------- | ---------------------------------------------- |
-| $\sigma_{\text{zero}}$                                            | `IMP.State.initial`                            |
-| $\sigma(x)$                                                       | `IMP.State.getVar state x`                     |
-| $\sigma[x \mapsto n]$                                             | `IMP.State.setVar state x n`                   |
-| $\langle s, \sigma \rangle \to \sigma'$                           | `IMP.Semantics.Structural.run (s, state)`      |
-| $\langle s, \sigma \rangle \underset{1}{\to} \gamma$              | `IMP.Semantics.Operational.step (s, [state])`  |
-| $\langle s, \sigma \rangle \overset{*}{\underset{1}{\to}} \gamma$ | `IMP.Semantics.Operational.steps (s, [state])` |
-| $\mathcal{N}[[n]]$                                                | `id n`                                         |
-| $\mathcal{A}[[a]]\sigma$                                          | `IMP.Expression.evaluate a state`              |
-| $\mathcal{B}[[b]]\sigma$                                          | `IMP.Expression.evaluate b state`              |
+| FMFP                                                              | `impli`                                       |
+| ----------------------------------------------------------------- | --------------------------------------------- |
+| $\sigma_{\text{zero}}$                                            | `IMP.State.initial`                           |
+| $\sigma(x)$                                                       | `IMP.State.getVar state x`                    |
+| $\sigma[x \mapsto n]$                                             | `IMP.State.setVar state x n`                  |
+| $\langle s, \sigma \rangle \to \sigma'$                           | `IMP.Semantics.Natural.run (s, state)`        |
+| $\langle s, \sigma \rangle \underset{1}{\to} \gamma$              | `IMP.Semantics.Structural.step (s, [state])`  |
+| $\langle s, \sigma \rangle \overset{*}{\underset{1}{\to}} \gamma$ | `IMP.Semantics.Structural.steps (s, [state])` |
+| $\mathcal{N}[[n]]$                                                | `id n`                                        |
+| $\mathcal{A}[[a]]\sigma$                                          | `IMP.Expression.evaluate a state`             |
+| $\mathcal{B}[[b]]\sigma$                                          | `IMP.Expression.evaluate b state`             |
 
 ## Star History
 

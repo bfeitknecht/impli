@@ -8,12 +8,12 @@ Stability   : stable
 Portability : portable
 
 Provides statement execution for the IMP language.
-Structural and operational semantics are supported, determined by 'Config.operational'.
+Natural and structural semantics are supported, determined by 'Config.structural'.
 -}
 module IMP.Statement where
 
 import IMP.Config
-import IMP.Semantics.Operational
+import IMP.Semantics.Natural
 import IMP.Semantics.Structural
 import IMP.State
 import IMP.Syntax
@@ -21,6 +21,6 @@ import IMP.Syntax
 -- | Execute statement in state with appropriate semantics.
 execute :: (Stm, State) -> IMP State
 execute (stm, state) =
-    if operational
+    if structural
         then steps (stm, [state])
         else run (stm, state)

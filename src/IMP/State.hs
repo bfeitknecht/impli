@@ -119,7 +119,7 @@ resetBreak (vars, procs, _) = (vars, procs, False)
 
 -- | Indicator variable for corresponding flip-flop index for internal use.
 flipvar :: Integer -> String
-flipvar i = "_flip" ++ show i
+flipvar i = "_flip_" ++ show i
 
 -- | Check if branch to flip.
 getFlip :: State -> Integer -> Bool

@@ -52,7 +52,7 @@ common shared
     IMP.Lexer
     IMP.Parser
     IMP.Pretty
-    IMP.Semantics.Operational
+    IMP.Semantics.Natural
     IMP.Semantics.Structural
     IMP.State
     IMP.Statement
@@ -99,7 +99,7 @@ library
     IMP.Lexer
     IMP.Parser
     IMP.Pretty
-    IMP.Semantics.Operational
+    IMP.Semantics.Natural
     IMP.Semantics.Structural
     IMP.State
     IMP.Statement
