@@ -31,6 +31,7 @@
 #let f = tt("false")
 #let IMP = tt("IMP")
 #let EXT = tt("EXT")
+#let eval(X, x) = $cal(#X)[|#x|]$
 #let proc(name, args, rets) = {
   let format(val) = {
     if type(val) == array {

@@ -13,17 +13,17 @@
       x op(ast.o) a comma space eq.o op(eq.triple.not) tt(":="),
       a comma "otherwise",
     )$, where $ast.o$ denotes definition operator's corresponding arithmetic operator]],
-  $conf(x eq.o a, sigma) -> sigma[x |-> cal(A)[|a'|]sigma]$,
+  $conf(x eq.o a, sigma) -> sigma[x |-> eval(A, a')sigma]$,
 )
 
 #let Print = rule(
-  name: [=== Print #footnote[$cal(A)[|a|]sigma$ numeral output]],
+  name: [=== Print #footnote[$eval(A, a)sigma$ numeral output]],
   $conf(tt("print") a, sigma) -> sigma$,
 )
 
 #let Read = rule(
-  name: [=== Read #footnote[$cal(N)[|v|]$ numeral from integer input $v$ assigned to variable $x$]],
-  $conf(tt("read") x, sigma) -> sigma[x |-> cal(N)[|v|]]$,
+  name: [=== Read #footnote[$eval(N, v)$ numeral from integer input $v$ assigned to variable $x$]],
+  $conf(tt("read") x, sigma) -> sigma[x |-> eval(N, v)]$,
 )
 
 #let Sequence = rule(
@@ -34,32 +34,32 @@
 )
 
 #let If = rule(
-  name: [=== If #footnote[$cal(B)[|b|]sigma = #t$]],
+  name: [=== If #footnote[$eval(B, b)sigma = #t$]],
   $conf(s_1, sigma) -> sigma_1$,
   $conf(tt("if") b tt("then") s_1 tt("else") s_2 tt("end"), sigma) -> sigma_1$,
 )
 
 #let Else = rule(
-  name: [=== Else #footnote[$cal(B)[|b|]sigma = #f$]],
+  name: [=== Else #footnote[$eval(B, b)sigma = #f$]],
   $conf(s_2, sigma) -> sigma_2$,
   $conf(tt("if") b tt("then") s_1 tt("else") s_2 tt("end"), sigma) -> sigma_2$,
 )
 
 #let While = rule(
-  name: [=== While #footnote[$cal(B)[|b|]sigma = #t$ and $sigma("break") = #f$]],
+  name: [=== While #footnote[$eval(B, b)sigma = #t$ and $sigma("break") = #f$]],
   $conf(s, sigma) -> sigma'$,
   $conf(tt("while") b tt("do") s tt("end"), sigma') -> sigma''$,
   $conf(tt("while") b tt("do") s tt("end"), sigma) -> sigma''$,
 )
 
 #let End = rule(
-  name: [=== End #footnote[$cal(B)[|b|]sigma = #f$ or $sigma("break") = #t$]],
+  name: [=== End #footnote[$eval(B, b)sigma = #f$ or $sigma("break") = #t$]],
   $conf(tt("while") b tt("do") s tt("end"), sigma) -> sigma["break" = #f]$,
 )
 
 #let Local = rule(
   name: [=== Local],
-  $conf(s, sigma[x |-> cal(A)[|a|]sigma]) -> sigma'$,
+  $conf(s, sigma[x |-> eval(A, a)sigma]) -> sigma'$,
   $conf(tt("let") x tt(":=") a tt("in") s tt("end"), sigma) -> sigma'[x |-> sigma(x)]$,
 )
 
@@ -84,13 +84,13 @@
 
 #let Invocation = rule(
   name: [=== Invocation],
-  $conf(sigma(p), sigma harpoon([x |-> cal(A)[|a|]sigma])) -> sigma'$,
+  $conf(sigma(p), sigma harpoon([x |-> eval(A, a)sigma])) -> sigma'$,
   $conf(proc(p, harpoon(a), harpoon(z)), sigma) -> sigma harpoon([z |-> sigma'(y)])$,
 )
 
 #let Raise = rule(
   name: [=== Raise],
-  $conf(tt("raise") a, sigma) -> bot[cal(A)[|a|]sigma]$,
+  $conf(tt("raise") a, sigma) -> bot[eval(A, a)sigma]$,
 )
 
 #let Try = rule(
@@ -101,13 +101,13 @@
 
 #let Catch = rule(
   name: [=== Catch],
-  $conf(s_1, sigma) -> bot[v]$,
-  $conf(s_2, sigma[x |-> v]) -> sigma''$,
+  $conf(s_1, sigma) -> bot[n]$,
+  $conf(s_2, sigma[x |-> n]) -> sigma''$,
   $conf(tt("try") s_1 tt("catch") x tt("in") s_2 tt("end"), sigma) -> sigma''$,
 )
 
 #let Revert = rule(
-  name: [=== Revert #footnote[$cal(B)[|b|]sigma' = #t$]],
+  name: [=== Revert #footnote[$eval(B, b)sigma' = #t$]],
   $conf(s, sigma) -> sigma'$,
   $conf(tt("revert") s tt("if") b tt("end"), sigma) -> sigma$,
 )
@@ -118,13 +118,13 @@
 )
 
 #let Pass = rule(
-  name: [=== Pass #footnote[$cal(B)[|b|]sigma = #t$]],
+  name: [=== Pass #footnote[$eval(B, b)sigma = #t$]],
   $conf(tt("assert") b, sigma) -> sigma$,
 )
 
 #let Fail = rule(
-  name: [=== Fail #footnote[$cal(B)[|b|]sigma = #f$]],
-  $conf(tt("assert") b, sigma) -> bot$,
+  name: [=== Fail #footnote[$eval(B, b)sigma = #f$]],
+  $conf(tt("assert") b, sigma) -> bot[!]$,
 )
 
 #let Havoc = rule(
@@ -150,31 +150,31 @@
 )
 
 #let Repeat = rule(
-  name: [=== Repeat #footnote[$cal(A)[|a|]sigma = n$]],
+  name: [=== Repeat #footnote[$eval(A, a)sigma = n$]],
   $conf(tt("for") tt("_times") tt(":= 0") tt("to") n tt("do") s tt("end"), sigma) -> sigma'$,
   $conf(tt("repeat") a tt("times") s tt("end"), sigma) -> sigma'$,
 )
 
 #let Flip = rule(
-  name: [=== Flip #footnote[$cal(A)[|tt("_flip_")i|]sigma = "0"$]],
+  name: [=== Flip #footnote[$eval(A, |tt("_flip_")i)sigma = "0"$]],
   $conf(s_1, sigma) -> sigma_1$,
   $conf(tt("flip(")i#tt(")") s_1 tt("flop") s_2 tt("end"), sigma) -> sigma_1[tt("_flip_")i |->1]$,
 )
 
 #let Flop = rule(
-  name: [=== Flop #footnote[$cal(A)[|tt("_flip_")i|]sigma = "1"$]],
+  name: [=== Flop #footnote[$eval(A, tt("_flip_")i)sigma = "1"$]],
   $conf(s_2, sigma) -> sigma_2$,
   $conf(tt("flip(")i#tt(")") s_1 tt("flop") s_2 tt("end"), sigma) -> sigma_2[#tt("_flip_")i |-> 0]$,
 )
 
 #let Case = rule(
-  name: [=== Case #footnote[$cal(A)[|a|]sigma = v_i$]],
+  name: [=== Case #footnote[$eval(A, a)sigma = v_i$]],
   $conf(s_i, sigma) -> sigma'$,
   $conf(tt("match") a tt("with") harpoon(v_j#tt(":") s_j#tt(",")) tt("default:") d, sigma) -> sigma'$,
 )
 
 #let Default = rule(
-  name: [=== Default #footnote[$cal(A)[|a|]sigma in.not {v_j}_(j in [k])$]],
+  name: [=== Default #footnote[$eval(A, a)sigma in.not {v_j}_(j in [k])$]],
   $conf(d, sigma) -> sigma'$,
   $conf(tt("match") a tt("with") harpoon(v_j#tt(":") s_j#tt(",")) tt("default:") d, sigma) -> sigma'$,
 )

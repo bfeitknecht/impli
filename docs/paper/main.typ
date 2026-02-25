@@ -35,17 +35,17 @@ $
 Specifically, these equalities hold, with $sans("Procedures")$ being an appropriate encapsulation.
 $
   sans("Val") = sans("Numeral") & = ZZ \
-                  sans("State") & = (sans("Var") -> sans("Numeral")) times sans("Procedures") times {#t, #f}
+  sans("State") & = (sans("Var") -> sans("Numeral")) times sans("Procedures") times {#t, #f} union {bot} times (ZZ union {!})
 $
 
 Furthermore, the following equivalences hold. Un-circled operators denote their respective arithmetic or boolean operations or relations.
 $
-            sigma[x |-> a](x) & = cal(A)[|a|]sigma \
-            sigma[p |=> s](p) & = s \
-        cal(B)[|tt("not") b|] & = not cal(B)[|b|] \
-      cal(A)[|a_1 ast.o a_2|] & = cal(A)[|a_1|] ast cal(A)[|a_2|] \
-  cal(B)[|b_1 compose.o b_2|] & = cal(B)[|b_1|] compose cal(B)[|b_2|], compose.o != tt("not") \
-       cal(B)[|a_1 lt.o a_2|] & = cal(A)[|a_1|] lt cal(A)[|a_2|]
+                sigma[x |-> a](x) & = eval(A, a)sigma \
+                sigma[p |=> s](p) & = s \
+        eval(B, tt("not") b)sigma & = not eval(B, b)sigma \
+      eval(A, a_1 ast.o a_2)sigma & = eval(A, a_1)sigma ast eval(A, a_2)sigma \
+  eval(B, b_1 compose.o b_2)sigma & = eval(B, b_1)sigma compose eval(B, b_2)sigma, compose.o != tt("not") \
+       eval(B, a_1 lt.o a_2)sigma & = eval(A, a_1)sigma lt eval(A, a_2)sigma
 $
 
 #pagebreak()
