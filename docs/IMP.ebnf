@@ -31,7 +31,7 @@ Stm
     | 'while' Bexp 'do' Stm 'end'                                                   (* pre-exec conditional iteration *)
     | 'print' Aexp                                                                  (* print arithmetic expression *)
     | 'read' Var                                                                    (* read input into variable *)
-    | 'let' Ident ':=' Aexp 'in' Stm 'end'                                           (* local variable definition *)
+    | 'let' Ident ':=' Aexp 'in' Stm 'end'                                          (* local variable definition *)
     | Stm 'par' Stm                                                                 (* parallelization *)
     | Stm '[]' Stm                                                                  (* non-determinism *)
     | 'procedure' Ident '(' Params ';' Rets ')' 'begin' Stm 'end'                   (* procedure definition *)
