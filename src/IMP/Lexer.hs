@@ -39,6 +39,7 @@ keywords =
     , "procedure"
     , "begin"
     , "break"
+    , "until"
     , "for"
     , "to"
     , "repeat"
