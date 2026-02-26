@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [5.0.0] - 2026-02-25
+
+- Complete web support with WASM build and `xterm.js` integration
+  - Map example files into WASI FS for the web REPL
+  - Add automatic theme support for web REPL
+- Reorganize project structure (move `exe` to `src`)
+- Correct semantics modules' names (`Operational` to `Structural`, `Structural` to `Natural`)
+- Change syntax: `var` to `let`, `repeat ... until` to `do ... while`, `do ... times` to `repeat ... times`, and `match ... on` to `match ... with`
+- Refactor REPL structure: create `REPL.State` and `REPL.Web` modules
+- Update workflows to use GHC 9.12.2 and add ARM64 Windows and aarch64-linux build support
+- Add whitepaper
+
+---
+
 ## [4.0.0] - 2026-01-13
 
 - Change argument order in `evaluate` to `a -> State -> b` to align with theoretical counterpart
@@ -71,13 +85,13 @@ All notable changes to this project will be documented in this file.
 
 - Support for division and modulo operations.
 - Language extensions:
-    - `match` statement.
-    - `havoc` statement.
-    - `assert` statement.
-    - `flip` statement.
-    - `raise` statement.
-    - `try` statement.
-    - `swap` statement.
+  - `match` statement.
+  - `havoc` statement.
+  - `assert` statement.
+  - `flip` statement.
+  - `raise` statement.
+  - `try` statement.
+  - `swap` statement.
 - Replace `||` with `[]` for non-determinism.
 - Improved REPL and CLI.
 - Enhanced pretty printing.
