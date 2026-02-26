@@ -108,14 +108,14 @@ instance Parses Command where
             , Version <$ command "version"
             , Set <$> (set <|> unset)
             , Reset <$ command "reset" <*> parses
-            , try $ Show <$ command "show" <*> parses
+            , Show <$ command "show" <*> parses
             , Load <$ command "load" <*> filepath
             , Write <$ command "write" <*> filepath
             , AST <$ command "ast" <*> parses
             ]
         where
             command cmd = try (symbol cmd) <|> symbol [head cmd] -- INFO: case of empty string not possible
-            set = symbol "set" *> parses
+            set = try (symbol "set") *> parses
             unset =
                 symbol "unset"
                     *> choice

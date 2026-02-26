@@ -28,8 +28,8 @@ import IMP.Parser
 import IMP.State
 import IMP.Statement
 import IMP.Syntax
-import REPL.Execute
-import REPL.Util hiding (help)
+import REPL.Execute.Native
+import REPL.State hiding (help)
 
 import qualified Paths_impli as Paths
 

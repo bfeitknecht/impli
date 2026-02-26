@@ -1,8 +1,10 @@
-{-# LANGUAGE ConstrainedClassMethods #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeApplications #-}
+{-# OPTIONS_GHC -Wno-orphans #-}
 
 {- |
-Module      : REPL.Execute
+Module      : REPL.Execute.Native
 Description : Read-Evaluate-Print-Loop for the IMP language interpreter
 Copyright   : (c) Basil Feitknecht, 2025
 License     : MIT
@@ -16,12 +18,14 @@ with 'IMP.Expression.evaluate' or 'IMP.Statement.execute'.
 Supports various metacommands, such as inspection of interpreter state, interpret source file,
 print AST of IMP language construct and save execution history to disk.
 -}
-module REPL.Execute where
+module REPL.Execute.Native where
 
 import Control.Monad.Except
 import Control.Monad.State hiding (State, state)
 import System.Console.Haskeline hiding (display)
 import System.Exit (exitFailure)
+
+import qualified System.Console.ANSI as ANSI
 
 import IMP.Exception
 import IMP.Expression
@@ -31,7 +35,10 @@ import IMP.Statement
 import IMP.Syntax
 import REPL.Meta
 import REPL.Preset
-import REPL.Util
+import REPL.State
+
+-- | Type alias for haskeline-based IO.
+type IO' = InputT IO
 
 -- | Encapsulation of REPL customization.
 data Setup = Setup
@@ -55,7 +62,7 @@ repl (Setup s p) store = do
         >>= either (\e -> print e >> exitFailure) (\_ -> putStrLn goodbye)
 
 -- | REPL loop that processes input and maintains interpreter state.
-loop :: REPL ()
+loop :: REPL IO' ()
 loop = handleInterrupt loop $ do
     prompt' <- gets _prompt
     separator' <- gets _separator
@@ -66,26 +73,17 @@ loop = handleInterrupt loop $ do
         Just (':' : meta) ->
             either
                 (const . errata $ unlines ["unrecognized meta command: :" ++ meta, hint])
-                (dispatch @Command)
+                (dispatch @IO' @Command)
                 (parser "meta" meta)
         Just input ->
             either
                 (\e -> throwError . ParseFail $ unlines [input, show e])
-                (\c -> dispatch @Construct c >> loop)
+                (\c -> dispatch @IO' @Construct c >> loop)
                 (parser "interactive" input)
-        `catchError` \e -> case e of
-            Empty -> return () -- ctrl-d during read, flush line and exit cleanly
-            AssertFail _ -> throwError e -- irrecoverable, propagate
-            Raised _ -> throwError e -- ''
-            _ -> display e >> loop -- mistakes happen
+        `catchError` dispatch @IO' @Exception
 
--- | Typeclass to dispatch 'IMP.Syntax.Construct' or 'IMP.Meta.Command'.
-class Dispatches a where
-    -- | Dispatch execution.
-    dispatch :: (Parses a) => a -> REPL ()
-
--- | Dispatcher for 'IMP.Syntax.Construct'.
-instance Dispatches Construct where
+-- | Dispatcher for 'IMP.Syntax.Construct' with haskeline backend.
+instance Dispatches IO' Construct where
     dispatch construct = do
         trace <- gets _trace
         state <- gets _state
@@ -97,8 +95,8 @@ instance Dispatches Construct where
             Boolean bexp -> outputln (if evaluate bexp state then "true" else "false")
             Whitespace -> return ()
 
--- | Dispatcher for 'IMP.Meta.Command'.
-instance Dispatches Command where
+-- | Dispatcher for 'IMP.Meta.Command' with haskeline backend.
+instance Dispatches IO' Command where
     dispatch Quit = return ()
     dispatch command =
         case command of
@@ -112,3 +110,15 @@ instance Dispatches Command where
             AST element -> ast element
             Set option -> set option
             >> loop
+
+-- | Dispatcher for 'IMP.Exception.Exception' with haskeline backend.
+instance Dispatches IO' Exception where
+    dispatch e = case e of
+        Empty -> return () -- ctrl-d during read, flush line and exit cleanly
+        AssertFail _ -> throwError e -- irrecoverable, propagate
+        Raised _ -> throwError e -- ''
+        _ -> display e >> loop -- mistakes happen
+
+-- | Clear the terminal (haskeline-specific).
+clear :: REPL IO' ()
+clear = liftIO (ANSI.clearScreen >> ANSI.setCursorPosition 0 0)

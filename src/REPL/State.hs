@@ -1,24 +1,30 @@
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE RankNTypes #-}
+
 {- |
-Module      : REPL.Util
-Description : Utility for 'REPL.*' and 'Web'
+Module      : REPL.State
+Description : Shared state and REPL monad for all REPL implementations
 Copyright   : (c) Basil Feitknecht, 2025
 License     : MIT
 Maintainer  : bfeitknecht@ethz.ch
 Stability   : stable
 Portability : portable
 
-Provides shared utility for the REPL modules and 'Web'.
+Provides shared state, polymorphic REPL monad, and utility functions for REPL modules.
+Similar to IMP.State, this module contains all the core REPL functionality.
+The REPL monad is polymorphic in its base monad to support both haskeline (InputT IO)
+and pure IO backends.
 -}
-module REPL.Util where
+module REPL.State where
 
 import Control.Monad.Except
 import Control.Monad.State hiding (State, state)
 import Data.Version (showVersion)
-import System.Console.Haskeline hiding (display)
 
 import qualified Data.Map as Map
 import qualified Paths_impli as Paths
-import qualified System.Console.ANSI as ANSI
 
 import IMP.Exception
 import IMP.Parser
@@ -29,14 +35,7 @@ import IMP.Syntax
 import REPL.Meta
 import REPL.Preset
 
--- | Encapsulation of computation in 'REPL.repl'.
-type REPL = StateT Store (ExceptT Exception (InputT IO))
-
--- | Lift computation from 'IMP.State.IMP' into 'REPL'.
-liftIMP :: IMP a -> REPL a
-liftIMP m = (lift . liftIO . runExceptT) m >>= either throwError return
-
--- | Encapsulation of state in 'REPL'.
+-- | Encapsulation of state in REPL.
 data Store = Store
     { _state :: State
     , _trace :: [Stm]
@@ -48,7 +47,7 @@ data Store = Store
     , _verbose :: Level
     }
 
--- | Starting data store for 'REPL.repl'.
+-- | Starting data store for REPL.
 start :: Store
 start =
     Store
@@ -62,8 +61,17 @@ start =
         , _verbose = verbosity
         }
 
+-- | Polymorphic REPL monad.
+-- The base monad 'm' can be 'InputT IO' for haskeline-based REPL
+-- or just 'IO' for simple IO-based REPL.
+type REPL m = StateT Store (ExceptT Exception m)
+
+-- | Lift computation from 'IMP.State.IMP' into 'REPL'.
+liftIMP :: (MonadIO m) => IMP a -> REPL m a
+liftIMP m = (lift . liftIO . runExceptT) m >>= either throwError return
+
 -- | Reset 'IMP.Meta.Aspect'.
-reset :: Aspect -> REPL ()
+reset :: (MonadIO m) => Aspect -> REPL m ()
 reset aspect = do
     state <- gets _state
     case aspect of
@@ -74,7 +82,7 @@ reset aspect = do
         Trace -> modify (\st -> st {_trace = []}) >> inform "trace reset"
 
 -- | Show 'IMP.Meta.Aspect'.
-shower :: Aspect -> REPL ()
+shower :: (MonadIO m) => Aspect -> REPL m ()
 shower aspect = do
     (vars, procs, flag) <- gets _state
     trace <- gets _trace
@@ -86,7 +94,7 @@ shower aspect = do
                 -- INFO: invariant of IMP.State.setVar guarantees no empty string key
                 [k ++ " = " ++ show v | (k, v) <- Map.toList vars, head k /= '_']
         Procs -> explain "Procedures:" [prettify p | p <- procs]
-        Flag -> outputln $ "Break: " ++ show flag ++ "\n"
+        Flag -> outputln $ "Break: " ++ if flag then "true" else "false" ++ "\n"
         Trace ->
             explain
                 "Trace:"
@@ -98,7 +106,7 @@ shower aspect = do
                 ]
 
 -- | Interpret IMP language source file, return updated state.
-loadIMP :: FilePath -> REPL ()
+loadIMP :: (MonadIO m) => FilePath -> REPL m ()
 loadIMP path = do
     content <-
         liftIO (readFile path)
@@ -110,10 +118,12 @@ loadIMP path = do
             trace <- gets _trace
             state' <- liftIMP $ execute (stm, state)
             modify $ \st -> st {_state = state', _trace = stm : trace}
-    throwError . Info $ "interpreted: " ++ path
+    inform $ "interpreted: " ++ path
+
+-- throwError . Info $ "interpreted: " ++ path
 
 -- | Write trace to specified file.
-writeIMP :: FilePath -> REPL ()
+writeIMP :: (MonadIO m) => FilePath -> REPL m ()
 writeIMP path = do
     content <- gets (prettytrace . _trace)
     _ <-
@@ -121,19 +131,19 @@ writeIMP path = do
             `catchError` \e ->
                 throwError . IOFail $
                     unlines ["write trace to: " ++ path, show e]
-    throwError . Info $ "wrote trace to: " ++ path
+    inform $ "wrote trace to: " ++ path
 
 -- | Show abstract syntax tree of 'IMP.Meta.Element'.
-ast :: Element -> REPL ()
+ast :: (MonadIO m) => Element -> REPL m ()
 ast (Input construct) = display construct
 ast (Index n) = do
     trace <- gets _trace
     if n <= 0 || n > length trace
         then errata $ "index out of bounds: " ++ show n
-        else display (trace !! (length trace - n)) -- INFO: condition guarantees index in bounds
+        else display (trace !! (length trace - n))
 
 -- | Set 'IMP.Meta.Option'.
-set :: Option -> REPL ()
+set :: (Monad m) => Option -> REPL m ()
 set option = case option of
     Welcome w -> modify $ \st -> st {_welcome = w}
     Prompt p -> modify $ \st -> st {_prompt = p}
@@ -147,23 +157,19 @@ set option = case option of
                 Debug -> debugsep
 
 -- | Nicely format 'outputln' with heading and indented body.
-explain :: String -> [String] -> REPL ()
+explain :: (MonadIO m) => String -> [String] -> REPL m ()
 explain heading [] = outputln heading
 explain heading body = outputln $ heading ++ '\n' : indent 4 (unlines body)
 
 -- | Explain the metacommands.
-help :: REPL ()
+help :: (MonadIO m) => REPL m ()
 help =
     explain
         "All metacommands besides :(un)set can be abbreviated by their first letter"
         helpMessage
 
--- | Clear the terminal.
-clear :: REPL ()
-clear = liftIO (ANSI.clearScreen >> ANSI.setCursorPosition 0 0)
-
 -- | Output the version.
-version :: REPL ()
+version :: (MonadIO m) => REPL m ()
 version = outputln $ unwords ["impli", showVersion Paths.version]
 
 -- | Indent every line by @n@ space characters.
@@ -173,3 +179,9 @@ indent n = unlines . map (space n ++) . lines
 -- | 'String' of @n@ space characters.
 space :: Int -> String
 space n = replicate n ' '
+
+-- | Typeclass to dispatch 'IMP.Syntax.Construct', 'IMP.Meta.Command', or 'IMP.Exception.Exception'.
+-- Polymorphic in the base monad 'm' to support both haskeline and pure IO.
+class Dispatches m a where
+    -- | Dispatch execution.
+    dispatch :: (MonadIO m) => a -> REPL m ()

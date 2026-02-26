@@ -77,7 +77,7 @@ instance Pretty Stm where
         Read x -> pretty "read" <+> pretty x
         Local x a s ->
             vsep
-                [ pretty "var" <+> pretty x <+> pretty ":=" <+> pretty a <+> pretty "in"
+                [ pretty "let" <+> pretty x <+> pretty ":=" <+> pretty a <+> pretty "in"
                 , indent 4 (pretty s)
                 , pretty "end"
                 ]
@@ -98,7 +98,7 @@ instance Pretty Stm where
                 ]
         Match a ms d ->
             vsep
-                [ pretty "match" <+> pretty a <+> pretty "on"
+                [ pretty "match" <+> pretty a <+> pretty "with"
                 , indent 4 $
                     vsep $
                         map (\(v, s) -> pretty v <> colon <+> pretty s <> comma) ms

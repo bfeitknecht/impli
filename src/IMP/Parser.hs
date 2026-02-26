@@ -143,7 +143,7 @@ imp =
 ext :: [Parser Stm]
 ext =
     [ Local
-        <$ keyword "var"
+        <$ keyword "let"
         <*> identifier
         <* operator ":="
         <*> parses @Aexp
@@ -162,7 +162,7 @@ ext =
         <$> identifier
         <*> parens (signature (parses @Aexp) variable) -- INFO: allow placeholder in return variables
     , (\s b -> s <> While (Not b) s)
-        <$ keyword "repeat"
+        <$ keyword "do"
         <*> parses @Stm
         <* keyword "until"
         <*> parses @Bexp
@@ -177,10 +177,11 @@ ext =
         <*> parses @Stm
         <* keyword "end"
     , for "_times" (Val 0) -- INFO: unassignable counter variable prevents modification from body
-        <$ keyword "do"
+        <$ keyword "repeat"
         <*> parses @Aexp
         <* keyword "times"
         <*> parses @Stm
+        <* keyword "end"
     , Revert
         <$ keyword "revert"
         <*> parses @Stm

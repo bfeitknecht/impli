@@ -2,6 +2,10 @@
 .devlog
 dist-newstyle
 cabal.project.local
+hie.yaml
 
-web/static/impli.js
-web/static/module.mjs
+web/static/*
+!web/static/index.html
+!web/static/styles.css
+!web/static/favicon.ico
+!web/static/CommitMono*.woff2

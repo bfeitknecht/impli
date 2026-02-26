@@ -1,0 +1,131 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE JavaScriptFFI #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeApplications #-}
+{-# OPTIONS_GHC -Wno-orphans #-}
+
+{- |
+Module      : REPL.Execute.Browser
+Description : Browser-based REPL execution backend
+Copyright   : (c) Basil Feitknecht, 2025
+License     : MIT
+Maintainer  : bfeitknecht@ethz.ch
+Stability   : stable
+Portability : WASM/JavaScript
+
+Browser-based execution backend for the IMP language REPL.
+Implements 'Dispatches' instances for 'IO' monad to handle REPL commands,
+constructs, and exceptions in the browser environment via JavaScript FFI.
+Manages global REPL state through an 'IORef' for interop with JavaScript.
+-}
+module REPL.Execute.Browser where
+
+import Control.Monad.Except
+import Control.Monad.State hiding (State, state)
+import Data.IORef
+import GHC.Wasm.Prim
+
+import qualified System.Exit as Exit
+
+import IMP.Exception
+import IMP.Expression
+import IMP.Parser
+import IMP.Pretty
+import IMP.State
+import IMP.Statement
+import IMP.Syntax
+import REPL.Meta
+import REPL.Preset
+import REPL.State hiding (writeIMP)
+
+-- | Clear terminal screen and write welcome message
+foreign import javascript unsafe "globalThis.impli.writeWelcome()" js_writeWelcome :: IO ()
+
+-- | Write IMP trace to plaintext blob in new browser tab
+foreign import javascript unsafe "globalThis.impli.writeTrace($1, $2)" js_writeIMP :: JSString -> JSString -> IO ()
+
+-- | Run the REPL with the given initial store
+repl :: Store -> IO ()
+repl store = do
+    js_writeWelcome
+    result <- runExceptT (execStateT loop store)
+    case result of
+        Left e -> print e >> Exit.exitFailure
+        Right _ -> do
+            putStrLn goodbye
+            repl start -- escape is impossible -- TODO: Easter egg?
+
+-- | Main REPL loop using basic IO
+loop :: REPL IO ()
+loop = do
+    prompt' <- gets _prompt
+    separator' <- gets _separator
+    action <- liftIO $ readIORef inputter
+    line <- liftIO $ action (prompt' ++ separator' : " ")
+    case line of
+        "" -> loop
+        ":)" -> outputln "You look good today!" >> loop
+        (':' : meta) ->
+            either
+                (const . errata $ unlines ["unrecognized meta command: :" ++ meta, hint])
+                (dispatch @IO @Command)
+                (parser "meta" meta)
+        input ->
+            either
+                (\e -> throwError . ParseFail $ unlines [input, show e])
+                (\c -> dispatch @IO @Construct c >> loop)
+                (parser "interactive" input)
+        `catchError` dispatch @IO @Exception
+
+-- | Dispatcher for 'IMP.Syntax.Construct' with IO backend.
+instance Dispatches IO Construct where
+    dispatch construct = do
+        trace <- gets _trace
+        state <- gets _state
+        case construct of
+            Statement stm -> do
+                state' <- liftIMP $ execute (stm, state)
+                modify $ \st -> st {_state = state', _trace = stm : trace}
+            Arithmetic aexp ->
+                display $ evaluate aexp state
+            Boolean bexp ->
+                outputln $ if evaluate bexp state then "true" else "false"
+            Whitespace -> return ()
+
+-- | Dispatcher for 'IMP.Meta.Command' with IO backend.
+instance Dispatches IO Command where
+    dispatch Quit = return ()
+    dispatch command =
+        case command of
+            Help -> help
+            Clear -> clear
+            Version -> version
+            Reset aspect -> reset aspect
+            Show aspect -> shower aspect
+            Load path -> loadIMP path
+            Write path -> writeIMP path
+            AST element -> ast element
+            Set option -> set option
+            >> loop
+
+-- | Dispatcher for 'IMP.Exception.Exception' with IO backend.
+instance Dispatches IO Exception where
+    dispatch e = case e of
+        Empty -> return () -- EOF, exit cleanly
+        AssertFail _ -> throwError e -- irrecoverable, propagate
+        Raised _ -> throwError e -- ''
+        _ -> display e >> loop -- recoverable errors
+
+-- | Clear the terminal and display welcome message.
+clear :: REPL IO ()
+clear = liftIO js_writeWelcome
+
+-- | Write trace to new browser tab as plaintext blob.
+writeIMP :: String -> REPL IO ()
+writeIMP path = do
+    content <- gets (prettytrace . _trace)
+    let
+        js_path = toJSString path
+        js_content = toJSString content
+    liftIO $ js_writeIMP js_path js_content
+    inform $ "wrote trace to new tab"

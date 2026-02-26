@@ -1,3 +1,9 @@
+[![Release Binaries](https://github.com/bfeitknecht/impli/actions/workflows/release.yaml/badge.svg)](https://github.com/bfeitknecht/impli/actions/workflows/release.yaml)
+[![Deploy GitHub Pages](https://github.com/bfeitknecht/impli/actions/workflows/deploy.yaml/badge.svg)](https://github.com/bfeitknecht/impli/actions/workflows/deploy.yaml)
+[![Test Specifications](https://github.com/bfeitknecht/impli/actions/workflows/test.yaml/badge.svg)](https://github.com/bfeitknecht/impli/actions/workflows/test.yaml)
+[![Test Formatting](https://github.com/bfeitknecht/impli/actions/workflows/format.yaml/badge.svg)](https://github.com/bfeitknecht/impli/actions/workflows/format.yaml)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/bfeitknecht/impli)
+
 # `impli`
 
 This is an interpreter for the imperative toy language `IMP` from the course _Formal Methods and Functional Programming_ at ETHZ. It is published under the MIT license.
@@ -23,32 +29,22 @@ xattr -d com.apple.quarantine impli-*
 
 ## Specification
 
-The most apparent deviations from the specifications are that parentheses are not required for arithmetic and boolean operations in expressions and sequential composition in statements. Additionally, the write-only placeholder variable `_` allows discarding of values. It can only be used on the lefthandside of variable definitions.
+The most apparent deviations from the specifications are that parentheses are not required for arithmetic and boolean operations in expressions and sequential composition in statements. Additionally, the write-only placeholder variable `_` allows discarding of values. It can only be used on the lefthandside of variable definitions. For complete specification of the syntax refer to the [EBNF](docs/IMP.ebnf).
 
-The table below depicts the correspondence between semantics functions defined in the lectures and according functions in this library for `state` $\equiv \sigma$.
+The table below depicts the correspondence between semantics functions defined in the lectures and according functions in this library for `state` $\equiv \sigma$. For an overview of semantic inference rules, check out the [whitepaper](docs/paper/IMP.pdf).
 
-| FMFP                                                              | `impli`                                        |
-| ----------------------------------------------------------------- | ---------------------------------------------- |
-| $\sigma_{\text{zero}}$                                            | `IMP.State.initial`                            |
-| $\sigma(x)$                                                       | `IMP.State.getVar state x`                     |
-| $\sigma[x \mapsto n]$                                             | `IMP.State.setVar state x n`                   |
-| $\langle s, \sigma \rangle \to \sigma'$                           | `IMP.Semantics.Structural.run (s, state)`      |
-| $\langle s, \sigma \rangle \underset{1}{\to} \gamma$              | `IMP.Semantics.Operational.step (s, [state])`  |
-| $\langle s, \sigma \rangle \overset{*}{\underset{1}{\to}} \gamma$ | `IMP.Semantics.Operational.steps (s, [state])` |
-| $\mathcal{N}[[n]]$                                                | `id n`                                         |
-| $\mathcal{A}[[a]]\sigma$                                          | `IMP.Expression.evaluate a state`              |
-| $\mathcal{B}[[b]]\sigma$                                          | `IMP.Expression.evaluate b state`              |
+| FMFP                                                              | `impli`                                       |
+| ----------------------------------------------------------------- | --------------------------------------------- |
+| $\sigma_{\text{zero}}$                                            | `IMP.State.initial`                           |
+| $\sigma(x)$                                                       | `IMP.State.getVar state x`                    |
+| $\sigma[x \mapsto n]$                                             | `IMP.State.setVar state x n`                  |
+| $\langle s, \sigma \rangle \to \sigma'$                           | `IMP.Semantics.Natural.run (s, state)`        |
+| $\langle s, \sigma \rangle \underset{1}{\to} \gamma$              | `IMP.Semantics.Structural.step (s, [state])`  |
+| $\langle s, \sigma \rangle \overset{*}{\underset{1}{\to}} \gamma$ | `IMP.Semantics.Structural.steps (s, [state])` |
+| $\mathcal{N}[[n]]$                                                | `n`                                           |
+| $\mathcal{A}[[a]]\sigma$                                          | `IMP.Expression.evaluate a state`             |
+| $\mathcal{B}[[b]]\sigma$                                          | `IMP.Expression.evaluate b state`             |
 
-## Roadmap
+## Star History
 
-There are some crucial points for further improvement.
-
-- Add web-support (probably via compilation to WASM)
-- Improve the REPL
-    - Support tab-autocompletion
-    - Handle multi-line input
-- Ability to load source modules for interpretation
-- Package binary and distribute (Homebrew, APT, Nixpkgs, Hackage ...)
-- Improve documentation with examples
-- Write standard library
-- Extend test suite
+[![Star History Chart](https://api.star-history.com/svg?repos=bfeitknecht/impli&type=date&legend=top-left)](https://www.star-history.com/#bfeitknecht/impli&type=date&legend=top-left)

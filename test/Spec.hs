@@ -50,7 +50,7 @@ parseTests =
           assertParseStm "while true do skip end" (While (Lit True) Skip)
         , assertParseStm "print 1" (Print (Val 1))
         , assertParseStm "read x" (Read "x")
-        , assertParseStm "var x := 1 in skip end" (Local "x" (Val 1) Skip)
+        , assertParseStm "let x := 1 in skip end" (Local "x" (Val 1) Skip)
         , assertParseStm
             "x := 1 par y := 2"
             (Par (VarDef "x" Def (Val 1)) (VarDef "y" Def (Val 2)))
@@ -67,13 +67,13 @@ parseTests =
             "procedure foo(;) begin skip end; foo(;)"
             (Seq (ProcDef $ Procedure "foo" ([], []) Skip) (ProcInvoc "foo" ([], [])))
         , assertParseStm
-            "repeat x := 1 until true"
-            (Seq (VarDef "x" Def (Val 1)) (While (Not (Lit True)) (VarDef "x" Def (Val 1))))
+            "do x := 1 until false"
+            (Seq (VarDef "x" Def (Val 1)) (While (Not (Lit False)) (VarDef "x" Def (Val 1))))
         , assertParseStm
             "for i := 0 to 3 do skip end"
             (Local "i" (Val 0) (While (Rel Lt (Var "i") (Val 3)) (Seq Skip (VarDef "i" Inc (Val 1)))))
         , assertParseStm
-            "do 4 times skip"
+            "repeat 4 times skip end"
             (Local "_times" (Val 0) (While (Rel Lt (Var "_times") (Val 4)) (Seq Skip (VarDef "_times" Inc (Val 1)))))
         , assertParseStm
             "revert x := 1 if true"
