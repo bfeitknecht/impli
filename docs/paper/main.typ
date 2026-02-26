@@ -23,7 +23,7 @@ $
               b, ... & in bs("Bexp") \
         x, y, z, ... & in bs("Var") \
               v, ... & in bs("Val") = ZZ \
-           n, i, ... & in bs("Numeral") \
+              n, ... & in bs("Numeral") \
               s, ... & in bs("Stm") \
   sigma, sigma', ... & in bs("State") = bs("Var") -> bs("Val") \
               P, ... & in bs("Procedure") = bs("Var")^* times bs("Var")^* times bs("Stm") \

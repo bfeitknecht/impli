@@ -156,15 +156,15 @@
 )
 
 #let Flip = rule(
-  name: [=== Flip #footnote[$eval(A, |tt("_flip_")i)sigma = "0"$]],
+  name: [=== Flip #footnote[$eval(A, |tt("_flip_")n)sigma = "0"$]],
   $conf(s_1, sigma) -> sigma_1$,
-  $conf(tt("flip(")i#tt(")") s_1 tt("flop") s_2 tt("end"), sigma) -> sigma_1[tt("_flip_")i |->1]$,
+  $conf(tt("flip(")n#tt(")") s_1 tt("flop") s_2 tt("end"), sigma) -> sigma_1[tt("_flip_")n |->1]$,
 )
 
 #let Flop = rule(
-  name: [=== Flop #footnote[$eval(A, tt("_flip_")i)sigma = "1"$]],
+  name: [=== Flop #footnote[$eval(A, tt("_flip_")n)sigma = "1"$]],
   $conf(s_2, sigma) -> sigma_2$,
-  $conf(tt("flip(")i#tt(")") s_1 tt("flop") s_2 tt("end"), sigma) -> sigma_2[#tt("_flip_")i |-> 0]$,
+  $conf(tt("flip(")n#tt(")") s_1 tt("flop") s_2 tt("end"), sigma) -> sigma_2[#tt("_flip_")n |-> 0]$,
 )
 
 #let Case = rule(
@@ -234,7 +234,7 @@ There's more than one way to loop. Note that #tt("_times") is only internally ac
   Repeat,
 )
 
-The #tt("flip") construct alternates execution between branches, where $tt("_flip_")i$ is only used internally. Zero or more cases and one default can be matched with.
+The #tt("flip") construct alternates execution between branches, where $tt("_flip_")n$ is only used internally. Zero or more cases and one default can be matched with.
 #layout(
   Flip,
   Flop,
