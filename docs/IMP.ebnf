@@ -1,56 +1,56 @@
-Letter = 'a' | 'b' | 'c' | 'd' | 'e' | 'f' | 'g' | 'h' | 'i' | 'j' | 'k' | 'l' | 'm' | 'n' | 'o' | 'p' | 'q' | 'r' | 's' | 't' | 'u' | 'v' | 'w' | 'x' | 'y' | 'z' | 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L' | 'M' | 'N' | 'O' | 'P' | 'Q' | 'R' | 'S' | 'T' | 'U' | 'V' | 'W' | 'X' | 'Y' | 'Z'
-Digit = '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9'
-Ident = Letter { Letter | Digit }                                                   (* alphanumeric identifier *)
-Var = Ident | '_'                                                                   (* variable or placeholder *)
-Val = [ '-' ] Digit { Digit }                                                       (* unbounded integer value *)
-Bool = 'true' | 'false'                                                             (* boolean value *)
+Letter ::= 'a' | 'b' | 'c' | 'd' | 'e' | 'f' | 'g' | 'h' | 'i' | 'j' | 'k' | 'l' | 'm' | 'n' | 'o' | 'p' | 'q' | 'r' | 's' | 't' | 'u' | 'v' | 'w' | 'x' | 'y' | 'z' | 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L' | 'M' | 'N' | 'O' | 'P' | 'Q' | 'R' | 'S' | 'T' | 'U' | 'V' | 'W' | 'X' | 'Y' | 'Z'
+Digit ::= '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9'
+Ident ::= Letter ( Letter | Digit )*                                                /* alphanumeric identifier */
+Var ::= Ident | '_'                                                                 /* variable or placeholder */
+Numeral ::= '-'? Digit+                                                             /* unbounded integer Numeralue */
+Bool ::= 'true' | 'false'                                                           /* boolean Numeralue */
 
-Aop = '+' | '-' | '*' | '/' | '%'                                                   (* arithmetic operation *)
-Aexp = Aterm { Aop Aterm }                                                          (* arithmetic expression *)
+Aop ::= '+' | '-' | '*' | '/' | '%'                                                 /* arithmetic operation */
+Aexp ::= Aterm ( Aop Aterm )*                                                       /* arithmetic expression */
 Aterm
-    = Ident                                                                         (* variable *)
-    | Val                                                                           (* value *)
-    | 'time' Stm                                                                    (* time statement *)
-    | '(' Aexp ')'                                                                  (* parenthesized expression *)
+    ::= Ident                                                                       /* variable */
+    | Numeral                                                                       /* Numeralue */
+    | 'time' Stm                                                                    /* time statement */
+    | '(' Aexp ')'                                                                  /* parenthesized expression */
 
-Rop = '=' | '#' | '<' | '<=' | '>' | '>='                                           (* relation operation *)
-Bop = 'and' | 'or'                                                                  (* boolean operation *)
-Bexp = Bterm { Bop Bterm }                                                          (* boolean expression *)
+Rop ::= '=' | '#' | '<' | '<=' | '>' | '>='                                         /* relation operation */
+Bop ::= 'and' | 'or'                                                                /* boolean operation */
+Bexp ::= Bterm ( Bop Bterm )*                                                       /* boolean expression */
 Bterm
-    = Bool                                                                          (* literal *)
-    | 'not' Bexp                                                                    (* negation *)
-    | Aexp Rop Aexp                                                                 (* relation *)
-    | '(' Bexp ')'                                                                  (* parenthesized expression *)
+    ::= Bool                                                                        /* literal */
+    | 'not' Bexp                                                                    /* negation */
+    | Aexp Rop Aexp                                                                 /* relation */
+    | '(' Bexp ')'                                                                  /* parenthesized expression */
 
-Dop = ':=' | '+=' | '-=' | '*=' | '/=' | '%='                                       (* definition operator *)
+Dop ::= ':=' | '+=' | '-=' | '*=' | '/=' | '%='                                     /* definition operator */
 Stm
-    = 'skip'                                                                        (* no-op *)
-    | Var Dop Aexp                                                                  (* variable definition *)
-    | Stm ';' Stm                                                                   (* sequence *)
-    | 'if' Bexp 'then' Stm 'else' Stm 'end'                                         (* conditional *)
-    | 'while' Bexp 'do' Stm 'end'                                                   (* pre-exec conditional iteration *)
-    | 'print' Aexp                                                                  (* print arithmetic expression *)
-    | 'read' Var                                                                    (* read input into variable *)
-    | 'let' Ident ':=' Aexp 'in' Stm 'end'                                          (* local variable definition *)
-    | Stm 'par' Stm                                                                 (* parallelization *)
-    | Stm '[]' Stm                                                                  (* non-determinism *)
-    | 'procedure' Ident '(' Params ';' Rets ')' 'begin' Stm 'end'                   (* procedure definition *)
-    | Ident '(' Args ';' Rets ')'                                                   (* procedure invocation *)
-    | 'do' Stm 'while' Bexp                                                         (* post-exec conditional iteration *)
-    | 'for' Ident ':=' Aexp 'to' Aexp 'do' Stm 'end'                                (* incremental iteration *)
-    | 'repeat' Aexp 'times' Stm 'end'                                               (* arithmetic iteration *)
-    | 'revert' Stm 'if' Bexp                                                        (* conditional revert *)
-    | 'break'                                                                       (* break flag *)
-    | 'match' Aexp 'with' { Val ':' Stm ',' } 'default:' Stm                        (* pattern match *)
-    | 'havoc' Var                                                                   (* random variable definition *)
-    | 'assert' Bexp                                                                 (* assertion *)
-    | 'flip' '(' Val ')' Stm 'flop' Stm 'end'                                       (* alternating branching *)
-    | 'raise' Aexp                                                                  (* raise exception *)
-    | 'try' Stm 'catch' Ident 'with' Stm 'end'                                      (* exception handling *)
-    | 'swap' Ident Ident                                                            (* swap assign two variables *)
-    | Stm 'alternate' Stm                                                           (* alternating parallelization *)
-    | '(' Stm ')'                                                                   (* parenthesized statement *)
+    ::= 'skip'                                                                      /* no-op */
+    | Var Dop Aexp                                                                  /* variable definition */
+    | Stm ';' Stm                                                                   /* sequence */
+    | 'if' Bexp 'then' Stm 'else' Stm 'end'                                         /* conditional */
+    | 'while' Bexp 'do' Stm 'end'                                                   /* pre-exec conditional iteration */
+    | 'print' Aexp                                                                  /* print arithmetic expression */
+    | 'read' Var                                                                    /* read input into variable */
+    | 'let' Ident ':=' Aexp 'in' Stm 'end'                                          /* local variable definition */
+    | Stm 'par' Stm                                                                 /* parallelization */
+    | Stm '[]' Stm                                                                  /* non-determinism */
+    | 'procedure' Ident '(' Params ';' Rets ')' 'begin' Stm 'end'                   /* procedure definition */
+    | Ident '(' Args ';' Rets ')'                                                   /* procedure invocation */
+    | 'do' Stm 'while' Bexp                                                         /* post-exec conditional iteration */
+    | 'for' Ident ':=' Aexp 'to' Aexp 'do' Stm 'end'                                /* incremental iteration */
+    | 'repeat' Aexp 'times' Stm 'end'                                               /* arithmetic iteration */
+    | 'revert' Stm 'if' Bexp                                                        /* conditional revert */
+    | 'break'                                                                       /* break flag */
+    | 'match' Aexp 'with' ( Numeral ':' Stm ',' )* 'default:' Stm                   /* pattern match */
+    | 'havoc' Var                                                                   /* random variable definition */
+    | 'assert' Bexp                                                                 /* assertion */
+    | 'flip' '(' Numeral ')' Stm 'flop' Stm 'end'                                   /* alternating branching */
+    | 'raise' Aexp                                                                  /* raise exception */
+    | 'try' Stm 'catch' Ident 'with' Stm 'end'                                      /* exception handling */
+    | 'swap' Ident Ident                                                            /* swap assign two variables */
+    | Stm 'alternate' Stm                                                           /* alternating parallelization */
+    | '(' Stm ')'                                                                   /* parenthesized statement */
 
-Args = [ Aexp { ',' Aexp } ]                                                        (* zero or more comma separated Aexp *)
-Params = [ Ident { ',' Ident } ]                                                    (* '' .. Ident *)
-Rets = [ Var { ',' Var } ]                                                          (* '' .. Var *)
+Args ::= ( Aexp ( ',' Aexp )* )?                                                    /* zero or more comma separated Aexp */
+Params ::= ( Ident ( ',' Ident )* )?                                                /* '' .. Ident */
+Rets ::= ( Var ( ',' Var )* )?                                                      /* '' .. Var */
