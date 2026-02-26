@@ -25,6 +25,7 @@
 }
 
 #let tt(it) = raw(it)
+#let bs(it) = $bold(sans(it))$
 #let conf(stm, state) = $chevron.l stm, state chevron.r$
 #let seq(s1, s2) = $s1#tt(";") s2$
 #let t = tt("true")

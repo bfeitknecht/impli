@@ -12,30 +12,30 @@
   description: "Operational Semantics Inference Rules for IMP",
 )
 
-#show raw: set text(font: "CommitMono Nerd Font Mono", size: 1em)
+#show raw: set text(font: "CommitMono Nerd Font Mono")
 
 
 = Semantics
 
 Let the sets below denote the domains of their respective terms on the meta level.
 $
-          a, a', ... & in sans("Aexp") \
-              b, ... & in sans("Bexp") \
-        x, y, z, ... & in sans("Var") \
-              v, ... & in sans("Val") \
-           n, i, ... & in sans("Numeral") \
-              s, ... & in sans("Stm") \
-  sigma, sigma', ... & in sans("State") \
+          a, a', ... & in bs("Aexp") \
+              b, ... & in bs("Bexp") \
+        x, y, z, ... & in bs("Var") \
+              v, ... & in bs("Val") \
+           n, i, ... & in bs("Numeral") \
+              s, ... & in bs("Stm") \
+  sigma, sigma', ... & in bs("State") \
                ast.o & in {#("+", "-", "*", "/", "%").map(tt).join(", ")} \
            compose.o & in {#("not", "and", "or").map(tt).join(", ")} \
                 eq.o & in {#(":=", "+=", "-=", "*=", "/=", "%=").map(tt).join(", ")} \
                 lt.o & in {#("=", "#", "<", "<=", ">", ">=").map(tt).join(", ")}
 $
 
-Specifically, these equalities hold, with $sans("Procedures")$ being an appropriate encapsulation.
+Specifically, these equalities hold, with $bs("Procedures")$ being an appropriate encapsulation.
 $
-  sans("Val") = sans("Numeral") & = ZZ \
-  sans("State") & = (sans("Var") -> sans("Numeral")) times sans("Procedures") times {#t, #f} union {bot} times (ZZ union {!})
+  bs("Val") = bs("Numeral") & = ZZ \
+  bs("State") & = (bs("Var") -> bs("Numeral")) times bs("Procedures") times {#t, #f} union {bot} times (ZZ union {!})
 $
 
 Furthermore, the following equivalences hold. Un-circled operators denote their respective arithmetic or boolean operations or relations.

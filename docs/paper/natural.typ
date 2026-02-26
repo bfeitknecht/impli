@@ -84,8 +84,8 @@
 
 #let Invocation = rule(
   name: [=== Invocation],
-  $conf(sigma(p), sigma harpoon([x |-> eval(A, a)sigma])) -> sigma'$,
-  $conf(proc(p, harpoon(a), harpoon(z)), sigma) -> sigma harpoon([z |-> sigma'(y)])$,
+  $conf(sigma(p), sigma harpoon([x_i |-> eval(A, a_i)sigma])) -> sigma'$,
+  $conf(proc(p, harpoon(a), harpoon(z)), sigma) -> sigma harpoon([z_j |-> sigma'(y_j)])$,
 )
 
 #let Raise = rule(
@@ -168,15 +168,15 @@
 )
 
 #let Case = rule(
-  name: [=== Case #footnote[$eval(A, a)sigma = v_i$]],
-  $conf(s_i, sigma) -> sigma'$,
-  $conf(tt("match") a tt("with") harpoon(v_j#tt(":") s_j#tt(",")) tt("default:") d, sigma) -> sigma'$,
+  name: [=== Case #footnote[$eval(A, a)sigma = v_k$]],
+  $conf(s_k, sigma) -> sigma'$,
+  $conf(tt("match") a tt("with") harpoon(v_i#tt(":") s_i#tt(",")) tt("default:") d, sigma) -> sigma'$,
 )
 
 #let Default = rule(
-  name: [=== Default #footnote[$eval(A, a)sigma in.not {v_j}_(j in [k])$]],
+  name: [=== Default #footnote[$eval(A, a)sigma in.not {v_i}_(i in [m])$]],
   $conf(d, sigma) -> sigma'$,
-  $conf(tt("match") a tt("with") harpoon(v_j#tt(":") s_j#tt(",")) tt("default:") d, sigma) -> sigma'$,
+  $conf(tt("match") a tt("with") harpoon(v_i#tt(":") s_i#tt(",")) tt("default:") d, sigma) -> sigma'$,
 )
 
 = Natural Semantics
@@ -205,7 +205,7 @@ These three rules are pretty straightforward.
   Nondeterminate,
 )
 
-Procedures require some finesse and new definition of $sans("State")$.
+Procedures require some finesse and new definition of $bs("State")$.
 #layout(
   Procedure,
   Invocation,
