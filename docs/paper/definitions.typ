@@ -41,7 +41,7 @@
       val
     }
   }
-  let sign(s1, s2) = if type(rets) == array and array.len(rets) == 0 {
+  let sign(s1, s2) = if rets == () {
     $s1#tt(";")$
   } else {
     seq(s1, s2)
