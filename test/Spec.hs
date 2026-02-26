@@ -67,8 +67,8 @@ parseTests =
             "procedure foo(;) begin skip end; foo(;)"
             (Seq (ProcDef $ Procedure "foo" ([], []) Skip) (ProcInvoc "foo" ([], [])))
         , assertParseStm
-            "do x := 1 while false"
-            (Seq (VarDef "x" Def (Val 1)) (While (Lit False) (VarDef "x" Def (Val 1))))
+            "do x := 1 until false"
+            (Seq (VarDef "x" Def (Val 1)) (While (Not (Lit False)) (VarDef "x" Def (Val 1))))
         , assertParseStm
             "for i := 0 to 3 do skip end"
             (Local "i" (Val 0) (While (Rel Lt (Var "i") (Val 3)) (Seq Skip (VarDef "i" Inc (Val 1)))))

@@ -11,7 +11,7 @@ All notable changes to this project will be documented in this file.
   - Add automatic theme support for web REPL
 - Reorganize project structure (move `exe` to `src`)
 - Correct semantics modules' names (`Operational` to `Structural`, `Structural` to `Natural`)
-- Change syntax: `var` to `let`, `repeat ... until` to `do ... while`, `do ... times` to `repeat ... times`, and `match ... on` to `match ... with`
+- Change syntax: `var` to `let`, `repeat` to `do`, `do ... times` to `repeat ... times`, and `match ... on` to `match ... with`
 - Refactor REPL structure: create `REPL.State` and `REPL.Web` modules
 - Update workflows to use GHC 9.12.2 and add ARM64 Windows and aarch64-linux build support
 - Add whitepaper

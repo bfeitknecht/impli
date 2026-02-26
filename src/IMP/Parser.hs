@@ -161,10 +161,10 @@ ext =
     , ProcInvoc
         <$> identifier
         <*> parens (signature (parses @Aexp) variable) -- INFO: allow placeholder in return variables
-    , (\s b -> s <> While b s)
+    , (\s b -> s <> While (Not b) s)
         <$ keyword "do"
         <*> parses @Stm
-        <* keyword "while"
+        <* keyword "until"
         <*> parses @Bexp
     , for
         <$ keyword "for"
