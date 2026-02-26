@@ -79,12 +79,12 @@
 
 #let Procedure = rule(
   name: [=== Procedure],
-  $conf(tt("procedure") proc(p, harpoon(x), harpoon(y)) tt("begin") s tt("end"), sigma) -> sigma[p |=> s]$,
+  $conf(tt("procedure") proc(p, harpoon(x), harpoon(y)) tt("begin") s tt("end"), sigma) -> sigma[p |=> (harpoon(x), harpoon(y), s)]$,
 )
 
 #let Invocation = rule(
-  name: [=== Invocation],
-  $conf(sigma(p), sigma harpoon([x_i |-> eval(A, a_i)sigma])) -> sigma'$,
+  name: [=== Invocation #footnote[$sigma(p) = (harpoon(x), harpoon(y), s)$ s.t. $|harpoon(x)| = |harpoon(a)|, |harpoon(y)| = |harpoon(z)|$]],
+  $conf(s, sigma harpoon([x_i |-> eval(A, a_i)sigma])) -> sigma'$,
   $conf(proc(p, harpoon(a), harpoon(z)), sigma) -> sigma harpoon([z_j |-> sigma'(y_j)])$,
 )
 
@@ -205,7 +205,7 @@ These three rules are pretty straightforward.
   Nondeterminate,
 )
 
-Procedures require some finesse and new definition of $bs("State")$.
+Procedures require some finesse and tweaking the state domain definition.
 #layout(
   Procedure,
   Invocation,
@@ -234,7 +234,7 @@ There's more than one way to loop. Note that #tt("_times") is only internally ac
   Repeat,
 )
 
-The #tt("flip") construct alternates execution between branches, where $tt("_flip_")i$ is only used internally. Zero or more cases and one default can be matched on.
+The #tt("flip") construct alternates execution between branches, where $tt("_flip_")i$ is only used internally. Zero or more cases and one default can be matched with.
 #layout(
   Flip,
   Flop,

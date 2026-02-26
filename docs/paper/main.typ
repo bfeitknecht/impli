@@ -22,26 +22,26 @@ $
           a, a', ... & in bs("Aexp") \
               b, ... & in bs("Bexp") \
         x, y, z, ... & in bs("Var") \
-              v, ... & in bs("Val") \
+              v, ... & in bs("Val") = ZZ \
            n, i, ... & in bs("Numeral") \
               s, ... & in bs("Stm") \
-  sigma, sigma', ... & in bs("State") \
+  sigma, sigma', ... & in bs("State") = bs("Var") -> bs("Val") \
+              P, ... & in bs("Procedure") = bs("Var")^* times bs("Var")^* times bs("Stm") \
                ast.o & in {#("+", "-", "*", "/", "%").map(tt).join(", ")} \
            compose.o & in {#("not", "and", "or").map(tt).join(", ")} \
                 eq.o & in {#(":=", "+=", "-=", "*=", "/=", "%=").map(tt).join(", ")} \
                 lt.o & in {#("=", "#", "<", "<=", ">", ">=").map(tt).join(", ")}
 $
 
-Specifically, these equalities hold, with $bs("Procedures")$ being an appropriate encapsulation.
+For #IMP + #EXT, state domain is defined as triple of variable assignment, procedure encapsulations, and break flag. Additionally, $bot$ denotes exception with some integer code or failure symbol.
 $
-  bs("Val") = bs("Numeral") & = ZZ \
-  bs("State") & = (bs("Var") -> bs("Numeral")) times bs("Procedures") times {#t, #f} union {bot} times (ZZ union {!})
+  bs("State") & = (bs("Var") -> bs("Val")) times (bs("Var") -> bs("Procedure")) times {#t, #f} union {bot} times (ZZ union {!})
 $
 
 Furthermore, the following equivalences hold. Un-circled operators denote their respective arithmetic or boolean operations or relations.
 $
                 sigma[x |-> a](x) & = eval(A, a)sigma \
-                sigma[p |=> s](p) & = s \
+                sigma[p |=> P](p) & = P \
         eval(B, tt("not") b)sigma & = not eval(B, b)sigma \
       eval(A, a_1 ast.o a_2)sigma & = eval(A, a_1)sigma ast eval(A, a_2)sigma \
   eval(B, b_1 compose.o b_2)sigma & = eval(B, b_1)sigma compose eval(B, b_2)sigma, compose.o != tt("not") \
