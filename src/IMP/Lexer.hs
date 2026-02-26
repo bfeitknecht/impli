@@ -46,7 +46,7 @@ keywords =
     , "time"
     , "times"
     , "match"
-    , "with"
+    , "on"
     , "default"
     , "havoc"
     , "assert"

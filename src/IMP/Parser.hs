@@ -191,7 +191,7 @@ ext =
     , Match
         <$ keyword "match"
         <*> parses @Aexp
-        <* keyword "with"
+        <* keyword "on"
         <*> many branch
         <* keyword "default"
         <* symbol ":"
