@@ -14,9 +14,8 @@ Stability   : stable
 Portability : WASM/JavaScript
 
 Browser-based execution backend for the IMP language REPL.
-Implements 'Dispatches' instances for 'IO' monad to handle REPL commands,
-constructs, and exceptions in the browser environment via JavaScript FFI.
-Manages global REPL state through an 'IORef' for interop with JavaScript.
+Implements 'Dispatches' instances for 'IO' monad to handle REPL commands, constructs,
+and exceptions in the browser environment via JavaScript FFI.
 -}
 module REPL.Execute.Browser where
 
@@ -41,11 +40,11 @@ import REPL.State hiding (writeIMP)
 -- | Clear terminal screen and write welcome message
 foreign import javascript unsafe "globalThis.impli.writeWelcome()" js_writeWelcome :: IO ()
 
--- | Write to JS console
-foreign import javascript unsafe "console.log($1)" js_log :: JSString -> IO ()
-
 -- | Write IMP trace to plaintext file in new browser tab
 foreign import javascript unsafe "globalThis.impli.writeTrace($1, $2)" js_writeIMP :: JSString -> JSString -> IO ()
+
+-- | Write to JS console
+foreign import javascript unsafe "console.log($1)" js_log :: JSString -> IO ()
 
 logger :: String -> IO ()
 logger = js_log . toJSString
@@ -133,11 +132,11 @@ instance Dispatches IO Command where
 instance Dispatches IO Exception where
     dispatch e = case e of
         Empty -> return () -- EOF, exit cleanly
-        AssertFail _ -> throwError e -- irrecoverable, propagate
-        Raised _ -> throwError e -- ''
+        AssertFail _ -> display e -- irrecoverable - display, die, respawn
+        Raised _ -> display e -- ''
         _ -> display e >> loop -- recoverable errors
 
--- | Write trace to new browser tab as plaintext blob.
+-- | Write trace to new browser tab as plaintext file.
 writeIMP :: String -> REPL IO ()
 writeIMP path = do
     content <- gets (prettytrace . _trace)
