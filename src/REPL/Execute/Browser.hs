@@ -41,19 +41,26 @@ import REPL.State hiding (writeIMP)
 -- | Clear terminal screen and write welcome message
 foreign import javascript unsafe "globalThis.impli.writeWelcome()" js_writeWelcome :: IO ()
 
--- | Write IMP trace to plaintext blob in new browser tab
+-- | Write to JS console
+foreign import javascript unsafe "console.log($1)" js_log :: JSString -> IO ()
+
+-- | Write IMP trace to plaintext file in new browser tab
 foreign import javascript unsafe "globalThis.impli.writeTrace($1, $2)" js_writeIMP :: JSString -> JSString -> IO ()
+
+logger :: String -> IO ()
+logger = js_log . toJSString
 
 -- | Run the REPL with the given initial store
 repl :: Store -> IO ()
 repl store = do
-    js_writeWelcome
+    putStrLn "Welcome to the IMP REPL! Enter :help to list available metacommands."
     result <- runExceptT (execStateT loop store)
     case result of
         Left e -> print e >> Exit.exitFailure
         Right _ -> do
             putStrLn goodbye
-            repl start -- escape is impossible -- TODO: Easter egg?
+            logger "You will never leave this place!"
+            repl start -- escape is impossible
 
 -- | Main REPL loop using basic IO
 loop :: REPL IO ()
@@ -97,8 +104,22 @@ instance Dispatches IO Command where
     dispatch Quit = return ()
     dispatch command =
         case command of
-            Help -> help
-            Clear -> clear
+            Help ->
+                explain
+                    "All metacommands besides :(un)set can be abbreviated by their first letter"
+                    [ ":help                    Show this help message"
+                    , ":quit                    Quit REPL"
+                    , ":clear                   Clear screen"
+                    , ":version                 Show version"
+                    , ":set OPTION VALUE        Set REPL option (welcome, prompt, separator, goodbye, verbose)"
+                    , ":unset OPTION            Unset REPL option"
+                    , ":reset [ASPECT]          Reset environment or specific aspect (vars, procs, break, trace)"
+                    , ":show [ASPECT]           Show environment or specific aspect"
+                    , ":load FILE               Interpret file and load resulting state"
+                    , ":write FILE              Write trace to plaintext file in new browser tab"
+                    , ":ast (INPUT | #n)        Parse and display AST of input or n-th statement in trace"
+                    ]
+            Clear -> liftIO js_writeWelcome
             Version -> version
             Reset aspect -> reset aspect
             Show aspect -> shower aspect
@@ -116,10 +137,6 @@ instance Dispatches IO Exception where
         Raised _ -> throwError e -- ''
         _ -> display e >> loop -- recoverable errors
 
--- | Clear the terminal and display welcome message.
-clear :: REPL IO ()
-clear = liftIO js_writeWelcome
-
 -- | Write trace to new browser tab as plaintext blob.
 writeIMP :: String -> REPL IO ()
 writeIMP path = do
@@ -128,4 +145,4 @@ writeIMP path = do
         js_path = toJSString path
         js_content = toJSString content
     liftIO $ js_writeIMP js_path js_content
-    inform $ "wrote trace to new tab"
+    inform "wrote trace to new tab"

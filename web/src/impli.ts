@@ -1,6 +1,7 @@
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { LocalEchoAddon } from "@gytx/xterm-local-echo";
+import { WebLinksAddon } from "@xterm/addon-web-links";
 import { WASI } from "@runno/wasi";
 import { examples } from "examples";
 import stub from "stub";
@@ -12,9 +13,12 @@ const logo = dedent`\x1b[1m\
   |_| |_|  | |_|   |_|__ |_|
   \x1b[0m`;
 
-const message = dedent`\
+const repository = "https://github.com/bfeitknecht/impli";
+
+const banner = dedent`\
   Execute IMP in the browser and inspect resulting state.
-  Made with <3 by Basil Feitknecht
+  Check out the \x1b]8;;${repository}\x1b\\repository\x1b]8;;\x1b\\ and leave a star!
+  Made with <3 by Basil Feitknecht.
   `;
 
 /**
@@ -57,6 +61,49 @@ export class Impli {
     this.echo = new LocalEchoAddon();
     this.terminal.loadAddon(this.echo);
 
+    this.echo.addAutocompleteHandler((index: number, tokens: Array<string>) => {
+      const metas = [
+        ":help",
+        ":quit",
+        ":clear",
+        ":version",
+        ":set",
+        ":unset",
+        ":reset",
+        ":show",
+        ":load",
+        ":write",
+        ":ast",
+      ];
+      if (index == (0) && (tokens[0] ?? "").startsWith(":")) {
+        return metas;
+      }
+      return [];
+    });
+    this.echo.addAutocompleteHandler((index: number, tokens: Array<string>) => {
+      const files = Object.keys(examples).map((key) =>
+        key.startsWith("/") ? key.slice(1) : key
+      );
+      if (index == 1 && [":load", ":l"].includes(tokens[0])) {
+        return files;
+      }
+      return [];
+    });
+
+    const activateLink = (_: MouseEvent, uri: string) => {
+      globalThis.open(uri, "_blank", "noopener,noreferrer");
+    };
+
+    const linkHandler = {
+      activate: activateLink,
+      hover: () => {},
+      leave: () => {},
+      allowNonHttpProtocols: false,
+    };
+
+    this.terminal.loadAddon(new WebLinksAddon(activateLink));
+    this.terminal.options.linkHandler = linkHandler;
+
     this.terminal.open(container);
     this.fitter.fit();
     this.terminal.focus();
@@ -86,7 +133,45 @@ export class Impli {
   }
 
   public writeWelcome() {
-    this.terminal.write("\x1bc" + logo + "\r\n" + message + "\r\n\r\n");
+    const message = "\x1bc" +
+      logo +
+      "\n" +
+      banner +
+      "\n\n";
+    this.write(message);
+  }
+
+  public writeHelp() {
+    const message = dedent`\
+      :help                    Show this help message
+      :quit                    Quit REPL
+      :clear                   Clear screen
+      :version                 Show version
+      :set OPTION VALUE        Set REPL option (welcome, prompt, separator, goodbye, verbose)
+      :unset OPTION            Unset REPL option
+      :reset [ASPECT]          Reset environment or specific aspect (vars, procs, break, trace)
+      :show [ASPECT]           Show environment or specific aspect
+      :load FILE               Interpret file and load resulting state
+      :write                   Write trace to plaintext file in new browser tab
+      :ast (INPUT | #n)        Parse and display AST of input or n-th statement in trace
+      `;
+
+    this.write(message);
+  }
+
+  public writeTips() {
+    const message = dedent`\
+      Here's a list of things to get you up to speed.
+        - 'print' followed by an expression outputs its evaluation
+        - 'read' followed by some variable name assigns the input to it
+        - 'x += 1' increments the variable named 'x'
+          - This principle also works to decrement, multiply, divide, and take the modulo
+        - ':load prime.imp' interprets the named file
+          - In this case that exposes the procedure 'prime'
+          - Invoke it and display the result with e.g. 'prime(31; p); print p'
+      ` +
+      "\n\n";
+    this.write(message);
   }
 
   public async readInput(prompt: string) {
@@ -105,6 +190,7 @@ export class Impli {
     log("Impli", "Starting application...");
     globalThis.impli = this;
     this.writeWelcome();
+    this.writeTips();
 
     const wasi = new WASI({
       args: ["impli"],
