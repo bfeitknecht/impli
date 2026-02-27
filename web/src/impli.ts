@@ -8,9 +8,9 @@ import stub from "stub";
 import { dedent, log } from "@/util.ts";
 
 const logo = dedent`\x1b[1m\
-  ,_  ,_     ,___  ,_    ,_
-  | | | |\\/| | |_) | |   | |
-  |_| |_|  | |_|   |_|__ |_|
+  o  _ _   _   ) o
+  ( ) ) ) )_) (  (
+         (
   \x1b[0m`;
 
 const repository = "https://github.com/bfeitknecht/impli";
