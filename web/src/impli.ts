@@ -1,13 +1,12 @@
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { LocalEchoAddon } from "@gytx/xterm-local-echo";
-import { WebLinksAddon } from "@xterm/addon-web-links";
 import { WASI } from "@runno/wasi";
 import { examples } from "examples";
 import stub from "stub";
 import { dedent, log } from "@/util.ts";
 
-const logo = dedent`\x1b[1m\
+const logo = dedent`\x1b[1m
   o  _ _   _   ) o
   ( ) ) ) )_) (  (
          (
@@ -17,7 +16,8 @@ const repository = "https://github.com/bfeitknecht/impli";
 
 const banner = dedent`\
   Execute IMP in the browser and inspect resulting state.
-  Check out the \x1b]8;;${repository}\x1b\\repository\x1b]8;;\x1b\\ and leave a star!
+  Visit the \x1b]8;;${repository}\x1b\\repository\x1b]8;;\x1b\\ and leave a star!
+  If you're into formal methods, check out the \x1b]8;;${repository}/blob/master/docs/paper/IMP.pdf\x1b\\whitepaper\x1b]8;;\x1b\\ too.
   Made with <3 by Basil Feitknecht.
   `;
 
@@ -101,7 +101,6 @@ export class Impli {
       allowNonHttpProtocols: false,
     };
 
-    this.terminal.loadAddon(new WebLinksAddon(activateLink));
     this.terminal.options.linkHandler = linkHandler;
 
     this.terminal.open(container);
