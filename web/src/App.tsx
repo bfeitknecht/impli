@@ -14,9 +14,14 @@ export class App extends Component {
   }
 
   override render() {
-    // TODO: Check if ServiceWorker and WebAssembly are supported
-    const old = false;
-    if (old) {
+    const hasWasm = typeof WebAssembly === "object" &&
+      typeof WebAssembly.instantiateStreaming === "function";
+    const hasBigInt64Array = typeof BigInt64Array === "function";
+    const hasGlobalThis = typeof globalThis !== "undefined";
+
+    const supported = hasWasm && hasBigInt64Array && hasGlobalThis;
+
+    if (!supported) {
       return <Unsupported />;
     }
 

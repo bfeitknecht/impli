@@ -26,21 +26,18 @@ export class Unsupported extends Component {
           <li>JavaScript</li>
           <li>WebAssembly</li>
           <li>ES6 Modules</li>
-          <li>Service Workers</li>
-          <li>Cross-Origin Isolation</li>
         </ul>
 
-        {/* TODO: Update these version numbers */}
         <h2>Minimum Browser Versions</h2>
         <ul>
           <li>
-            <strong>Chrome/Edge:</strong> 92+ (July 2021)
+            <strong>Chrome/Edge:</strong> 71+ (December 2018)
           </li>
           <li>
-            <strong>Firefox:</strong> 95+ (December 2021)
+            <strong>Firefox:</strong> 68+ (July 2019)
           </li>
           <li>
-            <strong>Safari:</strong> 15.2+ (December 2021)
+            <strong>Safari:</strong> 15.0+ (September 2021)
           </li>
         </ul>
 

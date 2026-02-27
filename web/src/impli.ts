@@ -141,24 +141,6 @@ export class Impli {
     this.write(message);
   }
 
-  public writeHelp() {
-    const message = dedent`\
-      :help                    Show this help message
-      :quit                    Quit REPL
-      :clear                   Clear screen
-      :version                 Show version
-      :set OPTION VALUE        Set REPL option (welcome, prompt, separator, goodbye, verbose)
-      :unset OPTION            Unset REPL option
-      :reset [ASPECT]          Reset environment or specific aspect (vars, procs, break, trace)
-      :show [ASPECT]           Show environment or specific aspect
-      :load FILE               Interpret file and load resulting state
-      :write                   Write trace to plaintext file in new browser tab
-      :ast (INPUT | #n)        Parse and display AST of input or n-th statement in trace
-      `;
-
-    this.write(message);
-  }
-
   public writeTips() {
     const message = dedent`\
       Here's a list of things to get you up to speed.
