@@ -25,7 +25,7 @@ $
               v, ... & in bs("Val") = ZZ \
               n, ... & in bs("Numeral") \
               s, ... & in bs("Stm") \
-  sigma, sigma', ... & in bs("State") = bs("Var") -> bs("Val") \
+  sigma, sigma', ... & in bs("State") \
               P, ... & in bs("Procedure") = bs("Var")^* times bs("Var")^* times bs("Stm") \
                ast.o & in {#("+", "-", "*", "/", "%").map(tt).join(", ")} \
            compose.o & in {#("not", "and", "or").map(tt).join(", ")} \
@@ -33,7 +33,7 @@ $
                 lt.o & in {#("=", "#", "<", "<=", ">", ">=").map(tt).join(", ")}
 $
 
-For #IMP + #EXT, state domain is defined as triple of variable assignment, procedure encapsulations, and break flag. Additionally, $bot$ denotes exception with some integer code or failure symbol.
+For #IMP + #EXT, the state domain is defined as triple of variables, procedures, and break flag. Exceptions are denoted with $bot$ and some integer status code or irecoverable failure symbol.
 $
   bs("State") & = (bs("Var") -> bs("Val")) times (bs("Var") -> bs("Procedure")) times {#t, #f} union {bot} times (ZZ union {!})
 $

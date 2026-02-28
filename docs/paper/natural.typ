@@ -17,13 +17,13 @@
 )
 
 #let Print = rule(
-  name: [=== Print #footnote[$eval(A, a)sigma$ numeral output]],
+  name: [=== Print #footnote[$eval(A, a)sigma$ integer output]],
   $conf(tt("print") a, sigma) -> sigma$,
 )
 
 #let Read = rule(
-  name: [=== Read #footnote[$eval(N, v)$ numeral from integer input $v$ assigned to variable $x$]],
-  $conf(tt("read") x, sigma) -> sigma[x |-> eval(N, v)]$,
+  name: [=== Read #footnote[$v$ integer input]],
+  $conf(tt("read") x, sigma) -> sigma[x |-> v]$,
 )
 
 #let Sequence = rule(
@@ -139,8 +139,8 @@
 
 #let Do = rule(
   name: [=== Do],
-  $conf(seq(s, tt("while") b tt("do") s tt("end")), sigma) -> sigma'$,
-  $conf(tt("do") s tt("while") b tt("end"), sigma) -> sigma'$,
+  $conf(seq(s, tt("while") tt("not") b tt("do") s tt("end")), sigma) -> sigma'$,
+  $conf(tt("do") s tt("until") b tt("end"), sigma) -> sigma'$,
 )
 
 #let For = rule(
