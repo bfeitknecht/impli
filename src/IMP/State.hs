@@ -45,7 +45,7 @@ type Conf = (Maybe Stm, [State])
 zero :: Map.Map String Integer
 zero = Map.empty
 
--- | Initial state with no variable definitions, no procedure definitions and break flag unset.
+-- | Initial state with no variable definitions, no procedures defined and break flag unset.
 initial :: State
 initial = (zero, [], False)
 

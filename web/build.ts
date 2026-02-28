@@ -59,7 +59,7 @@ async function bundleApp() {
   console.log("Bundling application...");
   const result = await Deno.bundle({
     entrypoints: ["src/App.tsx"],
-    outputDir: OUTPUT,
+    outputPath: `${OUTPUT}/module.mjs`,
     platform: "browser",
     format: "esm",
     minify: true,

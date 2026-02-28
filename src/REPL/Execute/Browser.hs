@@ -107,7 +107,7 @@ instance Dispatches IO Command where
                 explain
                     "All metacommands besides :(un)set can be abbreviated by their first letter"
                     [ ":help                    Show this help message"
-                    , ":quit                    Quit REPL"
+                    , ":tips                    Show some tips"
                     , ":clear                   Clear screen"
                     , ":version                 Show version"
                     , ":set OPTION VALUE        Set REPL option (welcome, prompt, separator, goodbye, verbose)"

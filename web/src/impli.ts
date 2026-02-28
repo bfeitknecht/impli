@@ -17,7 +17,7 @@ const repository = "https://github.com/bfeitknecht/impli";
 const banner = dedent`\
   Execute IMP in the browser and inspect resulting state.
   Visit the \x1b]8;;${repository}\x1b\\repository\x1b]8;;\x1b\\ and leave a star!
-  If you're into formal methods, check out the \x1b]8;;${repository}/blob/master/docs/paper/IMP.pdf\x1b\\whitepaper\x1b]8;;\x1b\\ too.
+  If you're into formal methods, check out the \x1b]8;;${repository}/blob/master/docs/paper/IMP.pdf\x1b\\paper\x1b]8;;\x1b\\ too.
   Made with <3 by Basil Feitknecht.
   `;
 
@@ -64,6 +64,7 @@ export class Impli {
     this.echo.addAutocompleteHandler((index: number, tokens: Array<string>) => {
       const metas = [
         ":help",
+        ":tips",
         ":quit",
         ":clear",
         ":version",
@@ -143,20 +144,23 @@ export class Impli {
   public writeTips() {
     const message = dedent`\
       Here's a list of things to get you up to speed.
-        - 'print' followed by an expression outputs its evaluation
-        - 'read' followed by some variable name assigns the input to it
-        - 'x += 1' increments the variable named 'x'
-          - This principle also works to decrement, multiply, divide, and take the modulo
-        - ':load prime.imp' interprets the named file
-          - In this case that exposes the procedure 'prime'
-          - Invoke it and display the result with e.g. 'prime(31; p); print p'
-      ` +
-      "\n\n";
+          - 'print' followed by an expression outputs its evaluation
+          - 'read' followed by some variable name assigns the input to it
+              - 'x += 1' increments the named variable
+              - This principle also works to decrement, multiply, divide, and take the modulo
+          - ':load prime.imp' interprets the named file
+              - In this case that exposes the procedure 'prime'
+              - Invoke it and display the result with e.g. 'prime(31; p); print p'
+      \n`;
     this.write(message);
   }
 
   public async readInput(prompt: string) {
     const line = await this.echo.read(prompt);
+    if ([":tips", ":t"].includes(line)) {
+      this.writeTips();
+      return "";
+    }
     return line;
   }
 
@@ -171,7 +175,6 @@ export class Impli {
     log("Impli", "Starting application...");
     globalThis.impli = this;
     this.writeWelcome();
-    this.writeTips();
 
     const wasi = new WASI({
       args: ["impli"],

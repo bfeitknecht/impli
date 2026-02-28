@@ -3,7 +3,6 @@
   "specifiers": {
     "npm:@gytx/xterm-local-echo@~0.1.8": "0.1.8",
     "npm:@runno/wasi@0.10": "0.10.0",
-    "npm:@xterm/addon-web-links@0.12": "0.12.0",
     "npm:preact@^10.28.3": "10.28.3",
     "npm:xterm-addon-fit@0.8": "0.8.0_xterm@5.3.0",
     "npm:xterm@^5.3.0": "5.3.0"
@@ -14,9 +13,6 @@
     },
     "@runno/wasi@0.10.0": {
       "integrity": "sha512-xP9z38WCmR9ZAQf3F9FwbFV4xTjaNmM9Qvk2LWOBZZAhggteL2RQ730YGOIxx9bb9nj7e2/boo0B3AJkAJfDvw=="
-    },
-    "@xterm/addon-web-links@0.12.0": {
-      "integrity": "sha512-4Smom3RPyVp7ZMYOYDoC/9eGJJJqYhnPLGGqJ6wOBfB8VxPViJNSKdgRYb8NpaM6YSelEKbA2SStD7lGyqaobw=="
     },
     "preact@10.28.3": {
       "integrity": "sha512-tCmoRkPQLpBeWzpmbhryairGnhW9tKV6c6gr/w+RhoRoKEJwsjzipwp//1oCpGPOchvSLaAPlpcJi9MwMmoPyA=="
@@ -121,7 +117,6 @@
     "dependencies": [
       "npm:@gytx/xterm-local-echo@~0.1.8",
       "npm:@runno/wasi@0.10",
-      "npm:@xterm/addon-web-links@0.12",
       "npm:preact@^10.28.3",
       "npm:xterm-addon-fit@0.8",
       "npm:xterm@^5.3.0"
