@@ -19,7 +19,6 @@ import Control.Monad.Except (catchError, runExceptT, throwError)
 import Control.Monad.IO.Class (liftIO)
 import System.Random (randomIO)
 
-import qualified Data.List as List
 import qualified Data.Map as Map
 
 import IMP.Exception
@@ -75,17 +74,17 @@ run (stm, state) = case stm of
             (_, Left e) -> throwError e
             (Right (vs1', ps1', flag'), Right (vs2', ps2', _)) ->
                 -- INFO: on conflict, state result from s1 dominates
-                return (Map.union vs1' vs2', List.union ps1' ps2', flag')
+                return (Map.union vs1' vs2', Map.union ps1' ps2', flag')
     NonDet s1 s2 -> do
         left <- randomIO :: IMP Bool
         if left
             then run (s1, state)
             else run (s2, state)
-    ProcDef p -> return $ setProc state p
-    ProcInvoc name (arguments, returns) ->
+    ProcDef name params rets body -> return $ setProc state name (params, rets, body)
+    ProcInvoc name arguments returns ->
         case getProc state name of
             Nothing -> errata $ "undefined procedure: " ++ name
-            Just (Procedure _ (params, rets) body)
+            Just (params, rets, body)
                 | length arguments /= length params -> errata "mismatched number of arguments to parameters"
                 | length returns /= length rets -> errata "mismatched number of return variables"
                 | otherwise -> do

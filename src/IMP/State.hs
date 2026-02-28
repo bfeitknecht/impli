@@ -23,7 +23,6 @@ import System.IO.Unsafe (unsafePerformIO)
 import Text.Read (readMaybe)
 
 import qualified Control.Monad.Except as Except
-import qualified Data.List as List
 import qualified Data.Map as Map
 
 import IMP.Exception
@@ -35,19 +34,18 @@ type IMP = Except.ExceptT Exception IO
 -- | Map of defined variables from string identifier to integer values.
 type Vars = Map.Map String Integer
 
+-- | Map of defined procedures from name to procedure.
+type Procs = Map.Map String Proc
+
 -- | Interpreter state as triple of defined variables, procedures and break flag.
-type State = (Vars, [Proc], Bool)
+type State = (Vars, Procs, Bool)
 
 -- | Interpreter configuration as 2-tuple of remaining statement execution and state stack.
 type Conf = (Maybe Stm, [State])
 
--- | Default variable map with no definitions.
-zero :: Map.Map String Integer
-zero = Map.empty
-
 -- | Initial state with no variable definitions, no procedures defined and break flag unset.
 initial :: State
-initial = (zero, [], False)
+initial = (Map.empty, Map.empty, False)
 
 -- | Global IORef to store the current input action.
 {-# NOINLINE inputter #-}
@@ -90,20 +88,21 @@ resetVars :: State -> State
 resetVars (_, procs, flag) = (Map.empty, procs, flag)
 
 -- | Get defined procedures.
-getProcs :: State -> [Proc]
+getProcs :: State -> Procs
 getProcs (_, procs, _) = procs
 
 -- | Get some procedure by name, return 'Nothing' if undefined.
 getProc :: State -> String -> Maybe Proc
-getProc (_, procs, _) name = List.find ((name ==) . procname) procs
+getProc (_, procs, _) name = Map.lookup name procs
 
 -- | Set procedure.
-setProc :: State -> Proc -> State
-setProc (vars, procs, flag) proc = (vars, proc : procs, flag)
+setProc :: State -> String -> Proc -> State
+setProc (vars, procs, flag) name proc =
+    (vars, Map.insert name proc procs, flag)
 
 -- | Reset procedure definitions.
 resetProcs :: State -> State
-resetProcs (vars, _, flag) = (vars, [], flag)
+resetProcs (vars, _, flag) = (vars, Map.empty, flag)
 
 -- | Get break flag.
 getBreak :: State -> Bool

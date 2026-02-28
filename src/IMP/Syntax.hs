@@ -19,7 +19,7 @@ module IMP.Syntax (
     Rop (..),
     Stm (..),
     Dop (..),
-    Proc (..),
+    Proc,
     Construct (..),
     Variables,
     variables,
@@ -121,9 +121,9 @@ data Stm
     | Local String Aexp Stm -- ^ Local variable.
     | Par Stm Stm -- ^ Parallel execution.
     | NonDet Stm Stm -- ^ Non-deterministic choice.
-    | ProcDef Proc -- ^ Procedure definition.
-    | ProcInvoc String ([Aexp], [String]) -- ^ Procedure invocation.
-    | Restore ([(String, Integer)], [Proc], Bool) -- ^ Restore state (internal use).
+    | ProcDef String [String] [String] Stm -- ^ Procedure definition.
+    | ProcInvoc String [Aexp] [String] -- ^ Procedure invocation.
+    | Restore ([(String, Integer)], [(String, Proc)], Bool) -- ^ Restore state (internal use).
     | Return [String] [String] -- ^ Return values (internal use).
     | Break -- ^ Break loop.
     | Revert Stm Bexp -- ^ Transactional execution.
@@ -146,17 +146,8 @@ instance Semigroup Stm where
 instance Monoid Stm where
     mempty = Skip
 
--- | Procedure definition in the IMP language.
-data Proc = Procedure
-    { procname :: String -- ^ Name of procedure.
-    , procsign :: ([String], [String]) -- ^ Parameters and return variable.
-    , procbody :: Stm -- ^ Body of procedure.
-    }
-    deriving (Eq)
-
--- | Instance of 'Show' for 'Proc'.
-instance Show Proc where
-    show p = unwords ["Procedure", show $ procname p, show $ procsign p, show $ procbody p]
+-- | Procedure encapsulation as signature and body.
+type Proc = ([String], [String], Stm)
 
 -- | Construct in the IMP language.
 data Construct
@@ -201,8 +192,8 @@ instance Variables Stm where
         Local x a s -> x : variables a ++ variables s
         Par s1 s2 -> variables s1 ++ variables s2
         NonDet s1 s2 -> variables s1 ++ variables s2
-        ProcDef (Procedure p (ps, rs) s) -> p : ps ++ rs ++ variables s
-        ProcInvoc p (as, rs) -> p : rs ++ concatMap variables as
+        ProcDef p ps rs s -> p : ps ++ rs ++ variables s
+        ProcInvoc p as rs -> p : rs ++ concatMap variables as
         Restore _ -> error $ "illegal statement for variables: " ++ show stm
         Return _ _ -> error $ "illegal statement for variables: " ++ show stm
         Break -> []

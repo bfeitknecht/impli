@@ -83,9 +83,9 @@ instance Evaluate Stm Integer where
         Local _ _ s -> evaluate s state + 1
         NonDet s1 s2 -> max (evaluate s1 state) (evaluate s2 state)
         Par s1 s2 -> evaluate s1 state + evaluate s2 state
-        ProcDef _ -> 0
-        ProcInvoc name (args, _) -> case getProc state name of
-            Just p -> evaluate (procbody p) state + (toInteger . length) args
+        ProcDef {} -> 0
+        ProcInvoc name args _ -> case getProc state name of
+            Just (_, _, body) -> evaluate body state + (toInteger . length) args
             Nothing -> 0
         Restore _ -> error $ "illegal statement for evaluate: " ++ show stm
         Return _ _ -> error $ "illegal statement for evaluate: " ++ show stm
