@@ -67,7 +67,7 @@ step (stm, stack@(state : states)) = case stm of
         return (Nothing, setVar state x v : states)
     Local x a s ->
         let
-            snapshot = ([(x, getVar state x)], getProcs state, getBreak state)
+            snapshot = ([(x, getVar state x)], Map.toList (getProcs state), getBreak state)
             local = setVar state x $ evaluate a state
         in
             -- CHECK: perhaps push local state on stack and then pop later?
@@ -90,7 +90,7 @@ step (stm, stack@(state : states)) = case stm of
         if left
             then return (Just s1, stack)
             else return (Just s2, stack)
-    ProcDef name sign body -> return (Nothing, setProc state name sign body : states)
+    ProcDef name (params, rets) body -> return (Nothing, setProc state name (params, rets, body) : states)
     ProcInvoc name (arguments, returns) ->
         case getProc state name of
             Nothing -> errata $ "undefined procedure: " ++ name
@@ -104,7 +104,7 @@ step (stm, stack@(state : states)) = case stm of
                     in
                         return (Just $ body <> Return rets returns, local : stack)
     Restore (vars, procs, flag) ->
-        let state' = setVars (getVars state, procs, flag) vars
+        let state' = setVars (getVars state, Map.fromList procs, flag) vars
         in return (Nothing, state' : states)
     Return rets returns -> case stack of
         (callee : caller : rest) ->
@@ -117,7 +117,7 @@ step (stm, stack@(state : states)) = case stm of
     Break -> return (Nothing, setBreak state : states)
     Revert s b ->
         -- INFO: uninitialized variables can't be restored
-        let snapshot = (Map.toList (getVars state), getProcs state, getBreak state)
+        let snapshot = (Map.toList (getVars state), Map.toList (getProcs state), getBreak state)
         in return (Just $ s <> IfElse b (Restore snapshot) Skip, stack)
     Match a ms d ->
         let v = evaluate a state

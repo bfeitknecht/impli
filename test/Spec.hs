@@ -198,7 +198,7 @@ assertEvalAexp state e val = testCase (stringify e) $ evaluate e state @?= val
 assertEvalBexp :: State -> Bexp -> Bool -> TestTree
 assertEvalBexp state b bool = testCase (stringify b) $ evaluate b state @?= bool
 
-assertExec :: State -> Stm -> ([(String, Integer)], [(String, ([String], [String], Stm))]) -> TestTree
+assertExec :: State -> Stm -> ([(String, Integer)], [(String, Proc)]) -> TestTree
 assertExec state stm (vars, procs) = testCase (stringify stm) $ do
     result <- runExceptT $ execute (stm, state)
     case result of

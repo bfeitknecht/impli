@@ -19,7 +19,7 @@ module IMP.Syntax (
     Rop (..),
     Stm (..),
     Dop (..),
-    Procs,
+    Proc,
     Construct (..),
     Variables,
     variables,
@@ -27,8 +27,6 @@ module IMP.Syntax (
 where
 
 import Data.List (nub)
-
-import qualified Data.Map as Map
 
 -- | Arithmetic expression in the IMP language.
 data Aexp
@@ -125,7 +123,7 @@ data Stm
     | NonDet Stm Stm -- ^ Non-deterministic choice.
     | ProcDef String ([String], [String]) Stm -- ^ Procedure definition.
     | ProcInvoc String ([Aexp], [String]) -- ^ Procedure invocation.
-    | Restore ([(String, Integer)], Procs, Bool) -- ^ Restore state (internal use).
+    | Restore ([(String, Integer)], [(String, Proc)], Bool) -- ^ Restore state (internal use).
     | Return [String] [String] -- ^ Return values (internal use).
     | Break -- ^ Break loop.
     | Revert Stm Bexp -- ^ Transactional execution.
@@ -148,8 +146,8 @@ instance Semigroup Stm where
 instance Monoid Stm where
     mempty = Skip
 
--- | Map of defined procedures from name to signature and body.
-type Procs = Map.Map String ([String], [String], Stm)
+-- | Procedure encapsulation as signature and body.
+type Proc = ([String], [String], Stm)
 
 -- | Construct in the IMP language.
 data Construct
