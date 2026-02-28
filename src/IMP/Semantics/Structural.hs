@@ -104,8 +104,8 @@ step (stm, stack@(state : states)) = case stm of
                     in
                         return (Just $ body <> Return rets returns, local : stack)
     Restore (vars, procs, flag) ->
-        let state' = setVars (getVars state, Map.fromList procs, flag) vars
-        in return (Nothing, state' : states)
+        let state' = (getVars state, Map.fromList procs, flag)
+        in return (Nothing, setVars state' vars : states)
     Return rets returns -> case stack of
         (callee : caller : rest) ->
             let
