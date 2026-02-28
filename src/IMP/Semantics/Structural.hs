@@ -90,8 +90,8 @@ step (stm, stack@(state : states)) = case stm of
         if left
             then return (Just s1, stack)
             else return (Just s2, stack)
-    ProcDef name (params, rets) body -> return (Nothing, setProc state name (params, rets, body) : states)
-    ProcInvoc name (arguments, returns) ->
+    ProcDef name params rets body -> return (Nothing, setProc state name (params, rets, body) : states)
+    ProcInvoc name arguments returns ->
         case getProc state name of
             Nothing -> errata $ "undefined procedure: " ++ name
             Just (params, rets, body)

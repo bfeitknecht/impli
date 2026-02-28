@@ -80,8 +80,8 @@ run (stm, state) = case stm of
         if left
             then run (s1, state)
             else run (s2, state)
-    ProcDef name (params, rets) body -> return $ setProc state name (params, rets, body)
-    ProcInvoc name (arguments, returns) ->
+    ProcDef name params rets body -> return $ setProc state name (params, rets, body)
+    ProcInvoc name arguments returns ->
         case getProc state name of
             Nothing -> errata $ "undefined procedure: " ++ name
             Just (params, rets, body)

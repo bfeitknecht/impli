@@ -65,7 +65,7 @@ parseTests =
             (VarDef "x" Def (Time (Seq (VarDef "a" Def (Val 1)) (VarDef "b" Def (Val 2)))))
         , assertParseStm
             "procedure foo(;) begin skip end; foo(;)"
-            (Seq (ProcDef "foo" ([], []) Skip) (ProcInvoc "foo" ([], [])))
+            (Seq (ProcDef "foo" [] [] Skip) (ProcInvoc "foo" [] []))
         , assertParseStm
             "do x := 1 until false"
             (Seq (VarDef "x" Def (Val 1)) (While (Not (Lit False)) (VarDef "x" Def (Val 1))))
@@ -152,8 +152,8 @@ execTests =
             body = VarDef "x" Def (Bin Add (Var "x") (Val 1))
             stm =
                 Seq
-                    (ProcDef "inc" (["x"], ["x"]) body)
-                    (ProcInvoc "inc" ([Val 10], ["y"]))
+                    (ProcDef "inc" ["x"] ["x"] body)
+                    (ProcInvoc "inc" [Val 10] ["y"])
           in
             assertExec initial stm ([("y", 11)], [("inc", (["x"], ["x"], body))])
         , let stm =

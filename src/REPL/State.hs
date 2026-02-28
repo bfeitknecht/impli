@@ -96,7 +96,7 @@ shower aspect = do
         Procs ->
             explain
                 "Procedures:"
-                [ prettify (ProcDef name (params, rets) body)
+                [ prettify (ProcDef name params rets body)
                 | (name, (params, rets, body)) <- Map.toList procs
                 ]
         Flag -> outputln $ "Break: " ++ if flag then "true" else "false" ++ "\n"

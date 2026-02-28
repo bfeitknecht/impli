@@ -150,14 +150,14 @@ ext =
         <* keyword "in"
         <*> parses @Stm
         <* keyword "end"
-    , ProcDef
+    , (uncurry . ProcDef)
         <$ keyword "procedure"
         <*> identifier
         <*> parens (signature identifier identifier)
         <* keyword "begin"
         <*> parses @Stm
         <* keyword "end"
-    , ProcInvoc
+    , (uncurry . ProcInvoc)
         <$> identifier
         <*> parens (signature (parses @Aexp) variable) -- INFO: allow placeholder in return variables
     , (\s b -> s <> While (Not b) s)

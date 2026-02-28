@@ -121,8 +121,8 @@ data Stm
     | Local String Aexp Stm -- ^ Local variable.
     | Par Stm Stm -- ^ Parallel execution.
     | NonDet Stm Stm -- ^ Non-deterministic choice.
-    | ProcDef String ([String], [String]) Stm -- ^ Procedure definition.
-    | ProcInvoc String ([Aexp], [String]) -- ^ Procedure invocation.
+    | ProcDef String [String] [String] Stm -- ^ Procedure definition.
+    | ProcInvoc String [Aexp] [String] -- ^ Procedure invocation.
     | Restore ([(String, Integer)], [(String, Proc)], Bool) -- ^ Restore state (internal use).
     | Return [String] [String] -- ^ Return values (internal use).
     | Break -- ^ Break loop.
@@ -192,8 +192,8 @@ instance Variables Stm where
         Local x a s -> x : variables a ++ variables s
         Par s1 s2 -> variables s1 ++ variables s2
         NonDet s1 s2 -> variables s1 ++ variables s2
-        ProcDef p (ps, rs) s -> p : ps ++ rs ++ variables s
-        ProcInvoc p (as, rs) -> p : rs ++ concatMap variables as
+        ProcDef p ps rs s -> p : ps ++ rs ++ variables s
+        ProcInvoc p as rs -> p : rs ++ concatMap variables as
         Restore _ -> error $ "illegal statement for variables: " ++ show stm
         Return _ _ -> error $ "illegal statement for variables: " ++ show stm
         Break -> []

@@ -83,14 +83,14 @@ instance Pretty Stm where
                 ]
         Par s1 s2 -> pretty s1 <+> pretty "par" <+> pretty s2
         NonDet s1 s2 -> pretty s1 <+> pretty "[]" <+> pretty s2
-        ProcDef name (params, rets) body ->
+        ProcDef name params rets body ->
             vsep
                 [ pretty "procedure" <+> pretty name <> parens (semmicommas params rets)
                 , pretty "begin"
                 , indent 4 (pretty body)
                 , pretty "end"
                 ]
-        ProcInvoc name (args, rets) -> pretty name <> parens (semmicommas args rets)
+        ProcInvoc name args rets -> pretty name <> parens (semmicommas args rets)
         Break -> pretty "break"
         Revert s b ->
             vsep
