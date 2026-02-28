@@ -90,11 +90,11 @@ step (stm, stack@(state : states)) = case stm of
         if left
             then return (Just s1, stack)
             else return (Just s2, stack)
-    ProcDef p -> return (Nothing, setProc state p : states)
+    ProcDef name sign body -> return (Nothing, setProc state name sign body : states)
     ProcInvoc name (arguments, returns) ->
         case getProc state name of
             Nothing -> errata $ "undefined procedure: " ++ name
-            Just (Procedure _ (params, rets) body)
+            Just (params, rets, body)
                 | length arguments /= length params -> errata "mismatched number of arguments to parameters"
                 | length returns /= length rets -> errata "mismatched number of return variables"
                 | otherwise ->

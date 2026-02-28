@@ -83,7 +83,7 @@ instance Pretty Stm where
                 ]
         Par s1 s2 -> pretty s1 <+> pretty "par" <+> pretty s2
         NonDet s1 s2 -> pretty s1 <+> pretty "[]" <+> pretty s2
-        ProcDef (Procedure name (params, rets) body) ->
+        ProcDef name (params, rets) body ->
             vsep
                 [ pretty "procedure" <+> pretty name <> parens (semmicommas params rets)
                 , pretty "begin"
@@ -139,14 +139,6 @@ instance Pretty Stm where
                 , pretty s2
                 ]
         _ -> undefined
-
--- | Pretty-print instance for procedure definition.
-instance Pretty Proc where
-    pretty (Procedure name (params, rets) body) =
-        vsep
-            [ pretty name <> parens (semmicommas params rets) <> colon
-            , indent 4 (pretty body)
-            ]
 
 -- | Convert to pretty string with layout.
 prettify :: (Pretty a) => a -> String

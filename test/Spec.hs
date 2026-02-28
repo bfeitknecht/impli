@@ -65,7 +65,7 @@ parseTests =
             (VarDef "x" Def (Time (Seq (VarDef "a" Def (Val 1)) (VarDef "b" Def (Val 2)))))
         , assertParseStm
             "procedure foo(;) begin skip end; foo(;)"
-            (Seq (ProcDef $ Procedure "foo" ([], []) Skip) (ProcInvoc "foo" ([], [])))
+            (Seq (ProcDef "foo" ([], []) Skip) (ProcInvoc "foo" ([], [])))
         , assertParseStm
             "do x := 1 until false"
             (Seq (VarDef "x" Def (Val 1)) (While (Not (Lit False)) (VarDef "x" Def (Val 1))))
@@ -152,10 +152,10 @@ execTests =
             body = VarDef "x" Def (Bin Add (Var "x") (Val 1))
             stm =
                 Seq
-                    (ProcDef $ Procedure "inc" (["x"], ["x"]) body)
+                    (ProcDef "inc" (["x"], ["x"]) body)
                     (ProcInvoc "inc" ([Val 10], ["y"]))
           in
-            assertExec initial stm ([("y", 11)], [Procedure "inc" (["x"], ["x"]) body])
+            assertExec initial stm ([("y", 11)], [("inc", (["x"], ["x"], body))])
         , let stm =
                 VarDef "x" Def $
                     Time $
@@ -198,7 +198,7 @@ assertEvalAexp state e val = testCase (stringify e) $ evaluate e state @?= val
 assertEvalBexp :: State -> Bexp -> Bool -> TestTree
 assertEvalBexp state b bool = testCase (stringify b) $ evaluate b state @?= bool
 
-assertExec :: State -> Stm -> ([(String, Integer)], [Proc]) -> TestTree
+assertExec :: State -> Stm -> ([(String, Integer)], [(String, ([String], [String], Stm))]) -> TestTree
 assertExec state stm (vars, procs) = testCase (stringify stm) $ do
     result <- runExceptT $ execute (stm, state)
     case result of
@@ -214,14 +214,14 @@ assertExec state stm (vars, procs) = testCase (stringify stm) $ do
                             ]
                     sequence_ varChecks
                     let procChecks =
-                            [ actual `elem` map Just expected @? "NonDet: unexpected procedure " ++ show (procname p)
-                            | p <- procs
-                            , let expected = [p' | p' <- procs, procname p' == procname p]
-                            , let actual = getProc state' (procname p)
+                            [ actual `elem` map Just expected @? "NonDet: unexpected procedure " ++ show name
+                            | (name, _) <- procs
+                            , let expected = [p | (n, p) <- procs, n == name]
+                            , let actual = getProc state' name
                             ]
                     sequence_ procChecks
                 _ -> do
                     let varChecks = [getVar state' k @?= v | (k, v) <- vars]
                     sequence_ varChecks
-                    let procChecks = [getProc state' (procname proc) @?= Just proc | proc <- procs]
+                    let procChecks = [getProc state' name @?= Just p | (name, p) <- procs]
                     sequence_ procChecks
