@@ -9,8 +9,12 @@ All notable changes to this project will be documented in this file.
 - Complete web support with WASM build and `xterm.js` integration
   - Map example files into WASI FS for the web REPL
   - Add automatic theme support for web REPL
+  - Add filename and metacommand completion, link to repository
 - Reorganize project structure (move `exe` to `src`)
 - Correct semantics modules' names (`Operational` to `Structural`, `Structural` to `Natural`)
+- Change constructors of `ProcDef`, `ProcInvoc`
+- Remove superfluous `Procedure` wrapper
+- Use `Map.Map` instead of list to store procedures in the state
 - Change syntax: `var` to `let`, `repeat` to `do`, `do ... times` to `repeat ... times`
 - Refactor REPL structure: create `REPL.State` and `REPL.Web` modules
 - Update workflows to use GHC 9.12.2 and add ARM64 Windows and aarch64-linux build support

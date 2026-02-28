@@ -8,22 +8,19 @@ import { dedent, log } from "@/util.ts";
 
 const logo = dedent`\x1b[1m
   o  _ _   _   ) o
-  ( ) ) ) )_) (  (
+  ( ) ) ) )_) (  (   - The IMP Language Interpreter
          (
   \x1b[0m`;
 
 const repository = "https://github.com/bfeitknecht/impli";
 
 const banner = dedent`\
-  Execute IMP in the browser and inspect resulting state.
+  Execute statements and inspect resulting state in the browser.
   Visit the \x1b]8;;${repository}\x1b\\repository\x1b]8;;\x1b\\ and leave a star!
   If you're into formal methods, check out the \x1b]8;;${repository}/blob/master/docs/paper/IMP.pdf\x1b\\paper\x1b]8;;\x1b\\ too.
   Made with <3 by Basil Feitknecht.
   `;
 
-/**
- * Get xterm theme from CSS variables
- */
 function getTheme() {
   if (typeof globalThis === "undefined") return {};
   const getVar = (name: string) =>
