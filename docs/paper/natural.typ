@@ -83,7 +83,7 @@
 )
 
 #let Invocation = rule(
-  name: [=== Invocation #footnote[$sigma(p) = (harpoon(x), harpoon(y), s)$ s.t. $|harpoon(x)| = |harpoon(a)|, |harpoon(y)| = |harpoon(z)|$]],
+  name: [=== Invocation #footnote[$sigma(p) = (harpoon(x), harpoon(y), s)$ such that $|harpoon(x)| = |harpoon(a)|$ and $|harpoon(y)| = |harpoon(z)|$]],
   $conf(s, sigma harpoon([x_i |-> eval(A, a_i)sigma])) -> sigma'$,
   $conf(proc(p, harpoon(a), harpoon(z)), sigma) -> sigma harpoon([z_j |-> sigma'(y_j)])$,
 )

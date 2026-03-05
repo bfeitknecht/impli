@@ -66,8 +66,8 @@ $
 
 Furthermore, the following functions allow for state updates.
 $
-     \_[dot -> dot] & : bs("State") -> bs("Var") -> bs("Val") -> bs("State") \
-     \_[dot => dot] & : bs("State") -> bs("Var") -> bs("Procedure") -> bs("State") \
+    \_[dot |-> dot] & : bs("State") -> bs("Var") -> bs("Val") -> bs("State") \
+    \_[dot |=> dot] & : bs("State") -> bs("Var") -> bs("Procedure") -> bs("State") \
   \_["break" = dot] & : bs("State") -> {#t, #f} -> bs("State") \
 $
 /*
