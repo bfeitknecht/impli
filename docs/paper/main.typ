@@ -70,17 +70,11 @@ $
     \_[dot |=> dot] & : bs("State") -> bs("Var") -> bs("Procedure") -> bs("State") \
   \_["break" = dot] & : bs("State") -> {#t, #f} -> bs("State") \
 $
-/*
-  sigma[x |-> a](x) & = eval(A, a)sigma \
-  sigma[p |=> P](p) & = P \
-*/
 
 #pagebreak()
 
 #include "natural.typ"
 
-/*
-#pagebreak()
+// #pagebreak()
 
-#include "structural.typ"
-*/
+// #include "structural.typ"
