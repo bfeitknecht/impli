@@ -69,6 +69,7 @@ loop = do
     action <- liftIO $ readIORef inputter
     line <- liftIO $ action (prompt' ++ separator' : " ")
     case line of
+        "\EOT" -> throwError Empty -- Ctrl-D, EOF
         "" -> loop
         ":)" -> outputln "You look good today!" >> loop
         (':' : meta) ->

@@ -152,12 +152,18 @@ export class Impli {
   }
 
   public async readInput(prompt: string) {
-    const line = await this.echo.read(prompt);
-    if ([":tips", ":t"].includes(line)) {
-      this.writeTips();
-      return "";
+    try {
+      const line = await this.echo.read(prompt);
+      if ([":tips", ":t"].includes(line)) {
+        this.writeTips();
+        return "";
+      } else {
+        return line;
+      }
+    } catch (_) {
+      // Ctrl-D — return EOT character to signal EOF
+      return "\x04";
     }
-    return line;
   }
 
   public writeTrace(path: string, trace: string) {

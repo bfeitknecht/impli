@@ -59,6 +59,9 @@ getVal x = do
     input <-
         liftIO (try (action (x ++ " := ")) :: IO (Either IOException String))
             >>= either (\_ -> Except.throwError Empty) return
+    case input of
+        "\EOT" -> Except.throwError Empty -- Ctrl-D EOF from browser
+        _ -> return ()
     case readMaybe input of
         Nothing -> do
             inform "invalid input, please enter an integer"
