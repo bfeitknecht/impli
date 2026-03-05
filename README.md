@@ -31,7 +31,7 @@ xattr -d com.apple.quarantine impli-*
 
 The most apparent deviations from the specifications are that parentheses are not required for arithmetic and boolean operations in expressions and sequential composition in statements. Additionally, the write-only placeholder variable `_` allows discarding of values. It can only be used on the lefthandside of variable definitions. For complete specification of the syntax refer to the [EBNF](docs/IMP.ebnf).
 
-The table below depicts the correspondence between semantics functions defined in the lectures and according functions in this project for `state` $\equiv \sigma$. For an overview of all natural semantics inference rules, check out the [whitepaper](docs/paper/IMP.pdf).
+The table below depicts the correspondence between semantics functions defined in the lectures and according functions in this project for $\sigma \equiv$ `state`. For an overview of all natural semantics inference rules, check out the [whitepaper](docs/paper/IMP.pdf).
 
 | FMFP                                                              | `impli`                                       |
 | ----------------------------------------------------------------- | --------------------------------------------- |

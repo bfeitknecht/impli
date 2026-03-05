@@ -58,6 +58,9 @@ jobs:
         run: deno task build
         working-directory: web
 
+      - name: Copy paper
+        run: cp docs/paper/IMP.pdf web/static
+
       - name: Upload artifact for GitHub Pages
         uses: actions/upload-pages-artifact@v3
         with:

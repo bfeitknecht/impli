@@ -13,9 +13,10 @@ const logo = dedent`\x1b[1m
   \x1b[0m`;
 
 const repository = "https://github.com/bfeitknecht/impli";
+const paper = "https://bfeitknecht.github.io/impli/IMP.pdf";
 const banner = dedent`\0\
   The IMP Language Interpreter in the browser!
-  Visit the \x1b]8;;${repository}\x1b\\repository\x1b]8;;\x1b\\ and check out the \x1b]8;;${repository}/blob/master/docs/paper/IMP.pdf\x1b\\paper\x1b]8;;\x1b\\.
+  Visit the \x1b]8;;${repository}\x1b\\repository\x1b]8;;\x1b\\ and check out the \x1b]8;;${paper}\x1b\\paper\x1b]8;;\x1b\\.
   Made with <3 by Basil Feitknecht.
   `;
 
