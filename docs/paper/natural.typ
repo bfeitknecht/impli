@@ -101,8 +101,8 @@
 
 #let Catch = rule(
   name: [=== Catch],
-  $conf(s_1, sigma) -> bot[n]$,
-  $conf(s_2, sigma[x |-> n]) -> sigma''$,
+  $conf(s_1, sigma) -> bot[v]$,
+  $conf(s_2, sigma[x |-> v]) -> sigma''$,
   $conf(tt("try") s_1 tt("catch") x tt("in") s_2 tt("end"), sigma) -> sigma''$,
 )
 
@@ -156,7 +156,7 @@
 )
 
 #let Flip = rule(
-  name: [=== Flip #footnote[$eval(A, |tt("_flip_")n)sigma = "0"$]],
+  name: [=== Flip #footnote[$eval(A, tt("_flip_")n)sigma = "0"$]],
   $conf(s_1, sigma) -> sigma_1$,
   $conf(tt("flip(")n#tt(")") s_1 tt("flop") s_2 tt("end"), sigma) -> sigma_1[tt("_flip_")n |->1]$,
 )
