@@ -21,7 +21,7 @@ Let the sets below denote the domains of their respective terms on the meta leve
 $
           a, a', ... & in bs("Aexp") \
               b, ... & in bs("Bexp") \
-        x, y, z, ... & in bs("Var") \
+     x, y, z, p, ... & in bs("Var") \
               v, ... & in bs("Val") = ZZ \
               n, ... & in bs("Numeral") \
               s, ... & in bs("Stm") \
@@ -33,13 +33,13 @@ $
                 lt.o & in {#("=", "#", "<", "<=", ">", ">=").map(tt).join(", ")}
 $
 
-For #IMP + #EXT, the state domain is defined as triple of variables, procedures, and break flag. Exceptions are denoted with $bot$ and some integer status code or irecoverable failure symbol.
+For #IMP + #EXT, the state domain is defined as triple of variables, procedures, and break flag. Exceptions are denoted with $bot$ and some integer status code or irrecoverable failure symbol.
 $
   bs("State") & = (bs("Var") -> bs("Val")) times (bs("Var") -> bs("Procedure")) times {#t, #f} union {bot} times (ZZ union {!})
 $
 
 The following semantic functions map syntactic representations to their semantic entities. \
-Uncircled operators denote the respective arithmetic or boolean operations or relations.
+Un-circled operators denote the respective arithmetic or boolean operations or relations.
 $
     eval(N, dot) & : bs("Numeral") -> bs("Val") \
   eval(A, dot)\_ & : bs("Aexp") -> bs("State") -> bs("Val") \
@@ -48,14 +48,14 @@ $
 
 $eval(N, dot)$ maps a numeral to its corresponding integer value, i.e. $eval(N, tt("42")) = 42$.
 
-The inductively defined $eval(A, dot)$ maps an arithmetic expression in some state to an integer value.
+The inductively defined $eval(A, dot)\_$ maps an arithmetic expression in some state to an integer value.
 $
               eval(A, n)sigma & = eval(N, n) \
               eval(A, x)sigma & = sigma(x) \
   eval(A, a_1 ast.o a_2)sigma & = eval(A, a_1)sigma ast eval(A, a_2)sigma
 $
 
-The inductive function $eval(B, dot)$ maps a boolean expression in some state to a truth value.
+The inductive function $eval(B, dot)\_$ maps a boolean expression in some state to a truth value.
 $
          eval(B, tt("true"))sigma & = #t \
         eval(B, tt("false"))sigma & = #f \
