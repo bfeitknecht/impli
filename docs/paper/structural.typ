@@ -57,7 +57,7 @@
 
 == #IMP
 
-These constitute the standard inference rules of #IMP with addition of $tt("print and $tt("read to facilitate IO.
+These constitute the standard inference rules of #IMP with addition of $tt("print")$ and $tt("read")$ to facilitate IO.
 #layout(
   (Skip, Assign),
   (Print, Read),
