@@ -1,7 +1,11 @@
-// computes the sum from 0 to 100
+// Procedure to compute the little gauss sum up to `n`
 
-while n < 100 do
-    s := s + n;
-    n := n + 1
-end;
+procedure sum(n; s) begin
+    while k < n do
+        s := s + k;
+        k := k + 1
+    end
+end
+
+sum(100; s);
 print s

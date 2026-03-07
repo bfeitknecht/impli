@@ -1,4 +1,5 @@
-// compute the quotient and remainder of d divided by v
+// Procedure to compute quotient and remainder of `d` divided by `v`
+
 procedure divmod(d, v; q, r) begin
     q := 0;
     r := d;

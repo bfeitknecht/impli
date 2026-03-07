@@ -1,11 +1,19 @@
-// linearly computes and prints the first 100 fibonacci numbers
+// Procedure to linearly compute and print the first `n` fibonacci numbers
 
-f0 := 0;
-f1 := 1;
-while n < 100 do
-    print f0;
-    t := f0;
-    f0 := f1;
-    f1 := f0 + t;
-    n := n + 1
+procedure fibonacci(n; f) begin
+    f0 := 0;
+    f1 := 1;
+    while k < n do
+        t := f0;
+        f0 := f1;
+        f1 := f0 + t;
+        k := k + 1
+    end;
+    f := f0
+end;
+
+while k < 100 do
+    fibonacci(k; f);
+    k += 1;
+    print f
 end

@@ -1,7 +1,7 @@
-// illustrates local variable definition
+// Local variable definition
 
 x := 42;
-var x := x + 17 in
+let x := x + 17 in
     print x
 end;
 print x

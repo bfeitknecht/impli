@@ -1,8 +1,15 @@
-// computes the tenth factorial
+// Procedure to compute the `n`-th factorial
 
-fac := 1;
-while n <= 10 do
-    n := n+1;
-    fac := fac * n
+procedure factorial(n; f) begin
+    f := 1;
+    while k <= n do
+        k += 1;
+        f *= k
+    end
 end;
-print fac
+
+while k < 20 do
+    factorial(k; f);
+    k += 1;
+    print f
+end
