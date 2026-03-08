@@ -10,7 +10,7 @@ This is an interpreter for the imperative toy language `IMP` from the course _Fo
 
 ## Usage
 
-To start the REPL, just run `impli` with no arguments. Pass the path of an `IMP` source file as argument to interpret it. Directly execute a statement with the `--command` option or print its AST with `--ast`. In the default state all variables are uninitialized with zero and no procedure is defined. Find some sample programs in `docs/examples/`.
+To start the REPL, just run `impli` with no arguments. Pass the path of an `IMP` source file as argument to interpret it. Directly execute a statement with the `--command` option or print its AST with `--ast`. In the initial state all variables are uninitialized with zero and no procedure is defined. Find some sample programs in `docs/examples/`.
 
 ## Installation
 
