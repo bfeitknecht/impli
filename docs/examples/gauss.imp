@@ -5,7 +5,7 @@ procedure sum(n; s) begin
         s := s + k;
         k := k + 1
     end
-end
+end;
 
 sum(100; s);
 print s
