@@ -139,14 +139,13 @@ export class Impli {
 
   public writeTips() {
     const message = dedent`\
-      Here's a list of things to get you up to speed.
-          - 'print' followed by an expression outputs its evaluation
-          - 'read' followed by some variable name assigns the input to it
-              - 'x += 1' increments the named variable
+      Here's some tips to get you up to speed. Tab-autocomplete works for meta-commands and filenames.
+          - 'print' followed by an arithmetic expression outputs its evaluation
+          - 'read' followed by a variable name assigns the input to it
+          - 'x += 1' increments the named variable
               - This principle also works to decrement, multiply, divide, and take the modulo
           - ':load prime.imp' interprets the named file
               - In this case that exposes the procedure 'prime'
-              - Invoke it and display the result with e.g. 'prime(31; p); print p'
       \n`;
     this.write(message);
   }
@@ -183,7 +182,8 @@ export class Impli {
       env: {},
       fs: examples,
       stdin: (_) => {
-        console.error("WASI stdin requested (this should never happen)");
+        console.error("WASI stdin requested - this should NEVER EVER happen!");
+        this.write("\n" + "*** ERROR: something has gone horribly wrong...");
         return null;
       },
       stdout: (text) => {

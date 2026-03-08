@@ -8,8 +8,7 @@ procedure factorial(n; f) begin
     end
 end;
 
-while k < 20 do
+for k := 0 to 20 do
     factorial(k; f);
-    k += 1;
     print f
 end

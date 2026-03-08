@@ -23,7 +23,7 @@
     stack(dir: ttb, spacing: row-gutter, ..rows),
   )
 }
-
+#let nothing = $diameter$
 #let dot = h(0.2em) + $dot$ + h(0.2em)
 #let tt(it) = raw(it)
 #let bs(it) = $bold(sans(it))$

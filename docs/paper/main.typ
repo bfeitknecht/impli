@@ -46,16 +46,16 @@ $
   eval(B, dot)\_ & : bs("Bexp") -> bs("State") -> {#t, #f}
 $
 
-$eval(N, dot)$ maps a numeral to its corresponding integer value, i.e. $eval(N, tt("42")) = 42$.
+$cal(N)$ maps a numeral to its corresponding integer value, i.e. $eval(N, tt("42")) = 42$. Its definition is omitted.
 
-The inductively defined $eval(A, dot)\_$ maps an arithmetic expression in some state to an integer value.
+$cal(A)$ is defined inductively and maps an arithmetic expression in some state to an integer value.
 $
               eval(A, n)sigma & = eval(N, n) \
               eval(A, x)sigma & = sigma(x) \
   eval(A, a_1 ast.o a_2)sigma & = eval(A, a_1)sigma ast eval(A, a_2)sigma
 $
 
-The inductive function $eval(B, dot)\_$ maps a boolean expression in some state to a truth value.
+$cal(B)$ is defined inductively and maps a boolean expression in some state to a truth value.
 $
          eval(B, tt("true"))sigma & = #t \
         eval(B, tt("false"))sigma & = #f \
@@ -75,6 +75,6 @@ $
 
 #include "natural.typ"
 
-// #pagebreak()
+#pagebreak()
 
-// #include "structural.typ"
+#include "structural.typ"

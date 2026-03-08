@@ -44,7 +44,7 @@ procedure prime(n; p) begin
     p := candidate
 end;
 
-while k < 32 do
+for k := 0 to 32 do
     prime(k; p);
     k += 1;
     print p

@@ -12,8 +12,7 @@ procedure fibonacci(n; f) begin
     f := f0
 end;
 
-while k < 100 do
+for k := 0 to 100 do
     fibonacci(k; f);
-    k += 1;
     print f
 end

@@ -64,7 +64,7 @@
 )
 
 #let Parallel = rule(
-  name: [=== Parallel],
+  name: [=== Parallel #footnote[$sigma_1 union sigma_2$ denotes combination of both states where the left operand dominates in conflicts]],
   $conf(s_1, sigma) -> sigma_1$,
   $conf(s_2, sigma) -> sigma_2$,
   $conf(s_1 tt("||") s_2, sigma) -> sigma_1 union sigma_2$,
