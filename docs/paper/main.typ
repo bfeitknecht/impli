@@ -75,6 +75,6 @@ $
 
 #include "natural.typ"
 
-#pagebreak()
+// #pagebreak()
 
-#include "structural.typ"
+// #include "structural.typ"
