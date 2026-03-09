@@ -10,9 +10,10 @@
 #let Assign = rule(
   name: [=== Assign #footnote[
     $a' = cases(
-      x op(ast.o) a comma space eq.o op(eq.triple.not) tt(":="),
+      x ast.o a comma space eq.o eq.triple.not tt(":="),
       a comma "otherwise",
-    )$, where $ast.o$ denotes definition operator's corresponding arithmetic operator]],
+    )$, where $ast.o$ denotes definition operator's corresponding arithmetic operator
+  ]],
   $conf(x eq.o a, sigma) -> sigma[x |-> eval(A, a')sigma]$,
 )
 
@@ -53,8 +54,13 @@
 )
 
 #let End = rule(
-  name: [=== End #footnote[$eval(B, b)sigma = #f$ or $sigma("break") = #t$]],
-  $conf(tt("while") b tt("do") s tt("end"), sigma) -> sigma["break" = #f]$,
+  name: [=== End #footnote[
+    $sigma' = cases(
+      sigma["break" = #f] comma space sigma("break") = eval(B, b)sigma = #t,
+      sigma comma "otherwise"
+    )$
+  ]],
+  $conf(tt("while") b tt("do") s tt("end"), sigma) -> sigma'$,
 )
 
 #let Local = rule(

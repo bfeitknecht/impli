@@ -10,9 +10,10 @@
 #let Assign = rule(
   name: [=== Assign #footnote[
     $a' = cases(
-      x op(ast.o) a comma space eq.o op(eq.triple.not) tt(":="),
+      x ast.o a comma space eq.o eq.triple.not tt(":="),
       a comma "otherwise"
-    )$, where $ast.o$ denotes definition operator's corresponding arithmetic operator]],
+    )$, where $ast.o$ denotes definition operator's corresponding arithmetic operator
+  ]],
   $conf(x eq.o a, sigma) ->_1 sigma[x |-> eval(A, a')sigma]$,
 )
 

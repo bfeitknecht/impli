@@ -14,6 +14,12 @@
 
 #show raw: set text(font: "CommitMono Nerd Font Mono")
 #show math.arrow: math.scripts
+#show math.cases: it => {
+  show math.eq: math.op
+  show math.eq.triple.not: math.op
+  show math.ast.o: math.op
+  it
+}
 
 = Semantics
 
