@@ -55,7 +55,7 @@
 
 #let Local = rule(
   name: [=== Local],
-  $conf(tt("let") x tt(":=") a tt("in") s tt("end"), sigma) ->_1 (s #tt(";") #tt("restore"), sigma'[x |-> sigma(x)])$,
+  $conf(tt("let") x tt(":=") a tt("in") s tt("end"), sigma) ->_1 (s #tt(";") #tt("restore") sigma, sigma'[x |-> sigma(x)])$,
 )
 
 #let Parallel = rule(
@@ -173,6 +173,8 @@
   $conf(d, sigma) -> sigma'$,
   $conf(tt("match") a tt("with") harpoon(v_i#tt(":") s_i#tt(",")) tt("default:") d, sigma) -> sigma'$,
 )
+
+#pagebreak()
 
 = Structural Semantics
 

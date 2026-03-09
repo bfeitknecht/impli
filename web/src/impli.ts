@@ -125,7 +125,7 @@ export class Impli {
   }
 
   public write(text: string) {
-    this.terminal.write(text.replace(/\n/g, "\r\n"));
+    this.echo.print(text);
   }
 
   public writeWelcome() {

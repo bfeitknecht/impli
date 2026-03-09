@@ -170,14 +170,16 @@
 #let Case = rule(
   name: [=== Case #footnote[$eval(A, a)sigma = v_k$]],
   $conf(s_k, sigma) -> sigma'$,
-  $conf(tt("match") a tt("with") harpoon(v_i#tt(":") s_i#tt(",")) tt("default:") d, sigma) -> sigma'$,
+  $conf(tt("match") a tt("on") harpoon(v_i#tt(":") s_i#tt(",")) tt("default:") d, sigma) -> sigma'$,
 )
 
 #let Default = rule(
-  name: [=== Default #footnote[$eval(A, a)sigma in.not {v_i}_(i in [m])$]],
+  name: [=== Default #footnote[$eval(A, a)sigma in.not {v_i | i in [m]}$]],
   $conf(d, sigma) -> sigma'$,
-  $conf(tt("match") a tt("with") harpoon(v_i#tt(":") s_i#tt(",")) tt("default:") d, sigma) -> sigma'$,
+  $conf(tt("match") a tt("on") harpoon(v_i#tt(":") s_i#tt(",")) tt("default:") d, sigma) -> sigma'$,
 )
+
+#pagebreak()
 
 = Natural Semantics
 
@@ -234,7 +236,7 @@ There's more than one way to loop. Note that #tt("_times") is only internally ac
   Repeat,
 )
 
-The #tt("flip") construct alternates execution between branches, where $tt("_flip_")n$ is only used internally. Zero or more cases and one default can be matched with.
+The #tt("flip") construct alternates execution between branches, where $tt("_flip_")n$ is only used internally. Zero or more cases and one default can be matched on.
 #layout(
   Flip,
   Flop,

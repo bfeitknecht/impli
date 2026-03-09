@@ -23,8 +23,10 @@
     stack(dir: ttb, spacing: row-gutter, ..rows),
   )
 }
-#let nothing = $diameter$
+
+#let emptyset = $diameter$
 #let dot = h(0.2em) + $dot$ + h(0.2em)
+#let fv = $"fv"$
 #let tt(it) = raw(it)
 #let bs(it) = $bold(sans(it))$
 #let conf(stm, state) = $chevron.l stm, state chevron.r$
