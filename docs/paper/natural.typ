@@ -10,7 +10,7 @@
 #let Assign = rule(
   name: [=== Assign #footnote[
     $a' = cases(
-      x ast.o a comma space eq.o eq.triple.not tt(":="),
+      x ast.o a comma eq.o eq.triple.not tt(":="),
       a comma "otherwise",
     )$, where $ast.o$ denotes definition operator's corresponding arithmetic operator
   ]],
@@ -56,7 +56,7 @@
 #let End = rule(
   name: [=== End #footnote[
     $sigma' = cases(
-      sigma["break" = #f] comma space sigma("break") = eval(B, b)sigma = #t,
+      sigma["break" = #f] comma sigma("break") = eval(B, b)sigma = #t,
       sigma comma "otherwise"
     )$
   ]],
@@ -101,15 +101,15 @@
 
 #let Try = rule(
   name: [=== Try],
-  $conf(s_1, sigma) -> sigma'$,
-  $conf(tt("try") s_1 tt("catch") x tt("in") s_2 tt("end"), sigma) -> sigma'$,
+  $conf(s_1, sigma) -> sigma_1$,
+  $conf(tt("try") s_1 tt("catch") x tt("in") s_2 tt("end"), sigma) -> sigma_1$,
 )
 
 #let Catch = rule(
   name: [=== Catch],
   $conf(s_1, sigma) -> bot[v]$,
-  $conf(s_2, sigma[x |-> v]) -> sigma''$,
-  $conf(tt("try") s_1 tt("catch") x tt("in") s_2 tt("end"), sigma) -> sigma''$,
+  $conf(s_2, sigma[x |-> v]) -> sigma_2$,
+  $conf(tt("try") s_1 tt("catch") x tt("in") s_2 tt("end"), sigma) -> sigma_2$,
 )
 
 #let Revert = rule(

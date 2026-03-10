@@ -139,13 +139,14 @@ export class Impli {
 
   public writeTips() {
     const message = dedent`\
-      Here's some tips to get you up to speed. Tab-autocomplete works for meta-commands and filenames.
+      Here are some tips to get you up to speed. Tab-autocomplete works for meta-commands and filenames.
           - 'print' followed by an arithmetic expression outputs its evaluation
           - 'read' followed by a variable name assigns the input to it
           - 'x += 1' increments the named variable
               - This principle also works to decrement, multiply, divide, and take the modulo
           - ':load prime.imp' interprets the named file
-              - In this case that exposes the procedure 'prime'
+              - In this case that defines the procedure 'prime'
+              - To compute and print the k-th prime number you can now enter 'prime(k; p); print p'
       \n`;
     this.write(message);
   }
