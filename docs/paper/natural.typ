@@ -164,7 +164,7 @@
 #let Flip = rule(
   name: [=== Flip #footnote[$eval(A, tt("_flip_")n)sigma = "0"$]],
   $conf(s_1, sigma) -> sigma_1$,
-  $conf(tt("flip(")n#tt(")") s_1 tt("flop") s_2 tt("end"), sigma) -> sigma_1[tt("_flip_")n |->1]$,
+  $conf(tt("flip(")n#tt(")") s_1 tt("flop") s_2 tt("end"), sigma) -> sigma_1[tt("_flip_")n |-> 1]$,
 )
 
 #let Flop = rule(
@@ -176,13 +176,13 @@
 #let Case = rule(
   name: [=== Case #footnote[$eval(A, a)sigma = v_k$]],
   $conf(s_k, sigma) -> sigma'$,
-  $conf(tt("match") a tt("on") harpoon(v_i#tt(":") s_i#tt(",")) tt("default:") d, sigma) -> sigma'$,
+  $conf(tt("match") a tt("on") harpoon(v_i#tt(":") s_i#tt(",")) tt("default:") d tt("end"), sigma) -> sigma'$,
 )
 
 #let Default = rule(
   name: [=== Default #footnote[$eval(A, a)sigma in.not {v_i | i in [m]}$]],
   $conf(d, sigma) -> sigma'$,
-  $conf(tt("match") a tt("on") harpoon(v_i#tt(":") s_i#tt(",")) tt("default:") d, sigma) -> sigma'$,
+  $conf(tt("match") a tt("on") harpoon(v_i#tt(":") s_i#tt(",")) tt("default:") d tt("end"), sigma) -> sigma'$,
 )
 
 #pagebreak()
