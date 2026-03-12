@@ -193,7 +193,7 @@ Again, the standard inference rules of #IMP with IO statements.
 
 #pagebreak()
 
-== #EXT
+== EXT
 
 Some various rules for extensions to #IMP.
 #layout(

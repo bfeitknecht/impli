@@ -33,7 +33,7 @@ Stm ::= 'skip'                                                                  
     | Stm '[]' Stm                                                                  /* non-determinism */
     | 'procedure' Ident '(' Params ';' Rets ')' 'begin' Stm 'end'                   /* procedure definition */
     | Ident '(' Args ';' Rets ')'                                                   /* procedure invocation */
-    | 'do' Stm 'until' Bexp                                                         /* post-exec conditional iteration */
+    | 'do' Stm 'until' Bexp 'end'                                                   /* post-exec conditional iteration */
     | 'for' Ident ':=' Aexp 'to' Aexp 'do' Stm 'end'                                /* incremental iteration */
     | 'repeat' Aexp 'times' Stm 'end'                                               /* arithmetic iteration */
     | 'revert' Stm 'if' Bexp                                                        /* conditional revert */

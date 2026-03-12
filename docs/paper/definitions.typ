@@ -33,8 +33,6 @@
 #let seq(s1, s2) = $s1#tt(";") s2$
 #let t = tt("true")
 #let f = tt("false")
-#let IMP = tt("IMP")
-#let EXT = tt("EXT")
 #let eval(X, x) = $cal(#X)[|#x|]$
 #let proc(name, args, rets) = {
   let format(val) = {

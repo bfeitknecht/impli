@@ -189,9 +189,9 @@
 
 = Natural Semantics
 
-== #IMP
+== IMP
 
-These constitute the standard inference rules of #IMP with addition of $tt("print")$ and $tt("read")$ to facilitate IO.
+These constitute the standard inference rules of IMP with addition of $tt("print")$ and $tt("read")$ to facilitate IO.
 #layout(
   (Skip, Assign),
   (Print, Read),
@@ -203,9 +203,9 @@ These constitute the standard inference rules of #IMP with addition of $tt("prin
 
 #pagebreak()
 
-== #EXT
+== EXT
 
-Here, various rules for extensions to #IMP are given.
+Here, various rules for extensions to IMP are given.
 These three rules are pretty straightforward.
 #layout(
   Local,

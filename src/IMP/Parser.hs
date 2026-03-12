@@ -165,6 +165,7 @@ ext =
         <*> parses @Stm
         <* keyword "until"
         <*> parses @Bexp
+        <* keyword "end"
     , for
         <$ keyword "for"
         <*> identifier

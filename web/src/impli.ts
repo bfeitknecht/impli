@@ -26,10 +26,10 @@ function getTheme() {
     getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 
   return {
-    background: getVar("--terminal-bg") || undefined,
-    foreground: getVar("--terminal-fg") || undefined,
-    cursor: getVar("--terminal-cursor") || undefined,
-    selectionBackground: getVar("--terminal-selection") || undefined,
+    background: getVar("--terminal-bg"),
+    foreground: getVar("--terminal-fg"),
+    cursor: getVar("--terminal-cursor"),
+    selectionBackground: getVar("--terminal-selection"),
   };
 }
 
@@ -111,7 +111,8 @@ export class Impli {
     globalThis.addEventListener("resize", () => this.fitter.fit());
 
     const applyTheme = () => {
-      this.terminal.options.theme = getTheme();
+      const theme = getTheme();
+      this.terminal.options.theme = theme;
     };
 
     const mql = globalThis.matchMedia("(prefers-color-scheme: dark)");

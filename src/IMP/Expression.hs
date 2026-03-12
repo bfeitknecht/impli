@@ -25,7 +25,7 @@ class Evaluate a b | a -> b where
     -- | Evaluate type in the context of some state to unique type.
     evaluate :: a -> State -> b
 
--- | Evaluate arithmetic expression to integer.
+-- | Evaluate arithmetic expression to integer value.
 instance Evaluate Aexp Integer where
     evaluate aexp state = case aexp of
         Val n -> n
@@ -43,7 +43,7 @@ instance Evaluate Aexp Integer where
                     Mod -> v1 %% v2
         Time s -> evaluate s state
 
--- | Evaluate boolean expression to boolean.
+-- | Evaluate boolean expression to truth value.
 instance Evaluate Bexp Bool where
     evaluate bexp state = case bexp of
         Lit b -> b
@@ -63,8 +63,7 @@ instance Evaluate Bexp Bool where
                     Gt -> v1 > v2
                     Geq -> v1 >= v2
 
--- | Evaluate statement to integer.
--- TODO: rewrite to count steps in structural semantics
+-- | Evaluate statement to integer indicating the number of definitions.
 instance Evaluate Stm Integer where
     evaluate stm state = case stm of
         Skip -> 0

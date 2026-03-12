@@ -15,6 +15,8 @@
 #show raw: set text(font: "CommitMono Nerd Font Mono")
 #show math.arrow: math.scripts
 #show math.cases: math.display
+#show "IMP": $bs("IMP")$
+#show "EXT": $bs("EXT")$
 
 = Semantics
 

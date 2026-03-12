@@ -45,7 +45,7 @@ async function generateExamples() {
 
     const now = new Date();
     export const examples = ${
-    JSON.stringify(entries).replace(/"__NOW__"/g, "now") // Sorry for the spaghetti
+    JSON.stringify(entries).replace(/"__NOW__"/g, "now") // Sorry for the spaghetti...
   };`;
 
   const result = OUTPUT + "/examples.js";

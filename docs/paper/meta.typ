@@ -17,7 +17,7 @@ $
                 lt.o & in {#("=", "#", "<", "<=", ">", ">=").map(tt).join(", ")}
 $
 
-For #IMP + #EXT, the state domain is defined as triple of variables, procedures, and break flag. Exceptions are denoted with $bot$ and some integer status code or irrecoverable failure symbol.
+For IMP + EXT, the state domain is defined as triple of variables, procedures, and break flag. Exceptions are denoted with $bot$ and some integer status code or irrecoverable failure symbol.
 $
   bs("State") & = (bs("Var") -> bs("Val")) times (bs("Var") -> bs("Procedure")) times {#t, #f} union {bot} times (ZZ union {!})
 $

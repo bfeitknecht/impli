@@ -6,8 +6,16 @@ export class App extends Component {
   private containerRef = createRef<HTMLDivElement>();
   private impli: Impli | null = null;
 
-  override componentDidMount() {
+  override async componentDidMount() {
     if (this.containerRef.current) {
+      if (document.readyState !== "complete") {
+        await new Promise((resolve) => {
+          globalThis.addEventListener("load", resolve, { once: true });
+        });
+      }
+
+      await document.fonts.ready;
+
       this.impli = new Impli(this.containerRef.current);
       this.impli.start();
     }
