@@ -43,7 +43,7 @@ type IO' = InputT IO
 -- | Encapsulation of REPL customization.
 data Setup = Setup
     { settings :: Settings IO
-    , prefs :: Prefs -- INFO: for more information visit https://github.com/haskell/haskeline/wiki/UserPreferences
+    , prefs :: Prefs -- INFO: For more information visit https://github.com/haskell/haskeline/wiki/UserPreferences
     }
 
 -- | Setup with arguments.

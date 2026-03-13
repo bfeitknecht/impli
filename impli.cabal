@@ -128,8 +128,15 @@ executable impli-web
 test-suite impli-test
   import: dependencies
   type: exitcode-stdio-1.0
-  hs-source-dirs: test
+  hs-source-dirs: test src
   main-is: Spec.hs
+  other-modules:
+    Paths_impli
+    REPL.Meta
+    REPL.Preset
+    REPL.State
+  autogen-modules:
+    Paths_impli
   build-depends:
     impli,
     tasty >=1.4 && <1.5,

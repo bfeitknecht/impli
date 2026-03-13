@@ -1,6 +1,7 @@
 module Main where
 
 import Control.Monad.Except (runExceptT)
+import Control.Monad.State (execStateT, modify)
 import Test.Tasty
 import Test.Tasty.HUnit
 
@@ -10,6 +11,9 @@ import IMP.Pretty
 import IMP.State
 import IMP.Statement
 import IMP.Syntax
+import REPL.Meta
+import REPL.Preset
+import REPL.State
 
 main :: IO ()
 main = defaultMain tests
@@ -22,6 +26,8 @@ tests =
         , evalTests
         , execTests
         , precedenceTests
+        , metaParseTests
+        , metaExecTests
         ]
 
 parseTests :: TestTree
@@ -225,3 +231,82 @@ assertExec state stm (vars, procs) = testCase (stringify stm) $ do
                     sequence_ varChecks
                     let procChecks = [getProc state' name @?= Just p | (name, p) <- procs]
                     sequence_ procChecks
+
+metaParseTests :: TestTree
+metaParseTests =
+    testGroup
+        "Metacommand Parse"
+        [ assertParseCommand "help" Help
+        , assertParseCommand "?" Help
+        , assertParseCommand "h" Help
+        , assertParseCommand "quit" Quit
+        , assertParseCommand "q" Quit
+        , assertParseCommand "clear" Clear
+        , assertParseCommand "c" Clear
+        , assertParseCommand "version" Version
+        , assertParseCommand "v" Version
+        , assertParseCommand "reset" (Reset All)
+        , assertParseCommand "reset vars" (Reset Vars)
+        , assertParseCommand "reset procs" (Reset Procs)
+        , assertParseCommand "reset break" (Reset Flag)
+        , assertParseCommand "reset trace" (Reset Trace)
+        , assertParseCommand "r" (Reset All)
+        , assertParseCommand "show" (Show All)
+        , assertParseCommand "show vars" (Show Vars)
+        , assertParseCommand "show procs" (Show Procs)
+        , assertParseCommand "show break" (Show Flag)
+        , assertParseCommand "show trace" (Show Trace)
+        , assertParseCommand "s" (Show All)
+        , assertParseCommand "load foo.imp" (Load "foo.imp")
+        , assertParseCommand "write out.imp" (Write "out.imp")
+        , assertParseCommand "ast skip" (AST (Input (Statement Skip)))
+        , assertParseCommand "ast #1" (AST (Index 1))
+        , assertParseCommand "ast 1 + 2" (AST (Input (Arithmetic (Bin Add (Val 1) (Val 2)))))
+        , assertParseCommand "set verbose normal" (Set (Verbose Normal))
+        , assertParseCommand "set verbose profile" (Set (Verbose Profile))
+        , assertParseCommand "set verbose debug" (Set (Verbose Debug))
+        , assertParseCommand "set prompt IMP" (Set (Prompt "IMP"))
+        , assertParseCommand "set prompt" (Set (Prompt ""))
+        , assertParseCommand "set separator >" (Set (Separator '>'))
+        ]
+
+metaExecTests :: TestTree
+metaExecTests =
+    testGroup
+        "Metacommand Execution"
+        [ assertExecMeta "reset all" (reset All) $ \store ->
+            _state store == initial && null (_trace store)
+        , assertExecMeta "reset vars" (withVars >> reset Vars) $ \store ->
+            getVars (_state store) == getVars initial
+        , assertExecMeta "reset procs" (reset Procs) $ \store ->
+            getProcs (_state store) == getProcs initial
+        , assertExecMeta "reset trace" (withTrace >> reset Trace) $ \store ->
+            null (_trace store)
+        , assertExecMeta "set verbose debug" (set (Verbose Debug)) $ \store ->
+            _verbose store == Debug
+        , assertExecMeta "set verbose profile" (set (Verbose Profile)) $ \store ->
+            _verbose store == Profile
+        , assertExecMeta "set verbose normal" (set (Verbose Normal)) $ \store ->
+            _verbose store == Normal
+        , assertExecMeta "set prompt foo" (set (Prompt "foo")) $ \store ->
+            _prompt store == "foo"
+        , assertExecMeta "set separator +" (set (Separator '+')) $ \store ->
+            _separator store == '+'
+        , assertExecMeta "set goodbye bye" (set (Goodbye "bye")) $ \store ->
+            _goodbye store == "bye"
+        ]
+  where
+    withVars = modify $ \st -> st {_state = setVar (_state st) "x" 42}
+    withTrace = modify $ \st -> st {_trace = [Skip]}
+
+assertParseCommand :: String -> Command -> TestTree
+assertParseCommand input expected =
+    testCase input $
+        parser "test" input @?= Right expected
+
+assertExecMeta :: String -> REPL IO () -> (Store -> Bool) -> TestTree
+assertExecMeta name action check = testCase name $ do
+    result <- runExceptT $ execStateT action start
+    case result of
+        Left e -> assertFailure $ "REPL action failed: " ++ show e
+        Right store -> check store @? "Store assertion failed"

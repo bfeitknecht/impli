@@ -134,7 +134,7 @@ whitespace = Token.whiteSpace lexer <?> "whitespace"
 symbol :: String -> Parser String
 symbol x = Token.symbol lexer x <?> x
 
--- | Parser for singla printable character.
+-- | Parser for a single printable character.
 printable :: Parser Char
 printable = satisfy (\c -> (c `notElem` " \t\n\r\f\v") && c > '\31')
 
@@ -146,7 +146,7 @@ word = spaces *> Token.lexeme lexer (many1 printable) <?> "word"
 sentence :: Parser String
 sentence = spaces *> Token.lexeme lexer (unwords <$> sepBy1 word spaces) <?> "sentence"
 
--- | Parser for a file path (either quoted or without spaces)
+-- | Parser for a file path (either quoted or without spaces).
 filepath :: Parser FilePath
 filepath = try quoted <|> unquoted <?> "file path"
     where

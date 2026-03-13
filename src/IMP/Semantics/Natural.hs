@@ -73,7 +73,7 @@ run (stm, state) = case stm of
             (Left e, _) -> throwError e
             (_, Left e) -> throwError e
             (Right (vs1', ps1', flag'), Right (vs2', ps2', _)) ->
-                -- INFO: on conflict, state result from s1 dominates
+                -- INFO: On conflict, state result from s1 dominates
                 return (Map.union vs1' vs2', Map.union ps1' ps2', flag')
     NonDet s1 s2 -> do
         left <- randomIO :: IMP Bool

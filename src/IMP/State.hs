@@ -78,7 +78,7 @@ getVar (vars, _, _) x = Map.findWithDefault 0 x vars
 
 -- | Set variable name to integer value.
 setVar :: State -> String -> Integer -> State
-setVar state "_" _ = state -- INFO: placeholder write-only variable
+setVar state "_" _ = state -- INFO: Placeholder write-only variable
 setVar _ "" _ = error "illegal argument for variable: identifier can't be empty string"
 setVar (vars, procs, flag) var val = (Map.insert var val vars, procs, flag)
 
