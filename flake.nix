@@ -1,13 +1,6 @@
 {
   description = "Flake for development and build of impli with WASM support";
 
-  nixConfig = {
-    extra-substituters = [ "https://ghc-wasm-meta.cachix.org" ];
-    extra-trusted-public-keys = [
-      "ghc-wasm-meta.cachix.org-1:6C9S967v6XvAizKovS/I844z6o0qR2r3/2DkY7vXGgY="
-    ];
-  };
-
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     ghc-wasm-meta = {
@@ -37,184 +30,219 @@
       ];
       forAllSystems = f: nixpkgs.lib.genAttrs supportedSystems (system: f system);
 
-      ghc = "ghc9122";
+      ghcVersion = "ghc9122";
       targetPrefix = "wasm32-wasi-";
 
-      # Create WASM-enabled Haskell packages using the approach from nix-wasm
-      wasmPkgs =
+      # Conveniences over the raw ghc-wasm-meta package set.
+      wasmTools =
         system:
         let
-          pkgs = import nixpkgs {
+          wasm = ghc-wasm-meta.packages.${system};
+        in
+        {
+          ghc = wasm.wasm32-wasi-ghc-9_12;
+          cabal = wasm.wasm32-wasi-cabal-9_12;
+          sdk = wasm.wasi-sdk;
+          all = wasm.all_9_12;
+          postLink = "${wasm.wasm32-wasi-ghc-9_12}/lib/post-link.mjs";
+        };
+
+      # Replaces the cross stdenv's CC with the WASM clang toolchain.
+      wasmStdenvConfig =
+        system:
+        let
+          wasm = wasmTools system;
+        in
+        {
+          config.replaceCrossStdenv =
+            { buildPackages, baseStdenv }:
+            buildPackages.stdenvNoCC.override {
+              inherit (baseStdenv)
+                buildPlatform
+                hostPlatform
+                targetPlatform
+                ;
+              cc = wasm.all // {
+                isGNU = false;
+                isClang = true;
+                inherit targetPrefix;
+                libc = wasm.sdk.overrideAttrs (attrs: {
+                  pname = attrs.name;
+                  version = "unstable";
+                });
+                bintools = wasm.all // {
+                  inherit targetPrefix;
+                  bintools = wasm.all // {
+                    inherit targetPrefix;
+                  };
+                };
+              };
+            };
+        };
+
+      wasmHaskellOverlay =
+        system:
+        let
+          wasm = wasmTools system;
+          nativePkgs = nixpkgs.legacyPackages.${system};
+        in
+        (final: prev: {
+          cabal-install = wasm.cabal;
+
+          haskell =
+            (prev.haskell.override (old: {
+              buildPackages = nixpkgs.lib.recursiveUpdate old.buildPackages {
+                haskell.compiler.${ghcVersion} = wasm.ghc // {
+                  inherit targetPrefix;
+                };
+              };
+            }))
+            // {
+              packageOverrides = nixpkgs.lib.composeManyExtensions [
+                prev.haskell.packageOverrides
+                (hfinal: hprev: {
+                  ghc = wasm.ghc // {
+                    inherit (nativePkgs.haskell.packages.${ghcVersion}.ghc) version haskellCompilerName;
+                    inherit targetPrefix;
+                  };
+
+                  mkDerivation =
+                    args:
+                    (hprev.mkDerivation (
+                      args
+                      // {
+                        enableLibraryProfiling = false;
+                        enableSharedLibraries = true;
+                        enableStaticLibraries = false;
+                        enableExternalInterpreter = false;
+                        doBenchmark = false;
+                        doHaddock = false;
+                        doCheck = false;
+                        jailbreak = true;
+                        configureFlags = [
+                          "--with-ld=${prev.stdenv.cc.bintools}/bin/lld"
+                          "--with-ar=${prev.stdenv.cc.bintools}/bin/ar"
+                          "--with-strip=${prev.stdenv.cc.bintools}/bin/strip"
+                        ];
+                        setupHaskellDepends = (args.setupHaskellDepends or [ ]) ++ [ wasm.sdk ];
+                        preBuild = ''
+                          ${args.preBuild or ""}
+                          export NIX_CC=$CC
+                        '';
+                      }
+                    )).overrideAttrs
+                      (attrs: {
+                        name = "${attrs.pname}-${targetPrefix}${attrs.version}";
+                        preSetupCompilerEnvironment = ''
+                          export CC_FOR_BUILD=$CC
+                        '';
+                      });
+
+                  impli = hfinal.callCabal2nix "impli" ./. { };
+                })
+              ];
+            };
+        });
+
+      # Cross pkgs for the given host system, composed from the pieces above.
+      wasmPkgs =
+        system:
+        import nixpkgs (
+          {
             inherit system;
             crossSystem = nixpkgs.lib.systems.elaborate nixpkgs.lib.systems.examples.wasi32 // {
               isStatic = false;
             };
-            config.replaceCrossStdenv =
-              { buildPackages, baseStdenv }:
-              buildPackages.stdenvNoCC.override {
-                inherit (baseStdenv)
-                  buildPlatform
-                  hostPlatform
-                  targetPlatform
-                  ;
-                cc = ghc-wasm-meta.packages.${system}.all_9_12 // {
-                  isGNU = false;
-                  isClang = true;
-                  libc = ghc-wasm-meta.packages.${system}.wasi-sdk.overrideAttrs (attrs: {
-                    pname = attrs.name;
-                    version = "unstable";
-                  });
-                  inherit targetPrefix;
-                  bintools = ghc-wasm-meta.packages.${system}.all_9_12 // {
-                    inherit targetPrefix;
-                    bintools = ghc-wasm-meta.packages.${system}.all_9_12 // {
-                      inherit targetPrefix;
-                    };
-                  };
-                };
-              };
-            crossOverlays = [
-              (final: prev: {
-                cabal-install = ghc-wasm-meta.packages.${system}.wasm32-wasi-cabal-9_12;
-                haskell =
-                  (prev.haskell.override (old: {
-                    buildPackages = nixpkgs.lib.recursiveUpdate old.buildPackages {
-                      haskell.compiler.${ghc} = ghc-wasm-meta.packages.${system}.wasm32-wasi-ghc-9_12 // {
-                        inherit targetPrefix;
-                      };
-                    };
-                  }))
-                  // {
-                    packageOverrides = nixpkgs.lib.composeManyExtensions [
-                      prev.haskell.packageOverrides
-                      (hfinal: hprev: {
-                        ghc = ghc-wasm-meta.packages.${system}.wasm32-wasi-ghc-9_12 // {
-                          inherit (nixpkgs.legacyPackages.${system}.haskell.packages.${ghc}.ghc) version haskellCompilerName;
-                          inherit targetPrefix;
-                        };
-                        mkDerivation =
-                          args:
-                          (hprev.mkDerivation (
-                            args
-                            // {
-                              enableLibraryProfiling = false;
-                              enableSharedLibraries = true;
-                              enableStaticLibraries = false;
-                              enableExternalInterpreter = false;
-                              doBenchmark = false;
-                              doHaddock = false;
-                              doCheck = false;
-                              jailbreak = true;
-                              configureFlags = [
-                                "--with-ld=${prev.stdenv.cc.bintools}/bin/lld"
-                                "--with-ar=${prev.stdenv.cc.bintools}/bin/ar"
-                                "--with-strip=${prev.stdenv.cc.bintools}/bin/strip"
-                              ];
-                              setupHaskellDepends = (args.setupHaskellDepends or [ ]) ++ [
-                                ghc-wasm-meta.packages.${system}.wasi-sdk
-                              ];
-                              preBuild = ''
-                                ${args.preBuild or ""}
-                                export NIX_CC=$CC
-                              '';
-                            }
-                          )).overrideAttrs
-                            (attrs: {
-                              name = "${attrs.pname}-${targetPrefix}${attrs.version}";
-                              preSetupCompilerEnvironment = ''
-                                export CC_FOR_BUILD=$CC
-                              '';
-                            });
-                        # Package-specific overrides
-                        impli = hfinal.callCabal2nix "impli" ./. { };
-                      })
-                    ];
-                  };
-              })
-            ];
-          };
-        in
-        pkgs;
-    in
-    {
-      packages = forAllSystems (
+            crossOverlays = [ (wasmHaskellOverlay system) ];
+          }
+          // wasmStdenvConfig system
+        );
+
+      # The impli-web WASM derivation for a given host system.
+      impliWeb =
         system:
         let
-          pkgs = import nixpkgs { inherit system; };
-          wasmPackages = wasmPkgs system;
-          haskellPackages = wasmPackages.haskell.packages.${ghc};
+          pkgs = nixpkgs.legacyPackages.${system};
+          wasm = wasmTools system;
+          hpkgs = (wasmPkgs system).haskell.packages.${ghcVersion};
+        in
+        hpkgs.impli.overrideAttrs (old: {
+          nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [
+            pkgs.binaryen
+            pkgs.deno
+            pkgs.nodejs
+          ];
+          postInstall = ''
+            ${old.postInstall or ""}
+
+            # Ensure the binary has a .wasm extension.
+            if [ ! -f $out/bin/impli-web.wasm ] && [ -f $out/bin/impli-web ]; then
+              cp $out/bin/impli-web $out/bin/impli-web.wasm
+            fi
+            if [ ! -f $out/bin/impli-web.wasm ]; then
+              echo "ERROR: impli-web.wasm not found in $out/bin/"
+              ls -la $out/bin/ || true
+              exit 1
+            fi
+
+            # Optimise with wasm-opt.
+            echo "Running wasm-opt..."
+            wasm-opt -Os $out/bin/impli-web.wasm -o $out/bin/impli.wasm
+
+            # Generate the GHC JS stub.
+            echo "Generating stub.js..."
+            mkdir -p $out/web
+            ${wasm.postLink} -i $out/bin/impli.wasm -o $out/web/stub.js
+
+            # Clean up other files
+            find $out/bin -type f -not -name 'impli.wasm' -delete
+            rm -rf $out/lib $out/share || true
+          '';
+        });
+    in
+    {
+      packages = forAllSystems (system: {
+        impli-web = impliWeb system;
+        default = impliWeb system;
+      });
+
+      apps = forAllSystems (
+        system:
+        let
+          pkgs = nixpkgs.legacyPackages.${system};
+          buildScript = pkgs.writeShellScriptBin "build" ''
+            set -euo pipefail
+
+            if [ ! -d "web" ]; then
+              echo "Error: 'web' directory not found. Please run this from the project root."
+              exit 1
+            fi
+
+            echo "Copying WASM and stub to web/static..."
+            mkdir -p web/static
+            cp "${impliWeb system}/bin/impli.wasm" web/static/impli.wasm
+            cp "${impliWeb system}/web/stub.js" web/static/stub.js
+            chmod +w web/static/impli.wasm web/static/stub.js
+
+            echo "Running deno task build..."
+            cd web
+            ${pkgs.deno}/bin/deno task build
+            echo "Done!"
+          '';
         in
         {
-          impli-web = haskellPackages.impli.overrideAttrs (old: {
-            nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [
-              pkgs.binaryen
-              pkgs.nodejs
-            ];
-            postInstall = ''
-              ${old.postInstall or ""}
-              # Copy the WASM binary with the expected name
-              if [ -f $out/bin/impli-web.wasm ]; then
-                true
-              elif [ -f $out/bin/impli-web ]; then
-                cp $out/bin/impli-web $out/bin/impli-web.wasm
-              else
-                echo "Warning: impli-web binary not found at expected locations ($out/bin/impli-web.wasm or $out/bin/impli-web)"
-                echo "Build may have failed or binary name may have changed. Contents of $out/bin/:"
-                ls -la $out/bin/ || true
-              fi
-
-              # Optimize the WASM binary with wasm-opt
-              if [ -f "$out/bin/impli-web.wasm" ]; then
-                echo "Running wasm-opt on impli-web.wasm..."
-                wasm-opt -Os "$out/bin/impli-web.wasm" -o "$out/bin/impli-web.wasm" || {
-                  echo "ERROR: wasm-opt optimization failed"
-                  exit 1
-                }
-                echo "WASM optimization complete"
-              fi
-
-              # Generate stub.js using post-link.mjs
-              echo "Generating stub.js..."
-              mkdir -p $out/web
-              ${ghc-wasm-meta.packages.${system}.wasm32-wasi-ghc-9_12}/lib/post-link.mjs \
-                -i $out/bin/impli-web.wasm \
-                -o $out/web/stub.js || {
-                echo "ERROR: stub.js generation failed"
-                exit 1
-              }
-              echo "stub.js generated successfully"
-            '';
-          });
-
-          default = self.packages.${system}.impli-web;
+          build = {
+            type = "app";
+            program = "${buildScript}/bin/build";
+          };
+          default = self.apps.${system}.build;
         }
       );
 
       devShells = forAllSystems (
         system:
         let
-          pkgs = import nixpkgs { inherit system; };
-          wasmTools = ghc-wasm-meta.packages.${system}.all_9_12 or null;
-
-          shellMessage = ''
-            ======================================
-            impli WASM development environment (${system})
-            ======================================
-
-            Available tools:
-              ${
-                if wasmTools != null then
-                  "- wasm32-wasi-cabal (WASM builds)\n  - wasm32-wasi-ghc (WASM GHC)"
-                else
-                  "- [Note] WASM toolchain (ghc-wasm-meta) not available for this platform"
-              }
-              - fourmolu (code formatter)
-              - node (Node.js)
-              - python (Python 3)
-
-            To build via Nix:
-              nix build .#impli-web
-          '';
+          pkgs = nixpkgs.legacyPackages.${system};
         in
         {
           default = pkgs.mkShell {
@@ -222,26 +250,23 @@
               pkgs.python3
               pkgs.fourmolu
               pkgs.brotli
-              pkgs.nodejs
-            ]
-            ++ (if wasmTools != null then [ wasmTools ] else [ ]);
-
-            shellHook = "echo '${shellMessage}'";
+              pkgs.deno
+              (wasmTools system).all
+            ];
+            shellHook = ''
+              echo "impli dev shell (${system})"
+              echo "  nix run .#build   -- build WASM output, copy to web/static, and run Deno build"
+            '';
           };
         }
       );
 
       formatter = forAllSystems (
         system:
-        let
-          pkgs = import nixpkgs { inherit system; };
-          treefmtConfig = {
-            projectRootFile = "flake.nix";
-            programs.nixfmt.enable = true;
-            programs.nixfmt.package = pkgs.nixfmt-rfc-style;
-          };
-        in
-        (treefmt-nix.lib.evalModule pkgs treefmtConfig).config.build.wrapper
+        (treefmt-nix.lib.evalModule nixpkgs.legacyPackages.${system} {
+          projectRootFile = "flake.nix";
+          programs.nixfmt.enable = true;
+        }).config.build.wrapper
       );
     };
 }

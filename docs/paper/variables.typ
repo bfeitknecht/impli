@@ -36,7 +36,7 @@ $
   fv(proc(p, harpoon(a), harpoon(z))) & = {p} union {harpoon(z)} union {fv(a_i) | i in [m]} \
   fv(tt("break")) & = emptyset \
   fv(tt("revert") s tt("if") b tt("end")) & = fv(s) union fv(b) \
-  fv(tt("match") a tt("with") harpoon(v_i#tt(":") s_i#tt(",")) tt("default:") d) & = fv(a) union fv(d) union {fv(s_i) | i in [m]} \
+  fv(tt("match") a tt("with") harpoon(v_i#tt(":") s_i#tt(",")) tt("default:") d tt("end")) & = fv(a) union fv(d) union {fv(s_i) | i in [m]} \
   fv(tt("havoc") x) & = {x} \
   fv(tt("assert") b) & = fv(b) \
   fv(tt("flip(")n#tt(")") s_1 tt("flop") s_2 tt("end")) & = fv(s_1) union fv(s_2) \

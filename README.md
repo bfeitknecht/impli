@@ -20,7 +20,7 @@ Build artifacts for macOS, Linux, and Windows are available under [GitHub Releas
  curl -L "https://github.com/bfeitknecht/impli/releases/latest/download/<BIN>" -o impli
 ```
 
-On macOS, you may need to modify execution privileges and remove the quarantine attribute.
+You may need to modify execution privileges and remove the quarantine attribute on macOS.
 
 ```bash
 chmod +x impli
@@ -29,7 +29,7 @@ xattr -d com.apple.quarantine impli
 
 ## Specification
 
-The most apparent deviations from the specifications are that parentheses are not required for arithmetic and boolean operations in expressions and sequential composition in statements. Additionally, the write-only placeholder variable `_` allows discarding of values. It can only be used on the lefthandside of variable definitions. For complete specification of the syntax refer to the [EBNF](docs/IMP.ebnf).
+The most apparent deviations from the specifications are that parentheses are not required for arithmetic or boolean operations in expressions, and sequential composition in statements. Additionally, the write-only placeholder variable `_` allows discarding of values. It can only be used on the lefthandside of variable definitions. For complete specification of the syntax refer to the [EBNF](docs/IMP.ebnf).
 
 The table below depicts the correspondence between semantics functions defined in the lectures and according functions in this project for $\sigma \equiv$ `state`. For an overview of all natural semantics inference rules, check out the [paper](docs/paper/IMP.pdf).
 

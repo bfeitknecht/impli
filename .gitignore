@@ -1,6 +1,7 @@
 **/.DS_Store
 .private
 dist-newstyle
+result
 cabal.project.local
 hie.yaml
 
