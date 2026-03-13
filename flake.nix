@@ -193,10 +193,6 @@
             echo "Generating stub.js..."
             mkdir -p $out/web
             ${wasm.postLink} -i $out/bin/impli.wasm -o $out/web/stub.js
-
-            # Clean up other files
-            find $out/bin -type f -not -name 'impli.wasm' -delete
-            rm -rf $out/lib $out/share || true
           '';
         });
     in
