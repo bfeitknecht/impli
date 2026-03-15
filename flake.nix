@@ -214,11 +214,11 @@
               exit 1
             fi
 
-            echo "Copying WASM and stub to web/static..."
-            mkdir -p web/static
-            cp "${impliWeb system}/bin/impli.wasm" web/static/impli.wasm
-            cp "${impliWeb system}/web/stub.js" web/static/stub.js
-            chmod +w web/static/impli.wasm web/static/stub.js
+            echo "Copying WASM and stub to web/public..."
+            mkdir -p web/public
+            cp "${impliWeb system}/bin/impli.wasm" web/public/impli.wasm
+            cp "${impliWeb system}/web/stub.js" web/public/stub.js
+            chmod +w web/public/impli.wasm web/public/stub.js
 
             echo "Running deno task build..."
             cd web
@@ -251,7 +251,7 @@
             ];
             shellHook = ''
               echo "impli dev shell (${system})"
-              echo "  nix run .#build   -- build WASM output, copy to web/static, and run Deno build"
+              echo "  nix run .#build   -- build WASM output, copy to web/public, and run Deno build"
             '';
           };
         }

@@ -5,8 +5,4 @@ result
 cabal.project.local
 hie.yaml
 
-web/static/*
-!web/static/index.html
-!web/static/styles.css
-!web/static/favicon.ico
-!web/static/CommitMono*.woff2
+web/public/

@@ -1,7 +1,7 @@
 import { dedent } from "@/util.ts";
 
 const EXAMPLES = "../docs/examples";
-const OUTPUT = "./static";
+const OUTPUT = "./public";
 
 async function generateExamples() {
   console.log("Generating examples.js from IMP files...");
