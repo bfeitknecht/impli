@@ -4,11 +4,11 @@ This directory contains the TypeScript/Preact source for the `impli` web fronten
 
 ### Files
 
-| File | Description |
-| --- | --- |
-| [`App.tsx`](App.tsx) | Root Preact component — checks browser compatibility and mounts the terminal |
-| [`impli.ts`](impli.ts) | `Impli` class — owns the xterm.js terminal, WASM instantiation, and JSFFI callbacks |
-| [`util.ts`](util.ts) | Shared utilities: context-aware debug logger and `dedent` template-literal tag |
+| File                                 | Description                                                                            |
+| ------------------------------------ | -------------------------------------------------------------------------------------- |
+| [`App.tsx`](App.tsx)                 | Root Preact component — checks browser compatibility and mounts the terminal           |
+| [`impli.ts`](impli.ts)               | `Impli` class — owns the xterm.js terminal, WASM instantiation, and JSFFI callbacks    |
+| [`util.ts`](util.ts)                 | Shared utilities: context-aware debug logger and `dedent` template-literal tag         |
 | [`Unsupported.tsx`](Unsupported.tsx) | Fallback component displayed when WebAssembly or required browser APIs are unavailable |
 
 ### Overview

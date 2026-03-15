@@ -4,9 +4,9 @@ This directory contains the two semantic models for the IMP language.
 
 ### Modules
 
-| Module | Description |
-| --- | --- |
-| [`Natural`](Natural.hs) | Big-step (natural) semantics — executes a statement in one step to the final state |
+| Module                        | Description                                                                                                 |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| [`Natural`](Natural.hs)       | Big-step (natural) semantics — executes a statement in one step to the final state                          |
 | [`Structural`](Structural.hs) | Small-step (structural) semantics — executes a statement step by step, exposing intermediate configurations |
 
 ### Overview

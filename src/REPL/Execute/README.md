@@ -4,10 +4,10 @@ This directory contains the backend-specific `Dispatches` instances for the IMP 
 
 ### Modules
 
-| Module | Description |
-| --- | --- |
-| [`Native`](Native.hs) | Native CLI backend using [haskeline](https://hackage.haskell.org/package/haskeline) for readline-style input, history, and interrupt handling |
-| [`Browser`](Browser.hs) | Browser backend compiled to WebAssembly, bridging Haskell and JavaScript via the GHC WASM FFI |
+| Module                  | Description                                                                                                                                   |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`Native`](Native.hs)   | Native CLI backend using [haskeline](https://hackage.haskell.org/package/haskeline) for readline-style input, history, and interrupt handling |
+| [`Browser`](Browser.hs) | Browser backend compiled to WebAssembly, bridging Haskell and JavaScript via the GHC WASM FFI                                                 |
 
 ### `Native` Backend
 

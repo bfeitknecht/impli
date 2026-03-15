@@ -295,9 +295,9 @@ metaExecTests =
         , assertExecMeta "set goodbye bye" (set (Goodbye "bye")) $ \store ->
             _goodbye store == "bye"
         ]
-  where
-    withVars = modify $ \st -> st {_state = setVar (_state st) "x" 42}
-    withTrace = modify $ \st -> st {_trace = [Skip]}
+    where
+        withVars = modify $ \st -> st {_state = setVar (_state st) "x" 42}
+        withTrace = modify $ \st -> st {_trace = [Skip]}
 
 assertParseCommand :: String -> Command -> TestTree
 assertParseCommand input expected =
