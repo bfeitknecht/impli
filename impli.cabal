@@ -135,9 +135,19 @@ test-suite impli-test
     REPL.Meta
     REPL.Preset
     REPL.State
+    IMP.Config
+    IMP.Exception
+    IMP.Expression
+    IMP.Lexer
+    IMP.Parser
+    IMP.Pretty
+    IMP.Semantics.Natural
+    IMP.Semantics.Structural
+    IMP.State
+    IMP.Statement
+    IMP.Syntax
   autogen-modules:
     Paths_impli
   build-depends:
-    impli,
     tasty >=1.4 && <1.5,
     tasty-hunit >=0.10 && <0.11,
