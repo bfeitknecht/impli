@@ -41,9 +41,9 @@ The table below depicts the correspondence between semantics functions defined i
 | $\langle s, \sigma \rangle \to \cdot$       | `IMP.Semantics.Natural.run (s, state)`        |
 | $\langle s, \sigma \rangle \to_{1} \cdot$   | `IMP.Semantics.Structural.step (s, [state])`  |
 | $\langle s, \sigma \rangle \to_{1}^* \cdot$ | `IMP.Semantics.Structural.steps (s, [state])` |
-| $\mathcal{N}[\![n]\!]$                      | `n`                                           |
-| $\mathcal{A}[\![a]\!]\sigma$                | `IMP.Expression.evaluate a state`             |
-| $\mathcal{B}[\![b]\!]\sigma$                | `IMP.Expression.evaluate b state`             |
+| $\mathcal{N}[[n]]$                          | `n`                                           |
+| $\mathcal{A}[[a]]\sigma$                    | `IMP.Expression.evaluate a state`             |
+| $\mathcal{B}[[b]]\sigma$                    | `IMP.Expression.evaluate b state`             |
 
 ## Star History
 
