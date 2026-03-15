@@ -36,7 +36,8 @@ Building is a two-stage process.
 
 ```sh
 nix build .#impli-web
-cp result/bin/impli-web.wasm web/public/impli.wasm
+mkdir -p web/public
+cp result/bin/impli.wasm web/public/impli.wasm
 cp result/web/stub.js web/public/stub.js
 ```
 
