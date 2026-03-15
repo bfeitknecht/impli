@@ -36,7 +36,7 @@ Stm ::= 'skip'                                                                  
     | 'do' Stm 'until' Bexp 'end'                                                   /* post-exec conditional iteration */
     | 'for' Ident ':=' Aexp 'to' Aexp 'do' Stm 'end'                                /* incremental iteration */
     | 'repeat' Aexp 'times' Stm 'end'                                               /* arithmetic iteration */
-    | 'revert' Stm 'if' Bexp                                                        /* conditional revert */
+    | 'revert' Stm 'if' Bexp 'end'                                                  /* conditional revert */
     | 'break'                                                                       /* break flag */
     | 'match' Aexp 'on' ( Numeral ':' Stm ',' )* 'default' ':' Stm 'end'            /* pattern match */
     | 'havoc' Ident                                                                 /* random variable definition */

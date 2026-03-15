@@ -210,7 +210,7 @@ All notable changes to this project will be documented in this file.
 ## [0.1.0] - 2025-04-16
 
 - Initial release.
-- First release of the `IMP` CLI tool.
+- First release of the IMP CLI tool.
 - Contains the interpreter, REPL, and some example programs.
 
 ---

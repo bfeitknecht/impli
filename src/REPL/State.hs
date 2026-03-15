@@ -24,7 +24,6 @@ import Control.Monad.State hiding (State, state)
 import Data.Version (showVersion)
 
 import qualified Data.Map as Map
-import qualified Paths_impli as Paths
 
 import IMP.Exception
 import IMP.Parser
@@ -34,6 +33,8 @@ import IMP.Statement
 import IMP.Syntax
 import REPL.Meta
 import REPL.Preset
+
+import qualified Paths_impli as Paths
 
 -- | Encapsulation of state in REPL.
 data Store = Store

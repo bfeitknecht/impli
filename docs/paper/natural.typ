@@ -191,7 +191,7 @@
 
 == IMP
 
-These constitute the standard inference rules of IMP with addition of $tt("print")$ and $tt("read")$ to facilitate IO.
+The inference rules of standard IMP with addition of $tt("print")$ and $tt("read")$ to facilitate IO.
 #layout(
   (Skip, Assign),
   (Print, Read),

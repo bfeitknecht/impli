@@ -187,6 +187,7 @@ ext =
         <*> parses @Stm
         <* keyword "if"
         <*> parses @Bexp
+        <* keyword "end"
     , Break <$ keyword "break" -- INFO: Parses outside while
     , Match
         <$ keyword "match"

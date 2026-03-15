@@ -4,7 +4,7 @@ import Control.Exception (bracket)
 import Control.Monad.Except (runExceptT)
 import Control.Monad.State (execStateT, modify)
 import GHC.IO.Handle (hDuplicate, hDuplicateTo)
-import System.IO (IOMode (WriteMode), hClose, openFile, stdout, withFile)
+import System.IO (IOMode (WriteMode), hClose, stdout, withFile)
 import Test.Tasty
 import Test.Tasty.HUnit
 
@@ -102,7 +102,7 @@ testParseStm =
             "repeat 4 times skip end"
             (Local "_times" (Val 0) (While (Rel Lt (Var "_times") (Val 4)) (Seq Skip (VarDef "_times" Inc (Val 1)))))
         , assertParseStm
-            "revert x := 1 if true"
+            "revert x := 1 if true end"
             (Revert (VarDef "x" Def (Val 1)) (Lit True))
         , assertParseStm "x := 1 + 2 * 3" (VarDef "x" Def (Bin Add (Val 1) (Bin Mul (Val 2) (Val 3))))
         , assertParseStm "x := (1 + 2) * 3" (VarDef "x" Def (Bin Mul (Bin Add (Val 1) (Val 2)) (Val 3)))

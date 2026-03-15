@@ -8,7 +8,7 @@
 $
   fv : bs("Aexp") union bs("Bexp") union bs("Stm") -> cal(P)(bs("Var"))
 $
-$fv$ is defined inductively and yields the set of freely occurring variables within some construct.
+$fv$ is defined inductively and yields the set of free variables occurring within some construct.
 
 $
   fv(n) & = emptyset \

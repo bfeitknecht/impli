@@ -1,4 +1,4 @@
-## `IMP` Semantics
+## IMP Semantics
 
 This directory contains the two semantic models for the IMP language.
 

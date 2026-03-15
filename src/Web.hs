@@ -17,16 +17,13 @@ module Main where
 
 import Data.IORef
 import GHC.Wasm.Prim
+import System.IO
 
 import IMP.State (inputter)
 import REPL.Execute.Browser
 import REPL.State
 
-import System.IO
-
 -- | Read input from JavaScript (awaits promise from @impli.readInput()@).
--- The 'safe' keyword is crucial here: it allows GHC's WASM backend to suspend
--- the Haskell thread and yield to the JS event loop until the Promise resolves.
 foreign import javascript safe "await globalThis.impli.readInput($1)" js_readInput :: JSString -> IO JSString
 
 -- | Get line from terminal via JSFFI.
@@ -41,7 +38,7 @@ main :: IO ()
 main = do
     hSetBuffering stdout NoBuffering
     hSetBuffering stderr NoBuffering
-    -- Override the global input action to use our JSFFI bridge instead of standard getLine
+    -- Override the global input action to use JSFFI bridge instead of standard getLine
     writeIORef inputter getInput
     repl start -- INFO: Should never return
     error "how did you get here?"
