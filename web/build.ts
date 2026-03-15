@@ -74,6 +74,7 @@ async function bundleApp() {
 }
 
 async function main() {
+  await Deno.mkdir(OUTPUT, { recursive: true });
   await generateExamples();
   await bundleApp();
 }
