@@ -31,19 +31,19 @@ xattr -d com.apple.quarantine impli
 
 The most apparent deviations from the specifications are that parentheses are not required for arithmetic or boolean operations in expressions, and sequential composition in statements. Additionally, the write-only placeholder variable `_` allows discarding of values. It can only be used on the lefthandside of variable definitions. For complete specification of the syntax refer to the [EBNF](docs/IMP.ebnf).
 
-The table below depicts the correspondence between semantics functions defined in the lectures and according functions in this project for $\sigma \equiv$ `state`. For an overview of all natural semantics inference rules, check out the [paper](docs/paper/IMP.pdf).
+The table below depicts the correspondence between semantics functions defined in the lectures and according functions in this project for $\sigma$ equivalent to `state`. For an overview of all natural semantics inference rules, check out the [paper](docs/paper/IMP.pdf).
 
-| FMFP                                        | `impli`                                       |
-| ------------------------------------------- | --------------------------------------------- |
-| $\sigma_{\text{zero}}$                      | `IMP.State.initial`                           |
-| $\sigma(x)$                                 | `IMP.State.getVar state x`                    |
-| $\sigma[x \mapsto n]$                       | `IMP.State.setVar state x n`                  |
-| $\langle s, \sigma \rangle \to \cdot$       | `IMP.Semantics.Natural.run (s, state)`        |
-| $\langle s, \sigma \rangle \to_{1} \cdot$   | `IMP.Semantics.Structural.step (s, [state])`  |
-| $\langle s, \sigma \rangle \to_{1}^* \cdot$ | `IMP.Semantics.Structural.steps (s, [state])` |
-| $\mathcal{N}[[n]]$                          | `n`                                           |
-| $\mathcal{A}[[a]]\sigma$                    | `IMP.Expression.evaluate a state`             |
-| $\mathcal{B}[[b]]\sigma$                    | `IMP.Expression.evaluate b state`             |
+| FMFP                                          | `impli`                                       |
+| --------------------------------------------- | --------------------------------------------- |
+| $\sigma_{\text{zero}}$                        | `IMP.State.initial`                           |
+| $\sigma(x)$                                   | `IMP.State.getVar state x`                    |
+| $\sigma[x \mapsto n]$                         | `IMP.State.setVar state x n`                  |
+| $\langle s, \sigma \rangle \to \cdot$         | `IMP.Semantics.Natural.run (s, state)`        |
+| $\langle s, \sigma \rangle \to_{1} \cdot$     | `IMP.Semantics.Structural.step (s, [state])`  |
+| $\langle s, \sigma \rangle \to_{1}^{*} \cdot$ | `IMP.Semantics.Structural.steps (s, [state])` |
+| $\mathcal{N}[[n]]$                            | `n`                                           |
+| $\mathcal{A}[[a]]\sigma$                      | `IMP.Expression.evaluate a state`             |
+| $\mathcal{B}[[b]]\sigma$                      | `IMP.Expression.evaluate b state`             |
 
 ## Star History
 
