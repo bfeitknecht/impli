@@ -1,7 +1,10 @@
 module Main where
 
+import Control.Exception (bracket)
 import Control.Monad.Except (runExceptT)
 import Control.Monad.State (execStateT, modify)
+import GHC.IO.Handle (hDuplicate, hDuplicateTo)
+import System.IO (IOMode (WriteMode), hClose, openFile, stdout, withFile)
 import Test.Tasty
 import Test.Tasty.HUnit
 
@@ -338,9 +341,18 @@ assertParseCommand input expected =
     testCase input $
         parser "test" input @?= Right expected
 
+silence :: IO a -> IO a
+silence action =
+    withFile "/dev/null" WriteMode $ \nullHandle ->
+        bracket (hDuplicate stdout) hClose $ \stdoutDup -> do
+            hDuplicateTo nullHandle stdout
+            result <- action
+            hDuplicateTo stdoutDup stdout
+            return result
+
 assertExecCommand :: String -> REPL IO () -> (Store -> Bool) -> TestTree
 assertExecCommand name action check = testCase name $ do
-    result <- runExceptT $ execStateT action start
+    result <- silence $ runExceptT $ execStateT action start
     case result of
         Left e -> assertFailure $ "REPL action failed: " ++ show e
         Right store -> check store @? "Store assertion failed"
