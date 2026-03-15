@@ -34,13 +34,15 @@ jobs:
       - name: Build impli web REPL (WASM binary and JS artifacts)
         run: nix run .#build
 
-      - name: Copy paper
-        run: cp docs/paper/IMP.pdf web/static
+      - name: Copy static assets and paper to public
+        run: |
+          cp -r web/static/. web/public/
+          cp docs/paper/IMP.pdf web/public/
 
       - name: Upload artifact for GitHub Pages
         uses: actions/upload-pages-artifact@v3
         with:
-          path: "web/static"
+          path: "web/public"
 
   deploy:
     runs-on: ubuntu-latest

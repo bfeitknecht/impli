@@ -36,8 +36,9 @@ Building is a two-stage process.
 
 ```sh
 nix build .#impli-web
-cp result/bin/impli-web.wasm web/static/impli.wasm
-cp result/web/stub.js web/static/stub.js
+mkdir -p web/public
+cp result/bin/impli.wasm web/public/impli.wasm
+cp result/web/stub.js web/public/stub.js
 ```
 
 **2. Frontend bundle** (from `web/`):
@@ -49,6 +50,9 @@ deno task build
 
 This runs `build.ts`, which generates `examples.js` (a virtual filesystem of `.imp` files from `docs/examples/`) and bundles the Preact app into `module.mjs`.
 
+Both stages output to `web/public/`, which is ignored by Git and populated at build time.
+The `web/static/` directory contains only committed assets (HTML, CSS, fonts, favicon) which the deploy workflow copies into `web/public/` before uploading.
+
 ### Deployment
 
-The GitHub Actions workflow (`.github/workflows/deploy.yaml`) runs both stages on every push to `master` and deploys the contents of `web/static/` to GitHub Pages.
+The GitHub Actions workflow (`.github/workflows/deploy.yaml`) runs both stages on every push to `master`, copies `web/static/` into `web/public/`, and deploys the contents of `web/public/` to GitHub Pages.

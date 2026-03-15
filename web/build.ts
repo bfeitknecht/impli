@@ -1,7 +1,7 @@
 import { dedent } from "@/util.ts";
 
 const EXAMPLES = "../docs/examples";
-const OUTPUT = "./static";
+const OUTPUT = "./public";
 
 async function generateExamples() {
   console.log("Generating examples.js from IMP files...");
@@ -74,6 +74,7 @@ async function bundleApp() {
 }
 
 async function main() {
+  await Deno.mkdir(OUTPUT, { recursive: true });
   await generateExamples();
   await bundleApp();
 }

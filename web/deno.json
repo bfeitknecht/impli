@@ -18,7 +18,7 @@
     "@runno/wasi": "npm:@runno/wasi@^0.10.0",
     "@gytx/xterm-local-echo": "npm:@gytx/xterm-local-echo@^0.1.8",
     "preact": "npm:preact@^10.28.3",
-    "stub": "./static/stub.js",
-    "examples": "./static/examples.js"
+    "stub": "./public/stub.js",
+    "examples": "./public/examples.js"
   }
 }
