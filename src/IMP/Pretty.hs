@@ -94,11 +94,11 @@ instance Pretty Stm where
         Break -> pretty "break"
         Revert s b ->
             vsep
-                [ pretty "revert" <+> pretty s <+> pretty "if" <+> pretty b
+                [ pretty "revert" <+> pretty s <+> pretty "if" <+> pretty b <+> pretty "end"
                 ]
         Match a ms d ->
             vsep
-                [ pretty "match" <+> pretty a <+> pretty "with"
+                [ pretty "match" <+> pretty a <+> pretty "on"
                 , indent 4 $
                     vsep $
                         map (\(v, s) -> pretty v <> colon <+> pretty s <> comma) ms
