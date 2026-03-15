@@ -130,11 +130,10 @@ export class Impli {
   }
 
   public writeWelcome() {
-    const message = "\x1bc" +
-      logo +
-      "\n" +
-      banner +
-      "\n\n";
+    const message = "\x1bc" + dedent`\
+      ${logo}
+      ${banner}
+      \n`;
     this.write(message);
   }
 

@@ -15,7 +15,7 @@ module REPL.Preset where
 welcome :: String
 welcome = unwords ["Welcome to the IMP REPL!", hint]
 
--- | Default hint displayed on enter of 'REPL.repl' or metacommand error.
+-- | Default hint displayed on enter of 'REPL.repl' or meta command error.
 hint :: String
 hint = "Enter :help to list available metacommands or :quit to exit."
 
@@ -70,7 +70,7 @@ defaults =
         , __verbose = verbosity
         }
 
--- | Help message displayed when user enters @:help@ metacommand.
+-- | Help message displayed when user enters @:help@ meta command.
 helpMessage :: [String]
 helpMessage =
     [ ":help                    Show this help message"

@@ -9,7 +9,7 @@ All notable changes to this project will be documented in this file.
 - Complete web support with WASM build and `xterm.js` integration
   - Map example files into WASI FS for the web REPL
   - Add automatic theme support for web REPL
-  - Add filename and metacommand completion, link to repository
+  - Add filename and meta command completion, link to repository
 - Reorganize project structure (move `exe` to `src`)
 - Correct semantics modules' names (`Operational` to `Structural`, `Structural` to `Natural`)
 - Change constructors of `ProcDef`, `ProcInvoc`

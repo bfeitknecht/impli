@@ -9,7 +9,7 @@ Maintainer  : bfeitknecht@ethz.ch
 Stability   : stable
 Portability : portable
 
-Provides the definitions of metacommands and associates.
+Provides the definitions of meta commands and associates.
 Handles parsing of arguments and options.
 -}
 module REPL.Meta where
@@ -21,7 +21,7 @@ import IMP.Parser
 import IMP.Syntax
 import REPL.Preset
 
--- | Encapsulation for metacommand.
+-- | Encapsulation for meta command.
 data Command
     = Help
     | Quit
@@ -98,7 +98,7 @@ instance Parses Level where
             , Debug <$ symbol "debug"
             ]
 
--- | Parser for metacommand 'Command'.
+-- | Parser for meta command 'Command'.
 instance Parses Command where
     parses =
         choice

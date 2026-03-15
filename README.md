@@ -17,7 +17,7 @@ To start the REPL, just run `impli` with no arguments. Pass the path of an `IMP`
 Build artifacts for macOS, Linux, and Windows are available under [GitHub Releases](https://github.com/bfeitknecht/impli/releases). You can download the latest version directly using `curl`. Replace `<BIN>` with the OS appropriate binary name found on the releases page, for example `impli-aarch64-darwin` or `impli-x86_64-windows.exe`.
 
 ```bash
- curl -L "https://github.com/bfeitknecht/impli/releases/latest/download/<BIN>" -o impli
+curl -L "https://github.com/bfeitknecht/impli/releases/latest/download/<BIN>" -o impli
 ```
 
 You may need to modify execution privileges and remove the quarantine attribute on macOS.

@@ -4,12 +4,12 @@ This directory contains the Read-Evaluate-Print-Loop (REPL) for the IMP language
 
 ### Modules
 
-| Module                 | Description                                                                                        |
-| ---------------------- | -------------------------------------------------------------------------------------------------- |
-| [`Preset`](Preset.hs)  | Default settings (prompt, separator, welcome/goodbye messages, verbosity)                          |
-| [`Meta`](Meta.hs)      | Metacommand type definitions and parsers for `Command`, `Aspect`, `Option`, `Level`, and `Element` |
-| [`State`](State.hs)    | Shared REPL state (`Store`), the polymorphic `REPL` monad, and all REPL action implementations     |
-| [`Execute/`](Execute/) | Backend-specific dispatch implementations for native CLI and browser                               |
+| Module                 | Description                                                                                         |
+| ---------------------- | --------------------------------------------------------------------------------------------------- |
+| [`Preset`](Preset.hs)  | Default settings (prompt, separator, welcome/goodbye messages, verbosity)                           |
+| [`Meta`](Meta.hs)      | Meta command type definitions and parsers for `Command`, `Aspect`, `Option`, `Level`, and `Element` |
+| [`State`](State.hs)    | Shared REPL state (`Store`), the polymorphic `REPL` monad, and all REPL action implementations      |
+| [`Execute/`](Execute/) | Backend-specific dispatch implementations for native CLI and browser                                |
 
 ### Architecture
 
