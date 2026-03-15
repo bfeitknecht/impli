@@ -13,7 +13,7 @@ module IMP.Config where
 
 -- | Toggle to control IMP language semantics in 'IMP.Statement.interpret'.
 structural :: Bool
-structural = False -- INFO: natural semantics need less memory
+structural = False -- INFO: Natural semantics need less memory
 
 -- | Toggle to control IMP language extension in 'IMP.Parser.parser'.
 extensions :: Bool

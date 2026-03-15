@@ -67,7 +67,7 @@ instance Parses Aspect where
             , Procs <$ symbol "procs"
             , Flag <$ symbol "break"
             , Trace <$ symbol "trace"
-            , All <$ return () -- INFO: empty word means all aspects
+            , All <$ return () -- INFO: Empty word means all aspects
             ]
 
 -- | Parser for element 'Element' to 'REPL.shower'.
@@ -114,7 +114,7 @@ instance Parses Command where
             , AST <$ command "ast" <*> parses
             ]
         where
-            command cmd = try (symbol cmd) <|> symbol [head cmd] -- INFO: case of empty string not possible
+            command cmd = try (symbol cmd) <|> symbol [head cmd] -- INFO: Case of empty string not possible
             set = try (symbol "set") *> parses
             unset =
                 symbol "unset"

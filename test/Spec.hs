@@ -1,6 +1,7 @@
 module Main where
 
 import Control.Monad.Except (runExceptT)
+import Control.Monad.State (execStateT, modify)
 import Test.Tasty
 import Test.Tasty.HUnit
 
@@ -10,6 +11,9 @@ import IMP.Pretty
 import IMP.State
 import IMP.Statement
 import IMP.Syntax
+import REPL.Meta
+import REPL.Preset
+import REPL.State
 
 main :: IO ()
 main = defaultMain tests
@@ -18,16 +22,35 @@ tests :: TestTree
 tests =
     testGroup
         "IMP Tests"
-        [ parseTests
-        , evalTests
-        , execTests
-        , precedenceTests
+        [ testParse
+        , testExec
         ]
 
-parseTests :: TestTree
-parseTests =
+testParse :: TestTree
+testParse =
     testGroup
         "Parse"
+        [ testParseStm
+        , testParseAexp
+        , testParseBexp
+        , testParseConstruct
+        , testParseCommand
+        ]
+
+testExec :: TestTree
+testExec =
+    testGroup
+        "Exec"
+        [ testExecStm
+        , testExecAexp
+        , testExecBexp
+        , testExecCommand
+        ]
+
+testParseStm :: TestTree
+testParseStm =
+    testGroup
+        "Statement"
         [ assertParseStm "skip" Skip
         , assertParseStm "x := 1" (VarDef "x" Def (Val 1))
         , assertParseStm "(skip; skip)" (Seq Skip Skip)
@@ -78,49 +101,43 @@ parseTests =
         , assertParseStm
             "revert x := 1 if true"
             (Revert (VarDef "x" Def (Val 1)) (Lit True))
-        , assertParseConstruct "(1)" $ Arithmetic (Val 1)
+        , assertParseStm "x := 1 + 2 * 3" (VarDef "x" Def (Bin Add (Val 1) (Bin Mul (Val 2) (Val 3))))
+        , assertParseStm "x := (1 + 2) * 3" (VarDef "x" Def (Bin Mul (Bin Add (Val 1) (Val 2)) (Val 3)))
+        , assertParseStm
+            "x := 1 [] y := 2 par z := 3"
+            (Par (NonDet (VarDef "x" Def (Val 1)) (VarDef "y" Def (Val 2))) (VarDef "z" Def (Val 3)))
+        ]
+
+testParseAexp :: TestTree
+testParseAexp =
+    testGroup
+        "Arithmetic Expression"
+        [ assertParseConstruct "(1)" $ Arithmetic (Val 1)
         , assertParseConstruct "x" $ Arithmetic (Var "x")
         , assertParseConstruct "1 + 2" $ Arithmetic (Bin Add (Val 1) (Val 2))
         , assertParseConstruct "1 - 2" $ Arithmetic (Bin Sub (Val 1) (Val 2))
         , assertParseConstruct "1 * 2" $ Arithmetic (Bin Mul (Val 1) (Val 2))
-        , assertParseConstruct "(true)" $ Boolean (Lit True)
+        ]
+
+testParseBexp :: TestTree
+testParseBexp =
+    testGroup
+        "Boolean Expression"
+        [ assertParseConstruct "(true)" $ Boolean (Lit True)
         , assertParseConstruct "x < 0" $ Boolean (Rel Lt (Var "x") (Val 0))
-        , assertParseConstruct "/**/" Whitespace
         ]
 
-evalTests :: TestTree
-evalTests =
+testParseConstruct :: TestTree
+testParseConstruct =
     testGroup
-        "Expression Evaluation"
-        [ assertEvalAexp initial (Val 1) 1
-        , assertEvalAexp initial (Var "x") 0
-        , assertEvalAexp initial (Bin Add (Val 1) (Val 2)) 3
-        , assertEvalAexp initial (Bin Sub (Val 2) (Val 3)) (-1)
-        , assertEvalAexp initial (Bin Mul (Val 3) (Val 4)) 12
-        , let stm =
-                Time $
-                    Seq
-                        (Seq (VarDef "a" Def (Val 1)) (VarDef "a" Def (Val 2)))
-                        (IfElse (Lit True) (VarDef "c" Def (Val 3)) Skip)
-          in assertEvalAexp initial stm 3
-        , assertEvalBexp initial (Rel Eq (Val 1) (Val 1)) True
-        , assertEvalBexp initial (Rel Neq (Val 1) (Val 2)) True
-        , assertEvalBexp initial (Rel Lt (Val 1) (Val 2)) True
-        , assertEvalBexp initial (Rel Leq (Val 1) (Val 2)) True
-        , assertEvalBexp initial (Rel Gt (Val 2) (Val 1)) True
-        , assertEvalBexp initial (Rel Geq (Val 2) (Val 1)) True
-        , assertEvalBexp initial (Lit True) True
-        , assertEvalBexp initial (Lit False) False
-        , assertEvalBexp initial (And (Lit True) (Lit False)) False
-        , assertEvalBexp initial (Or (Lit False) (Lit True)) True
-        , assertEvalBexp initial (Not (Lit True)) False
+        "Construct"
+        [ assertParseConstruct "/**/" Whitespace
         ]
 
---
-execTests :: TestTree
-execTests =
+testExecStm :: TestTree
+testExecStm =
     testGroup
-        "Statement Execution"
+        "Statement"
         [ assertExec initial Skip ([], [])
         , assertExec initial (VarDef "x" Def (Val 10)) ([("x", 10)], [])
         , assertExec
@@ -171,15 +188,38 @@ execTests =
         , assertExec (setVar initial "x" 0) (Revert (VarDef "x" Def (Val 1)) (Lit True)) ([("x", 0)], [])
         ]
 
-precedenceTests :: TestTree
-precedenceTests =
+testExecAexp :: TestTree
+testExecAexp =
     testGroup
-        "Operator Precedence"
-        [ assertParseStm "x := 1 + 2 * 3" (VarDef "x" Def (Bin Add (Val 1) (Bin Mul (Val 2) (Val 3))))
-        , assertParseStm "x := (1 + 2) * 3" (VarDef "x" Def (Bin Mul (Bin Add (Val 1) (Val 2)) (Val 3)))
-        , assertParseStm
-            "x := 1 [] y := 2 par z := 3"
-            (Par (NonDet (VarDef "x" Def (Val 1)) (VarDef "y" Def (Val 2))) (VarDef "z" Def (Val 3)))
+        "Arithmetic Expression"
+        [ assertEvalAexp initial (Val 1) 1
+        , assertEvalAexp initial (Var "x") 0
+        , assertEvalAexp initial (Bin Add (Val 1) (Val 2)) 3
+        , assertEvalAexp initial (Bin Sub (Val 2) (Val 3)) (-1)
+        , assertEvalAexp initial (Bin Mul (Val 3) (Val 4)) 12
+        , let stm =
+                Time $
+                    Seq
+                        (Seq (VarDef "a" Def (Val 1)) (VarDef "a" Def (Val 2)))
+                        (IfElse (Lit True) (VarDef "c" Def (Val 3)) Skip)
+          in assertEvalAexp initial stm 3
+        ]
+
+testExecBexp :: TestTree
+testExecBexp =
+    testGroup
+        "Boolean Expression"
+        [ assertEvalBexp initial (Rel Eq (Val 1) (Val 1)) True
+        , assertEvalBexp initial (Rel Neq (Val 1) (Val 2)) True
+        , assertEvalBexp initial (Rel Lt (Val 1) (Val 2)) True
+        , assertEvalBexp initial (Rel Leq (Val 1) (Val 2)) True
+        , assertEvalBexp initial (Rel Gt (Val 2) (Val 1)) True
+        , assertEvalBexp initial (Rel Geq (Val 2) (Val 1)) True
+        , assertEvalBexp initial (Lit True) True
+        , assertEvalBexp initial (Lit False) False
+        , assertEvalBexp initial (And (Lit True) (Lit False)) False
+        , assertEvalBexp initial (Or (Lit False) (Lit True)) True
+        , assertEvalBexp initial (Not (Lit True)) False
         ]
 
 assertParseStm :: String -> Stm -> TestTree
@@ -225,3 +265,82 @@ assertExec state stm (vars, procs) = testCase (stringify stm) $ do
                     sequence_ varChecks
                     let procChecks = [getProc state' name @?= Just p | (name, p) <- procs]
                     sequence_ procChecks
+
+testParseCommand :: TestTree
+testParseCommand =
+    testGroup
+        "Command"
+        [ assertParseCommand "help" Help
+        , assertParseCommand "?" Help
+        , assertParseCommand "h" Help
+        , assertParseCommand "quit" Quit
+        , assertParseCommand "q" Quit
+        , assertParseCommand "clear" Clear
+        , assertParseCommand "c" Clear
+        , assertParseCommand "version" Version
+        , assertParseCommand "v" Version
+        , assertParseCommand "reset" (Reset All)
+        , assertParseCommand "reset vars" (Reset Vars)
+        , assertParseCommand "reset procs" (Reset Procs)
+        , assertParseCommand "reset break" (Reset Flag)
+        , assertParseCommand "reset trace" (Reset Trace)
+        , assertParseCommand "r" (Reset All)
+        , assertParseCommand "show" (Show All)
+        , assertParseCommand "show vars" (Show Vars)
+        , assertParseCommand "show procs" (Show Procs)
+        , assertParseCommand "show break" (Show Flag)
+        , assertParseCommand "show trace" (Show Trace)
+        , assertParseCommand "s" (Show All)
+        , assertParseCommand "load foo.imp" (Load "foo.imp")
+        , assertParseCommand "write out.imp" (Write "out.imp")
+        , assertParseCommand "ast skip" (AST (Input (Statement Skip)))
+        , assertParseCommand "ast #1" (AST (Index 1))
+        , assertParseCommand "ast 1 + 2" (AST (Input (Arithmetic (Bin Add (Val 1) (Val 2)))))
+        , assertParseCommand "set verbose normal" (Set (Verbose Normal))
+        , assertParseCommand "set verbose profile" (Set (Verbose Profile))
+        , assertParseCommand "set verbose debug" (Set (Verbose Debug))
+        , assertParseCommand "set prompt IMP" (Set (Prompt "IMP"))
+        , assertParseCommand "set prompt" (Set (Prompt ""))
+        , assertParseCommand "set separator >" (Set (Separator '>'))
+        ]
+
+testExecCommand :: TestTree
+testExecCommand =
+    testGroup
+        "Command"
+        [ assertExecCommand "reset all" (reset All) $ \store ->
+            _state store == initial && null (_trace store)
+        , assertExecCommand "reset vars" (withVars >> reset Vars) $ \store ->
+            getVars (_state store) == getVars initial
+        , assertExecCommand "reset procs" (reset Procs) $ \store ->
+            getProcs (_state store) == getProcs initial
+        , assertExecCommand "reset trace" (withTrace >> reset Trace) $ \store ->
+            null (_trace store)
+        , assertExecCommand "set verbose debug" (set (Verbose Debug)) $ \store ->
+            _verbose store == Debug
+        , assertExecCommand "set verbose profile" (set (Verbose Profile)) $ \store ->
+            _verbose store == Profile
+        , assertExecCommand "set verbose normal" (set (Verbose Normal)) $ \store ->
+            _verbose store == Normal
+        , assertExecCommand "set prompt foo" (set (Prompt "foo")) $ \store ->
+            _prompt store == "foo"
+        , assertExecCommand "set separator +" (set (Separator '+')) $ \store ->
+            _separator store == '+'
+        , assertExecCommand "set goodbye bye" (set (Goodbye "bye")) $ \store ->
+            _goodbye store == "bye"
+        ]
+    where
+        withVars = modify $ \st -> st {_state = setVar (_state st) "x" 42}
+        withTrace = modify $ \st -> st {_trace = [Skip]}
+
+assertParseCommand :: String -> Command -> TestTree
+assertParseCommand input expected =
+    testCase input $
+        parser "test" input @?= Right expected
+
+assertExecCommand :: String -> REPL IO () -> (Store -> Bool) -> TestTree
+assertExecCommand name action check = testCase name $ do
+    result <- runExceptT $ execStateT action start
+    case result of
+        Left e -> assertFailure $ "REPL action failed: " ++ show e
+        Right store -> check store @? "Store assertion failed"

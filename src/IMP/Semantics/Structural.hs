@@ -70,7 +70,7 @@ step (stm, stack@(state : states)) = case stm of
             snapshot = ([(x, getVar state x)], Map.toList (getProcs state), getBreak state)
             local = setVar state x $ evaluate a state
         in
-            -- CHECK: perhaps push local state on stack and then pop later?
+            -- CHECK: Perhaps push local state on stack and then pop later?
             return (Just $ s <> Restore snapshot, local : states)
     Par s1 s2 -> do
         left <- randomIO :: IMP Bool
@@ -116,7 +116,7 @@ step (stm, stack@(state : states)) = case stm of
         _ -> error "illegal configuration for step: empty state stack"
     Break -> return (Nothing, setBreak state : states)
     Revert s b ->
-        -- INFO: uninitialized variables can't be restored
+        -- INFO: Uninitialized variables can't be restored
         let snapshot = (Map.toList (getVars state), Map.toList (getProcs state), getBreak state)
         in return (Just $ s <> IfElse b (Restore snapshot) Skip, stack)
     Match a ms d ->

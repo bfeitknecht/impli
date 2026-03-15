@@ -91,7 +91,7 @@ shower aspect = do
         Vars ->
             explain
                 "Variables:"
-                -- INFO: invariant of IMP.State.setVar guarantees no empty string key
+                -- INFO: Invariant of IMP.State.setVar guarantees no empty string key
                 [k ++ " = " ++ show v | (k, v) <- Map.toList vars, head k /= '_']
         Procs ->
             explain
@@ -124,8 +124,6 @@ loadIMP path = do
             state' <- liftIMP $ execute (stm, state)
             modify $ \st -> st {_state = state', _trace = stm : trace}
     inform $ "interpreted: " ++ path
-
--- throwError . Info $ "interpreted: " ++ path
 
 -- | Write trace to specified file.
 writeIMP :: (MonadIO m) => FilePath -> REPL m ()

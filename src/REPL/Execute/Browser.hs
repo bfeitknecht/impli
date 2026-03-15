@@ -37,19 +37,19 @@ import REPL.Meta
 import REPL.Preset
 import REPL.State hiding (writeIMP)
 
--- | Clear terminal screen and write welcome message
+-- | Clear terminal screen and write welcome message.
 foreign import javascript unsafe "globalThis.impli.writeWelcome()" js_writeWelcome :: IO ()
 
--- | Write IMP trace to plaintext file in new browser tab
+-- | Write IMP trace to plaintext file in new browser tab.
 foreign import javascript unsafe "globalThis.impli.writeTrace($1, $2)" js_writeIMP :: JSString -> JSString -> IO ()
 
--- | Write to JS console
+-- | Write to JS console.
 foreign import javascript unsafe "console.log($1)" js_log :: JSString -> IO ()
 
 logger :: String -> IO ()
 logger = js_log . toJSString
 
--- | Run the REPL with the given initial store
+-- | Run the REPL with the given initial store.
 repl :: Store -> IO ()
 repl store = do
     putStrLn "Welcome to the IMP REPL! Enter :help to list available metacommands."
@@ -61,7 +61,7 @@ repl store = do
             logger "You will never leave this place!"
             repl start -- escape is impossible
 
--- | Main REPL loop using basic IO
+-- | Main REPL loop using basic IO.
 loop :: REPL IO ()
 loop = do
     prompt' <- gets _prompt
