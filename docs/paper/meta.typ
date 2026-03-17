@@ -10,7 +10,7 @@ $
               n, ... & in bs("Numeral") \
               s, ... & in bs("Stm") \
   sigma, sigma', ... & in bs("State") \
-              P, ... & in bs("Procedure") = bs("Var")^* times bs("Var")^* times bs("Stm") \
+              P, ... & in bs("Proc") = bs("Var")^* times bs("Var")^* times bs("Stm") \
                ast.o & in {#("+", "-", "*", "/", "%").map(tt).join(", ")} \
            compose.o & in {#("not", "and", "or").map(tt).join(", ")} \
                 eq.o & in {#(":=", "+=", "-=", "*=", "/=", "%=").map(tt).join(", ")} \
@@ -19,7 +19,7 @@ $
 
 For IMP + EXT, the state domain is defined as triple of variables, procedures, and break flag. Exceptions are denoted with $bot$ and some integer status code or irrecoverable failure symbol.
 $
-  bs("State") & = (bs("Var") -> bs("Val")) times (bs("Var") -> bs("Procedure")) times {#t, #f} union {bot} times (ZZ union {!})
+  bs("State") & = (bs("Var") -> bs("Val")) times (bs("Var") -> bs("Proc")) times {#t, #f} union {bot} times (ZZ union {!})
 $
 
 The following semantic functions map syntactic representations to their semantic entities. \
@@ -51,6 +51,6 @@ $
 Furthermore, the following functions allow for state updates.
 $
     \_[dot |-> dot] & : bs("State") -> bs("Var") -> bs("Val") -> bs("State") \
-    \_[dot |=> dot] & : bs("State") -> bs("Var") -> bs("Procedure") -> bs("State") \
+    \_[dot |=> dot] & : bs("State") -> bs("Var") -> bs("Proc") -> bs("State") \
   \_["break" = dot] & : bs("State") -> {#t, #f} -> bs("State") \
 $
