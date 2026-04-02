@@ -181,10 +181,11 @@ export class Impli {
     const wasi = new WASI({
       args: ["impli"],
       env: {},
-      fs: examples,
+      fs: examples as any, // Build script correctly constructs WASI FS
       stdin: (_) => {
         console.error("WASI stdin requested - this should NEVER EVER happen!");
-        this.write("\n" + "*** ERROR: something has gone horribly wrong...");
+        this.write("\n");
+        this.write("*** ERROR: something has gone horribly wrong...");
         return null;
       },
       stdout: (text) => {

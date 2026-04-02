@@ -1,24 +1,23 @@
-import { Component } from "preact";
+import { Component, h } from "preact";
+import htm from "htm";
+
+// Boring old LSP
+const html = (htm as any).bind(h);
 
 export class Unsupported extends Component {
   override render() {
-    return (
-      <div
-        style={{
-          maxWidth: "800px",
-          margin: "0 auto",
-          padding: "2rem",
-          fontFamily: "system-ui, sans-serif",
-        }}
-      >
+    return html`
+      <div style="${{
+        maxWidth: "800px",
+        margin: "0 auto",
+        padding: "2rem",
+        fontFamily: "system-ui, sans-serif",
+      }}">
         <h1>Browser Not Supported</h1>
 
         <p>
-          Your browser doesn't support all features required to run {
-            <strong>
-              <code>impli</code>
-            </strong>
-          } in the web.
+          Your browser doesn't support all features required to run
+          <strong><code>impli</code></strong> in the web.
         </p>
 
         <h2>Required Features</h2>
@@ -42,10 +41,10 @@ export class Unsupported extends Component {
         </ul>
 
         <p>
-          Please use a modern browser or run impli from the command line. Check
-          it out on <a href="https://github.com/bfeitknecht/impli">GitHub</a>.
+          Please use a modern browser or run impli from the command line. Check it out
+          on <a href="https://github.com/bfeitknecht/impli">GitHub</a>.
         </p>
       </div>
-    );
+    `;
   }
 }

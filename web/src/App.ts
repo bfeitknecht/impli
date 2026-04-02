@@ -1,6 +1,10 @@
-import { Component, createRef, render } from "preact";
-import { Unsupported } from "@/Unsupported.tsx";
+import { Component, createRef, h, render } from "preact";
+import htm from "htm";
+import { Unsupported } from "@/Unsupported.ts";
 import { Impli } from "@/impli.ts";
+
+// LSP isn't hip enough to know about HTM
+const html = (htm as any).bind(h);
 
 export class App extends Component {
   private containerRef = createRef<HTMLDivElement>();
@@ -30,11 +34,20 @@ export class App extends Component {
     const supported = hasWasm && hasBigInt64Array && hasGlobalThis;
 
     if (!supported) {
-      return <Unsupported />;
+      return html`
+        <${Unsupported} />
+      `;
     }
 
-    return <div id="terminal" ref={this.containerRef} />;
+    return html`
+      <div id="terminal" ref="${this.containerRef}" />
+    `;
   }
 }
 
-render(<App />, document.body);
+render(
+  html`
+    <${App} />
+  `,
+  document.body,
+);

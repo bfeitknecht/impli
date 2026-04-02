@@ -57,8 +57,9 @@ async function generateExamples() {
 
 async function bundleApp() {
   console.log("Bundling application...");
-  const result = await Deno.bundle({
-    entrypoints: ["src/App.tsx"],
+  // LSP is old and forgets `.bundle()` was reintroduced to Deno
+  const result = await (Deno as any).bundle({
+    entrypoints: ["src/App.ts"],
     outputPath: `${OUTPUT}/module.mjs`,
     platform: "browser",
     format: "esm",

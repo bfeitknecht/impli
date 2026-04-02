@@ -3,8 +3,6 @@
     "build": "deno run --allow-read --allow-write --unstable-bundle build.ts"
   },
   "compilerOptions": {
-    "jsx": "react-jsx",
-    "jsxImportSource": "preact",
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
@@ -18,6 +16,7 @@
     "@runno/wasi": "npm:@runno/wasi@^0.10.0",
     "@gytx/xterm-local-echo": "npm:@gytx/xterm-local-echo@^0.1.8",
     "preact": "npm:preact@^10.28.3",
+    "htm": "npm:htm@^3.1.1",
     "stub": "./public/stub.js",
     "examples": "./public/examples.js"
   }
