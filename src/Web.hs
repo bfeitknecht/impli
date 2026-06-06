@@ -35,15 +35,7 @@ configureInputRouter = do
         putStr prompt
         hFlush stdout
         atomically (readTQueue queue)
-    _ <- forkIO $ do
-        result <- try getLine :: IO (Either IOException String)
-        case result of
-            Left _ -> atomically $ writeTQueue queue "\EOT"
-            Right line ->
-                if isInterruptMessage line
-                    then requestInterrupt
-                    else atomically (writeTQueue queue line)
-        router queue
+    _ <- forkIO $ router queue
     return ()
   where
     router queue = do
@@ -51,9 +43,11 @@ configureInputRouter = do
         case result of
             Left _ -> atomically $ writeTQueue queue "\EOT"
             Right line ->
-                if isInterruptMessage line
-                    then requestInterrupt >> router queue
-                    else atomically (writeTQueue queue line) >> router queue
+                do
+                    if isInterruptMessage line
+                        then requestInterrupt
+                        else atomically (writeTQueue queue line)
+                    router queue
 
 -- | Entrypoint for the WASM REPL runtime.
 main :: IO ()

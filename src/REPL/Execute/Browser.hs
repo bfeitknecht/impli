@@ -18,6 +18,7 @@ WASI runtimes such as Wasmtime.
 -}
 module REPL.Execute.Browser where
 
+import Control.Exception (IOException, try)
 import Control.Monad.Except
 import Control.Monad.State hiding (State, state)
 import Data.IORef
@@ -108,9 +109,9 @@ instance Dispatches IO Exception where
 writeIMP :: String -> REPL IO ()
 writeIMP path = do
     content <- gets (prettytrace . _trace)
-    _ <-
-        liftIO (writeFile path content)
-            `catchError` \e ->
-                throwError . IOFail $
-                    unlines ["write trace to: " ++ path, show e]
+    result <- liftIO (try (writeFile path content) :: IO (Either IOException ()))
+    either
+        (\e -> throwError . IOFail $ unlines ["write trace to: " ++ path, show (e :: IOException)])
+        (\_ -> return ())
+        result
     inform $ "wrote trace to: " ++ path

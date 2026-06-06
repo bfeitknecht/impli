@@ -77,7 +77,9 @@ export class Impli {
       const files = Object.keys(examples).map((key) =>
         key.startsWith("/") ? key.slice(1) : key
       );
-      if (index === 1 && [":load", ":l"].includes(tokens[0])) {
+      const command = tokens[0];
+      if (index === 1 && typeof command === "string" &&
+        [":load", ":l"].includes(command)) {
         return files;
       }
       return [];
@@ -195,7 +197,7 @@ export class Impli {
       args: ["impli"],
       env: {},
       fs: examples as any,
-      stdin: () => this.nextStdinByte() as any,
+      stdin: () => this.nextStdinByte(),
       stdout: (chunk: unknown) => this.writeChunk(chunk),
       stderr: (chunk: unknown) => this.writeChunk(chunk),
     });
