@@ -91,7 +91,9 @@ export class App extends Component<{}, AppState> {
             <${EBNF} />
           </div>
         </main>
-        <${Footer} />
+        <div class="footer-wrapper">
+          <${Footer} />
+        </div>
       </div>
     `;
   }

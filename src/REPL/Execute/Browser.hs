@@ -51,7 +51,7 @@ logger = js_log . toJSString
 -- | Run the REPL with the given initial store.
 repl :: Store -> IO ()
 repl store = do
-    putStrLn "Welcome to the IMP REPL! Enter :help to list available metacommands."
+    putStrLn "Welcome to the IMP Web REPL! Enter :help to list available metacommands."
     result <- runExceptT (execStateT loop store)
     case result of
         Left e -> print e >> Exit.exitFailure

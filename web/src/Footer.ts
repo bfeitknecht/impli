@@ -5,9 +5,8 @@ export class Footer extends Component {
   override render() {
     return html`
       <footer class="footer">
-        <span>The IMP Language Interpreter in the browser!</span>
-        <br />
-        <span>Made with ${"<3"} by Basil Feitknecht.</span>
+        The IMP Language Interpreter in the browser! Made with ${"<3"} by Basil
+        Feitknecht.
       </footer>
     `;
   }
