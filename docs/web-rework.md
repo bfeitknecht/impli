@@ -5,7 +5,7 @@ This note captures implementation approaches for a larger web overhaul while pre
 ## Constraints from issue discussion
 
 - Keep the core interpreter logic in WASM.
-- Keep the browser target as an HTM + Preact application.
+- Keep the browser target as an HTM (`htm` template literals) + Preact application.
 - Keep xterm.js for terminal rendering.
 - Separate terminal, inference tree, and header into distinct frontend components.
 - Add support for automatic inference-tree construction and EBNF syntax checks.
