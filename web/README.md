@@ -71,3 +71,9 @@ uploading.
 The GitHub Actions workflow (`.github/workflows/deploy.yaml`) runs both stages
 on every push to `master`, copies `web/static/` into `web/public/`, and deploys
 the contents of `web/public/` to GitHub Pages.
+
+### Rework Notes
+
+For the larger WASM-first web overhaul (message-passing runtime, component
+decomposition, inference-tree rendering, and EBNF checking), see
+[`docs/web-rework.md`](../docs/web-rework.md).
