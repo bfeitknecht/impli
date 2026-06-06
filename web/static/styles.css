@@ -14,6 +14,9 @@
   --terminal-fg: #000000;
   --terminal-cursor: #000000;
   --terminal-selection: #add6ff;
+  --header-border: rgba(0, 0, 0, 0.15);
+  --placeholder-muted: rgba(0, 0, 0, 0.45);
+  --placeholder-accent: #0066cc;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -22,7 +25,31 @@
     --terminal-fg: #d4d4d4;
     --terminal-cursor: #ffffff;
     --terminal-selection: #264f78;
+    --header-border: rgba(255, 255, 255, 0.1);
+    --placeholder-muted: rgba(212, 212, 212, 0.45);
+    --placeholder-accent: #569cd6;
   }
+}
+
+/* Explicit theme overrides — class beats the media query on specificity */
+:root.theme-light {
+  --terminal-bg: #ffffff;
+  --terminal-fg: #000000;
+  --terminal-cursor: #000000;
+  --terminal-selection: #add6ff;
+  --header-border: rgba(0, 0, 0, 0.15);
+  --placeholder-muted: rgba(0, 0, 0, 0.45);
+  --placeholder-accent: #0066cc;
+}
+
+:root.theme-dark {
+  --terminal-bg: #1e1e1e;
+  --terminal-fg: #d4d4d4;
+  --terminal-cursor: #ffffff;
+  --terminal-selection: #264f78;
+  --header-border: rgba(255, 255, 255, 0.1);
+  --placeholder-muted: rgba(212, 212, 212, 0.45);
+  --placeholder-accent: #569cd6;
 }
 
 body {
@@ -38,6 +65,188 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* App layout */
+
+.app {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+}
+
+.app-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.tab-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.tab-panel--hidden {
+  display: none;
+}
+
+/* Header */
+
+.header {
+  display: flex;
+  align-items: stretch;
+  background: var(--terminal-bg);
+  color: var(--terminal-fg);
+  font-family: "CommitMono", monospace;
+  font-size: 13px;
+  border-bottom: 1px solid var(--header-border);
+  flex-shrink: 0;
+}
+
+.header-brand {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  border-right: 1px solid var(--header-border);
+  cursor: pointer;
+}
+
+.logo {
+  margin: 0;
+  line-height: 1.3;
+  font-size: 10px;
+  font-family: "CommitMono", monospace;
+  font-weight: bolder;
+  white-space: pre;
+  opacity: 1;
+}
+
+/* Nav tabs */
+
+.header-nav {
+  display: flex;
+  align-items: stretch;
+}
+
+.nav-tab {
+  background: none;
+  border: none;
+  border-right: 1px solid var(--header-border);
+  border-bottom: 2px solid transparent;
+  color: var(--terminal-fg);
+  font-family: "CommitMono", monospace;
+  font-size: 12px;
+  padding: 0 1.25rem;
+  cursor: pointer;
+  opacity: 0.4;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  transition: opacity 0.1s, background 0.1s;
+}
+
+.nav-tab:hover {
+  opacity: 0.75;
+  background: var(--header-border);
+}
+
+.nav-tab--active {
+  opacity: 1;
+  border-bottom-color: var(--terminal-fg);
+  font-weight: bold;
+}
+
+.header-links {
+  display: flex;
+  align-items: stretch;
+  margin-left: auto;
+}
+
+.header-link {
+  display: flex;
+  align-items: center;
+  color: var(--terminal-fg);
+  font-family: "CommitMono", monospace;
+  font-size: 12px;
+  text-decoration: none;
+  padding: 0 1rem;
+  opacity: 0.4;
+  border-left: 1px solid var(--header-border);
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  user-select: none;
+  transition: opacity 0.1s, background 0.1s;
+}
+
+.header-link:hover {
+  opacity: 0.8;
+  background: var(--header-border);
+}
+
+/* Placeholder panels */
+
+.placeholder {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem 2rem;
+  font-family: "CommitMono", monospace;
+  font-size: 13px;
+  color: var(--terminal-fg);
+  gap: 0.5rem;
+}
+
+.placeholder-prompt {
+  display: flex;
+  align-items: center;
+}
+
+.placeholder-ps1 {
+  color: var(--placeholder-accent);
+  font-weight: bold;
+}
+
+.placeholder-cmd {
+  opacity: 0.85;
+}
+
+.placeholder-output {
+  opacity: 0.55;
+  padding-left: 0.25rem;
+}
+
+.placeholder-todo {
+  color: var(--placeholder-accent);
+  opacity: 0.75;
+}
+
+/* Footer */
+
+.footer {
+  background: var(--terminal-bg);
+  color: var(--terminal-fg);
+  font-family: "CommitMono", monospace;
+  font-size: 12px;
+  padding: 0.5rem 1rem;
+  border-top: 1px solid var(--header-border);
+  flex-shrink: 0;
+  opacity: 0.6;
+  line-height: 1.8;
+}
+
+.footer a {
+  color: var(--terminal-fg);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.footer a:hover {
+  opacity: 0.75;
+}
+
+/* Terminal */
 
 #terminal {
   flex: 1;

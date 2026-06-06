@@ -1,3 +1,5 @@
+import { Component, createRef } from "preact";
+import { html } from "@/html.ts";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { LocalEchoAddon } from "@gytx/xterm-local-echo";
@@ -5,20 +7,6 @@ import { WASI } from "@runno/wasi";
 import { examples } from "examples";
 import stub from "stub";
 import { dedent, log } from "@/util.ts";
-
-const logo = dedent`\x1b[1m
-  o  _ _   _   ) o
-  ( ) ) ) )_) (  (
-         (
-  \x1b[0m`;
-
-const repository = "https://github.com/bfeitknecht/impli";
-const paper = "https://bfeitknecht.github.io/impli/IMP.pdf";
-const banner = dedent`\0\
-  The IMP Language Interpreter in the browser!
-  Visit the \x1b]8;;${repository}\x1b\\repository\x1b]8;;\x1b\\ and check out the \x1b]8;;${paper}\x1b\\paper\x1b]8;;\x1b\\.
-  Made with <3 by Basil Feitknecht.
-  `;
 
 function getTheme() {
   if (typeof globalThis === "undefined") return {};
@@ -34,17 +22,28 @@ function getTheme() {
 }
 
 declare global {
-  var impli: Impli;
+  var impli: REPL;
 }
 
-export class Impli {
-  public terminal: Terminal;
-  private fitter: FitAddon;
-  private echo: LocalEchoAddon;
+export class REPL extends Component {
+  private containerRef = createRef<HTMLDivElement>();
+  private xterm: Terminal | null = null;
+  private fitter: FitAddon | null = null;
+  private echo: LocalEchoAddon | null = null;
   public exports: any;
 
-  constructor(container: HTMLElement) {
-    this.terminal = new Terminal({
+  override async componentDidMount() {
+    if (!this.containerRef.current) return;
+
+    if (document.readyState !== "complete") {
+      await new Promise((resolve) => {
+        globalThis.addEventListener("load", resolve, { once: true });
+      });
+    }
+
+    await document.fonts.ready;
+
+    this.xterm = new Terminal({
       cursorBlink: true,
       fontFamily: '"CommitMono", "Courier New", monospace',
       fontSize: 13,
@@ -52,10 +51,10 @@ export class Impli {
     });
 
     this.fitter = new FitAddon();
-    this.terminal.loadAddon(this.fitter);
+    this.xterm.loadAddon(this.fitter);
 
     this.echo = new LocalEchoAddon();
-    this.terminal.loadAddon(this.echo);
+    this.xterm.loadAddon(this.echo);
 
     this.echo.addAutocompleteHandler((index: number, tokens: Array<string>) => {
       const metas = [
@@ -72,72 +71,51 @@ export class Impli {
         ":write",
         ":ast",
       ];
-      if (index == (0) && (tokens[0] ?? "").startsWith(":")) {
-        return metas;
-      }
+      if (index == 0 && (tokens[0] ?? "").startsWith(":")) return metas;
       return [];
     });
+
     this.echo.addAutocompleteHandler((index: number, tokens: Array<string>) => {
       const files = Object.keys(examples).map((key) =>
         key.startsWith("/") ? key.slice(1) : key
       );
-      if (index == 1 && [":load", ":l"].includes(tokens[0])) {
-        return files;
-      }
+      if (index == 1 && [":load", ":l"].includes(tokens[0])) return files;
       return [];
     });
 
-    const activateLink = (_: MouseEvent, uri: string) => {
-      globalThis.open(uri, "_blank", "noopener,noreferrer");
-    };
-
-    const linkHandler = {
-      activate: activateLink,
+    this.xterm.options.linkHandler = {
+      activate: (_: MouseEvent, uri: string) => {
+        globalThis.open(uri, "_blank", "noopener,noreferrer");
+      },
       hover: () => {},
       leave: () => {},
       allowNonHttpProtocols: false,
     };
 
-    this.terminal.options.linkHandler = linkHandler;
-
-    this.terminal.open(container);
+    this.xterm.open(this.containerRef.current);
     this.fitter.fit();
-    this.terminal.focus();
+    this.xterm.focus();
 
-    this.setupEventListeners();
+    globalThis.addEventListener("resize", () => this.fitter?.fit());
+
+    await this.start();
   }
 
-  private setupEventListeners() {
-    globalThis.addEventListener("resize", () => this.fitter.fit());
-
-    const applyTheme = () => {
-      const theme = getTheme();
-      this.terminal.options.theme = theme;
-    };
-
-    const mql = globalThis.matchMedia("(prefers-color-scheme: dark)");
-    mql.addEventListener("change", applyTheme);
-
-    const observer = new MutationObserver(applyTheme);
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["style", "class"],
-    });
+  public applyTheme() {
+    if (this.xterm) {
+      this.xterm.options.theme = getTheme();
+    }
   }
 
-  public write(text: string) {
-    this.echo.print(text);
+  private write(text: string) {
+    this.echo?.print(text);
   }
 
-  public writeWelcome() {
-    const message = "\x1bc" + dedent`\
-      ${logo}
-      ${banner}
-      \n`;
-    this.write(message);
+  private clear() {
+    this.write("\x1bc");
   }
 
-  public writeTips() {
+  private writeTips() {
     const message = dedent`\
       Here are some tips to get up to speed. Tab-autocomplete works for meta-commands and filenames.
           - 'print' followed by an arithmetic expression outputs its evaluation
@@ -153,7 +131,7 @@ export class Impli {
 
   public async readInput(prompt: string) {
     try {
-      const line = await this.echo.read(prompt);
+      const line = await this.echo!.read(prompt);
       if ([":tips", ":t"].includes(line)) {
         this.writeTips();
         return "";
@@ -173,15 +151,14 @@ export class Impli {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
-  public async start() {
-    log("Impli", "Starting application...");
+  private async start() {
+    log("REPL", "Starting application...");
     globalThis.impli = this;
-    this.writeWelcome();
 
     const wasi = new WASI({
       args: ["impli"],
       env: {},
-      fs: examples as any, // Build script correctly constructs WASI FS
+      fs: examples as any,
       stdin: (_) => {
         console.error("WASI stdin requested - this should NEVER EVER happen!");
         this.write("\n");
@@ -196,10 +173,8 @@ export class Impli {
       },
     });
 
-    // Placeholder exports
     const exports = {};
 
-    // Instantiate WASM
     try {
       const wasm = await WebAssembly.instantiateStreaming(
         fetch("./impli.wasm"),
@@ -209,22 +184,23 @@ export class Impli {
         },
       );
 
-      // Knot-tying, fill exports with actual instance exports
       Object.assign(exports, wasm.instance.exports);
 
-      // Initialize WASI
       wasi.initialize(wasm, {
         ghc_wasm_jsffi: stub(exports),
       } as any);
 
-      // Expose exports
       this.exports = exports;
-
-      // Start WASM
       this.exports.start();
-      log("Impli", "WASM module loaded and started");
+      log("REPL", "WASM module loaded and started");
     } catch (error) {
       console.error("Failed to load WASM module:", error);
     }
+  }
+
+  override render() {
+    return html`
+      <div id="terminal" ref="${this.containerRef}" />
+    `;
   }
 }

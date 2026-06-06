@@ -23,9 +23,6 @@ import Control.Monad.Except
 import Control.Monad.State hiding (State, state)
 import Data.IORef
 import GHC.Wasm.Prim
-
-import qualified System.Exit as Exit
-
 import IMP.Exception
 import IMP.Expression
 import IMP.Parser
@@ -37,8 +34,10 @@ import REPL.Meta
 import REPL.Preset
 import REPL.State hiding (writeIMP)
 
+import qualified System.Exit as Exit
+
 -- | Clear terminal screen and write welcome message.
-foreign import javascript unsafe "globalThis.impli.writeWelcome()" js_writeWelcome :: IO ()
+foreign import javascript unsafe "globalThis.impli.clear()" js_clear :: IO ()
 
 -- | Write IMP trace to plaintext file in new browser tab.
 foreign import javascript unsafe "globalThis.impli.writeTrace($1, $2)" js_writeIMP :: JSString -> JSString -> IO ()
@@ -119,7 +118,7 @@ instance Dispatches IO Command where
                     , ":write FILE              Write trace to plaintext file in new browser tab"
                     , ":ast (INPUT | #n)        Parse and display AST of input or n-th statement in trace"
                     ]
-            Clear -> liftIO js_writeWelcome
+            Clear -> liftIO js_clear
             Version -> version
             Reset aspect -> reset aspect
             Show aspect -> shower aspect

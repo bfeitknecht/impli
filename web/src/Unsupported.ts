@@ -1,8 +1,5 @@
-import { Component, h } from "preact";
-import htm from "htm";
-
-// Boring old LSP
-const html = (htm as any).bind(h);
+import { Component } from "preact";
+import { html } from "@/html.ts";
 
 export class Unsupported extends Component {
   override render() {
