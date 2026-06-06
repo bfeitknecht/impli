@@ -51,9 +51,11 @@ run (stm, state) = case stm of
     While b s ->
         if evaluate b state
             then
-                if not $ getBreak state
-                    then run (s <> While b s, state)
-                    else return $ resetBreak state
+                do
+                    interrupted <- liftIO consumeInterrupt
+                    if not (getBreak state || interrupted)
+                        then run (s <> While b s, state)
+                        else return $ resetBreak state
             else return state
     Print e -> display (evaluate e state) >> return state
     Read x -> do

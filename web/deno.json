@@ -15,7 +15,6 @@
     "@gytx/xterm-local-echo": "npm:@gytx/xterm-local-echo@^0.1.8",
     "preact": "npm:preact@^10.29.1",
     "htm": "npm:htm@^3.1.1",
-    "stub": "./public/stub.js",
     "examples": "./public/examples.js",
     "fresh": "jsr:@fresh/core@^2.3.3",
     "@preact/signals": "npm:@preact/signals@^2.9.0"

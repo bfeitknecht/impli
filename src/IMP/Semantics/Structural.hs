@@ -17,6 +17,7 @@ module IMP.Semantics.Structural (
 where
 
 import Control.Monad.Except (catchError, throwError)
+import Control.Monad.IO.Class (liftIO)
 import System.Random (randomIO)
 
 import qualified Data.Map as Map
@@ -57,9 +58,11 @@ step (stm, stack@(state : states)) = case stm of
     While b s ->
         if evaluate b state
             then
-                if not $ getBreak state
-                    then return (Just $ s <> While b s, stack)
-                    else return (Nothing, resetBreak state : states)
+                do
+                    interrupted <- liftIO consumeInterrupt
+                    if not (getBreak state || interrupted)
+                        then return (Just $ s <> While b s, stack)
+                        else return (Nothing, resetBreak state : states)
             else return (Nothing, stack)
     Print a -> display (evaluate a state) >> return (Nothing, stack)
     Read x -> do

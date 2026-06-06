@@ -12,30 +12,24 @@ cross-compiled to a WASM binary (`impli.wasm`) and executed in the browser
 inside a terminal emulator.
 
 ```
-┌─────────────┐     JSFFI (stub.js)     ┌────────────────┐
-│  impli.wasm │ ◄──────────────────────► │  Impli class   │
-│  (Haskell)  │                          │  (TypeScript)  │
-└──────┬──────┘                          └───────┬────────┘
-       │ stdin/stdout/stderr                     │
-       ▼                                         ▼
-┌──────────────┐                         ┌────────────────┐
-│  @runno/wasi │                         │   xterm.js     │
-│  (WASI shim) │                         │   (terminal)   │
-└──────────────┘                         └────────────────┘
+┌─────────────┐      stdin/stdout      ┌────────────────┐
+│  impli.wasm │ ◄────────────────────► │  Impli class   │
+│  (Haskell)  │                        │  (TypeScript)  │
+└──────┬──────┘                        └───────┬────────┘
+       │                                        │
+       ▼                                        ▼
+┌──────────────┐                        ┌────────────────┐
+│  @runno/wasi │                        │   xterm.js     │
+│  (WASI shim) │                        │   (terminal)   │
+└──────────────┘                        └────────────────┘
 ```
 
 - **`impli.wasm`**, Haskell interpreter compiled to `wasm32-wasi` via GHC 9.12's
   WASM backend
-- **`stub.js`**, auto-generated JSFFI bridge (from GHC's `post-link.mjs`)
-  mapping Haskell FFI calls to JavaScript callbacks on the `Impli` instance
 - **`@runno/wasi`**, in-browser WASI runtime providing a virtual filesystem
   (populated with example `.imp` files) and stdio routing
 - **`xterm.js`**, terminal emulator with fit and local-echo addons for line
-  editing, history, and tab-completion
-
-WASM instantiation uses a knot-tying pattern where an empty `exports` object is
-passed to `stub()` during instantiation, then backfilled with the actual
-instance exports before calling `start()`.
+  editing, history, tab-completion, and host-side interrupt signaling
 
 ### Build
 
@@ -47,7 +41,6 @@ Building is a two-stage process.
 nix build .#impli-web
 mkdir -p web/public
 cp result/bin/impli.wasm web/public/impli.wasm
-cp result/web/stub.js web/public/stub.js
 ```
 
 **2. Frontend bundle** (from `web/`):

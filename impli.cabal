@@ -42,6 +42,7 @@ common dependencies
     parsec >=3.1 && <3.2,
     prettyprinter >=1.7 && <2,
     random >=1.1 && <1.3,
+    stm >=2.5 && <2.6,
     transformers >=0.5 && <0.7,
 
 common shared
@@ -119,11 +120,6 @@ executable impli-web
   main-is: Web.hs
   other-modules:
     Paths_impli
-
-  ghc-options:
-    -no-hs-main
-    -optl-mexec-model=reactor
-    "-optl-Wl,--export=start"
 
 test-suite impli-test
   import: dependencies

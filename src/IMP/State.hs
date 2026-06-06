@@ -52,6 +52,19 @@ initial = (Map.empty, Map.empty, False)
 inputter :: IORef (String -> IO String)
 inputter = unsafePerformIO (newIORef (\prompt -> putStr prompt >> hFlush stdout >> getLine))
 
+-- | Global interrupt flag set by the host runtime.
+{-# NOINLINE interrupter #-}
+interrupter :: IORef Bool
+interrupter = unsafePerformIO (newIORef False)
+
+-- | Request interruption of the current long-running computation.
+requestInterrupt :: IO ()
+requestInterrupt = writeIORef interrupter True
+
+-- | Consume and reset pending interrupt requests.
+consumeInterrupt :: IO Bool
+consumeInterrupt = atomicModifyIORef' interrupter (\flag -> (False, flag))
+
 -- | Get value for provided variable with prompt.
 getVal :: String -> IMP Integer
 getVal x = do

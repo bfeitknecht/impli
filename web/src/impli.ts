@@ -3,22 +3,20 @@ import { FitAddon } from "@xterm/addon-fit";
 import { LocalEchoAddon } from "@gytx/xterm-local-echo";
 import { WASI } from "@runno/wasi";
 import { examples } from "examples";
-import stub from "stub";
 import { dedent, log } from "@/util.ts";
-
-const logo = dedent`\x1b[1m
-  o  _ _   _   ) o
-  ( ) ) ) )_) (  (
-         (
-  \x1b[0m`;
 
 const repository = "https://github.com/bfeitknecht/impli";
 const paper = "https://bfeitknecht.github.io/impli/IMP.pdf";
-const banner = dedent`\0\
-  The IMP Language Interpreter in the browser!
-  Visit the \x1b]8;;${repository}\x1b\\repository\x1b]8;;\x1b\\ and check out the \x1b]8;;${paper}\x1b\\paper\x1b]8;;\x1b\\.
-  Made with <3 by Basil Feitknecht.
-  `;
+const tips = dedent`\
+  Here are some tips to get up to speed. Tab-autocomplete works for meta-commands and filenames.
+      - 'print' followed by an arithmetic expression outputs its evaluation
+      - 'read' followed by a variable name assigns the integer input to it
+      - 'x := 1' defines, 'x += 1' increments the named variable
+          - This principle also works to decrement, multiply, divide, and take the modulo
+      - ':load prime.imp' interprets the named file
+          - In this case that defines the procedure 'prime'
+          - To compute and print the k-th prime number enter 'prime(k; p); print p'
+  \n`;
 
 function getTheme() {
   if (typeof globalThis === "undefined") return {};
@@ -33,15 +31,13 @@ function getTheme() {
   };
 }
 
-declare global {
-  var impli: Impli;
-}
-
 export class Impli {
   public terminal: Terminal;
   private fitter: FitAddon;
   private echo: LocalEchoAddon;
-  public exports: any;
+  private inputQueue: number[] = [];
+  private readingInput = false;
+  private encoder = new TextEncoder();
 
   constructor(container: HTMLElement) {
     this.terminal = new Terminal({
@@ -72,7 +68,7 @@ export class Impli {
         ":write",
         ":ast",
       ];
-      if (index == (0) && (tokens[0] ?? "").startsWith(":")) {
+      if (index === 0 && (tokens[0] ?? "").startsWith(":")) {
         return metas;
       }
       return [];
@@ -81,7 +77,7 @@ export class Impli {
       const files = Object.keys(examples).map((key) =>
         key.startsWith("/") ? key.slice(1) : key
       );
-      if (index == 1 && [":load", ":l"].includes(tokens[0])) {
+      if (index === 1 && [":load", ":l"].includes(tokens[0])) {
         return files;
       }
       return [];
@@ -91,14 +87,22 @@ export class Impli {
       globalThis.open(uri, "_blank", "noopener,noreferrer");
     };
 
-    const linkHandler = {
+    this.terminal.options.linkHandler = {
       activate: activateLink,
       hover: () => {},
       leave: () => {},
       allowNonHttpProtocols: false,
     };
 
-    this.terminal.options.linkHandler = linkHandler;
+    this.terminal.attachCustomKeyEventHandler((event) => {
+      if (event.type === "keydown" && event.ctrlKey && !event.altKey &&
+        !event.metaKey && !event.shiftKey && event.key.toLowerCase() === "c") {
+        this.enqueueLine(":interrupt");
+        this.write("^C\r\n");
+        return false;
+      }
+      return true;
+    });
 
     this.terminal.open(container);
     this.fitter.fit();
@@ -111,8 +115,7 @@ export class Impli {
     globalThis.addEventListener("resize", () => this.fitter.fit());
 
     const applyTheme = () => {
-      const theme = getTheme();
-      this.terminal.options.theme = theme;
+      this.terminal.options.theme = getTheme();
     };
 
     const mql = globalThis.matchMedia("(prefers-color-scheme: dark)");
@@ -129,102 +132,95 @@ export class Impli {
     this.echo.print(text);
   }
 
-  public writeWelcome() {
-    const message = "\x1bc" + dedent`\
-      ${logo}
-      ${banner}
-      \n`;
-    this.write(message);
+  private enqueueBytes(data: Uint8Array) {
+    for (const byte of data) this.inputQueue.push(byte);
   }
 
-  public writeTips() {
-    const message = dedent`\
-      Here are some tips to get up to speed. Tab-autocomplete works for meta-commands and filenames.
-          - 'print' followed by an arithmetic expression outputs its evaluation
-          - 'read' followed by a variable name assigns the integer input to it
-          - 'x := 1' defines, 'x += 1' increments the named variable
-              - This principle also works to decrement, multiply, divide, and take the modulo
-          - ':load prime.imp' interprets the named file
-              - In this case that defines the procedure 'prime'
-              - To compute and print the k-th prime number enter 'prime(k; p); print p'
-      \n`;
-    this.write(message);
+  private enqueueLine(line: string) {
+    this.enqueueBytes(this.encoder.encode(line + "\n"));
   }
 
-  public async readInput(prompt: string) {
+  private async requestLineInput() {
+    if (this.readingInput) return;
+    this.readingInput = true;
     try {
-      const line = await this.echo.read(prompt);
+      const line = await this.echo.read("");
       if ([":tips", ":t"].includes(line)) {
-        this.writeTips();
-        return "";
+        this.write(tips);
+        this.enqueueLine("");
       } else {
-        return line;
+        this.enqueueLine(line);
       }
-    } catch (_) {
-      // Ctrl-D — return EOT character to signal EOF
-      return "\x04";
+    } catch {
+      // Ctrl-D / EOF
+      this.enqueueBytes(Uint8Array.of(4));
+    } finally {
+      this.readingInput = false;
     }
   }
 
-  public writeTrace(path: string, trace: string) {
-    const file = new File([trace], path, { type: "text/plain" });
-    const url = URL.createObjectURL(file);
-    globalThis.open(url, "_blank");
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  private nextStdinByte() {
+    if (this.inputQueue.length > 0) return this.inputQueue.shift();
+    this.requestLineInput();
+    return null;
+  }
+
+  private writeChunk(chunk: unknown) {
+    if (typeof chunk === "number") {
+      this.write(String.fromCharCode(chunk));
+      return;
+    }
+    if (chunk instanceof Uint8Array) {
+      this.write(new TextDecoder().decode(chunk));
+      return;
+    }
+    if (typeof chunk === "string") {
+      this.write(chunk);
+      return;
+    }
+    this.write(String(chunk));
   }
 
   public async start() {
     log("Impli", "Starting application...");
-    globalThis.impli = this;
-    this.writeWelcome();
+    this.write(
+      dedent`\
+        The IMP Language Interpreter in the browser!
+        Visit the \x1b]8;;${repository}\x1b\\repository\x1b]8;;\x1b\\ and check out the \x1b]8;;${paper}\x1b\\paper\x1b]8;;\x1b\\.
+        Runtime mode: WASI stdio message stream.
+        \n`,
+    );
 
     const wasi = new WASI({
       args: ["impli"],
       env: {},
-      fs: examples as any, // Build script correctly constructs WASI FS
-      stdin: (_) => {
-        console.error("WASI stdin requested - this should NEVER EVER happen!");
-        this.write("\n");
-        this.write("*** ERROR: something has gone horribly wrong...");
-        return null;
-      },
-      stdout: (text) => {
-        this.write(text);
-      },
-      stderr: (text) => {
-        this.write(text);
-      },
+      fs: examples as any,
+      stdin: () => this.nextStdinByte() as any,
+      stdout: (chunk: unknown) => this.writeChunk(chunk),
+      stderr: (chunk: unknown) => this.writeChunk(chunk),
     });
 
-    // Placeholder exports
-    const exports = {};
-
-    // Instantiate WASM
     try {
       const wasm = await WebAssembly.instantiateStreaming(
         fetch("./impli.wasm"),
-        {
-          ...wasi.getImportObject(),
-          ghc_wasm_jsffi: stub(exports),
-        },
+        wasi.getImportObject() as any,
       );
 
-      // Knot-tying, fill exports with actual instance exports
-      Object.assign(exports, wasm.instance.exports);
+      if (typeof (wasi as any).start === "function") {
+        (wasi as any).start(wasm as any);
+      } else if (typeof (wasi as any).initialize === "function") {
+        (wasi as any).initialize(wasm as any, {});
+      }
 
-      // Initialize WASI
-      wasi.initialize(wasm, {
-        ghc_wasm_jsffi: stub(exports),
-      } as any);
+      const exports = (wasm as any).instance?.exports ?? (wasm as any).exports;
+      if ((wasi as any).started !== true && typeof exports?.start === "function") {
+        exports.start();
+      }
 
-      // Expose exports
-      this.exports = exports;
-
-      // Start WASM
-      this.exports.start();
       log("Impli", "WASM module loaded and started");
     } catch (error) {
       console.error("Failed to load WASM module:", error);
+      this.write(`\n*** ERROR: failed to load WASM module: ${String(error)}\n`);
     }
   }
 }

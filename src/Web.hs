@@ -1,44 +1,65 @@
-{-# LANGUAGE JavaScriptFFI #-}
-
 {- |
 Module      : Main
-Description : WASM entrypoint with JavaScript stdin bridging
+Description : WASM entrypoint for decoupled streaming REPL runtime
 Copyright   : (c) Basil Feitknecht, 2025
 License     : MIT
 Maintainer  : bfeitknecht@ethz.ch
 Stability   : stable
-Portability : WASM
+Portability : WASI
 
-Provides the main entrypoint for the web/WASM IMP interpreter.
-Sets up a custom input action that bridges JavaScript input via JSFFI,
-allowing the Haskell REPL to read from the browser terminal asynchronously.
+Provides the WASM entrypoint for the IMP interpreter using stdin/stdout
+message streams. Input and asynchronous interrupt requests are routed through
+an input broker thread so hosts can provide frontend-driven I/O.
 -}
 module Main where
 
-import Data.IORef
-import GHC.Wasm.Prim
+import Control.Concurrent (forkIO)
+import Control.Concurrent.STM
+import Control.Exception (IOException, try)
+import Data.IORef (writeIORef)
 import System.IO
 
-import IMP.State (inputter)
+import IMP.State (inputter, requestInterrupt)
 import REPL.Execute.Browser
 import REPL.State
 
--- | Read input from JavaScript (awaits promise from @impli.readInput()@).
-foreign import javascript safe "await globalThis.impli.readInput($1)" js_readInput :: JSString -> IO JSString
+-- | Recognized host messages that request an async interrupt.
+isInterruptMessage :: String -> Bool
+isInterruptMessage msg = msg == "\ETX" || msg == ":interrupt"
 
--- | Get line from terminal via JSFFI.
-getInput :: String -> IO String
-getInput prompt = fromJSString <$> js_readInput (toJSString prompt)
+-- | Configure REPL input action backed by a queue and start stdin router.
+configureInputRouter :: IO ()
+configureInputRouter = do
+    queue <- newTQueueIO
+    writeIORef inputter $ \prompt -> do
+        putStr prompt
+        hFlush stdout
+        atomically (readTQueue queue)
+    _ <- forkIO $ do
+        result <- try getLine :: IO (Either IOException String)
+        case result of
+            Left _ -> atomically $ writeTQueue queue "\EOT"
+            Right line ->
+                if isInterruptMessage line
+                    then requestInterrupt
+                    else atomically (writeTQueue queue line)
+        router queue
+    return ()
+  where
+    router queue = do
+        result <- try getLine :: IO (Either IOException String)
+        case result of
+            Left _ -> atomically $ writeTQueue queue "\EOT"
+            Right line ->
+                if isInterruptMessage line
+                    then requestInterrupt >> router queue
+                    else atomically (writeTQueue queue line) >> router queue
 
--- | Export main entrypoint.
-foreign export javascript "start" main :: IO ()
-
--- | Entrypoint for web/WASM IMP interpreter.
+-- | Entrypoint for the WASM REPL runtime.
 main :: IO ()
 main = do
+    hSetBuffering stdin LineBuffering
     hSetBuffering stdout NoBuffering
     hSetBuffering stderr NoBuffering
-    -- Override the global input action to use JSFFI bridge instead of standard getLine
-    writeIORef inputter getInput
-    repl start -- INFO: Should never return
-    error "how did you get here?"
+    configureInputRouter
+    repl start
