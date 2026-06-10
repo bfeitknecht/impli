@@ -8,6 +8,7 @@ import { EBNF } from "@/EBNF.ts";
 import { Footer } from "@/Footer.ts";
 
 interface AppState {
+  commandline: string;
   activeTab: Tab;
   theme: "light" | "dark";
 }
@@ -16,6 +17,7 @@ export class App extends Component<{}, AppState> {
   private replRef = createRef<REPL>();
 
   override state: AppState = {
+    commandline: "",
     activeTab: "repl",
     theme: typeof globalThis !== "undefined" &&
         globalThis.matchMedia?.("(prefers-color-scheme: dark)").matches

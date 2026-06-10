@@ -30,6 +30,7 @@ export class REPL extends Component {
   private xterm: Terminal | null = null;
   private fitter: FitAddon | null = null;
   private echo: LocalEchoAddon | null = null;
+  // deno-lint-ignore no-explicit-any
   public exports: any;
 
   override async componentDidMount() {
@@ -158,6 +159,7 @@ export class REPL extends Component {
     const wasi = new WASI({
       args: ["impli"],
       env: {},
+      // deno-lint-ignore no-explicit-any
       fs: examples as any,
       stdin: (_) => {
         console.error("WASI stdin requested - this should NEVER EVER happen!");
@@ -188,6 +190,7 @@ export class REPL extends Component {
 
       wasi.initialize(wasm, {
         ghc_wasm_jsffi: stub(exports),
+        // deno-lint-ignore no-explicit-any
       } as any);
 
       this.exports = exports;

@@ -6,6 +6,7 @@ const OUTPUT = "./public";
 async function generateExamples() {
   console.log("Generating examples.js from IMP files...");
 
+  // deno-lint-ignore no-explicit-any
   const entries: { [key: string]: any } = {};
 
   for await (const entry of Deno.readDir(EXAMPLES)) {
@@ -58,6 +59,7 @@ async function generateExamples() {
 async function bundleApp() {
   console.log("Bundling application...");
   // LSP is old and forgets `.bundle()` was reintroduced to Deno
+  // deno-lint-ignore no-explicit-any
   const result = await (Deno as any).bundle({
     entrypoints: ["src/App.ts"],
     outputPath: `${OUTPUT}/module.mjs`,

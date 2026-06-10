@@ -2,6 +2,7 @@
  * Context-aware logger for debug mode
  */
 const DEBUG = false;
+// deno-lint-ignore no-explicit-any
 export function log(context: string, ...args: any[]) {
   if (DEBUG) {
     console.log(`[DEBUG] ${context}:`, ...args);
@@ -11,6 +12,7 @@ export function log(context: string, ...args: any[]) {
 /**
  * Dedent template literal
  */
+// deno-lint-ignore no-explicit-any
 export function dedent(strings: TemplateStringsArray, ...values: any[]) {
   const raw = strings.reduce(
     (acc, str, i) => {
