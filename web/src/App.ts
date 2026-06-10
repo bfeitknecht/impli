@@ -77,23 +77,21 @@ export class App extends Component<{}, AppState> {
           onTabChange="${this.handleTabChange}"
           onToggleTheme="${this.handleThemeToggle}"
         />
-        <main class="app-content">
-          <div class="${"tab-panel" +
-            (activeTab === "repl" ? "" : " tab-panel--hidden")}">
+        <main class="content">
+          <div class="${"tab" +
+            (activeTab === "repl" ? "" : " tab--hidden")}">
             <${REPL} ref="${this.replRef}" />
           </div>
-          <div class="${"tab-panel" +
-            (activeTab === "tree" ? "" : " tab-panel--hidden")}">
+          <div class="${"tab" +
+            (activeTab === "tree" ? "" : " tab--hidden")}">
             <${Tree} />
           </div>
-          <div class="${"tab-panel" +
-            (activeTab === "ebnf" ? "" : " tab-panel--hidden")}">
+          <div class="${"tab" +
+            (activeTab === "ebnf" ? "" : " tab--hidden")}">
             <${EBNF} />
           </div>
         </main>
-        <div class="footer-wrapper">
-          <${Footer} />
-        </div>
+        <${Footer} />
       </div>
     `;
   }

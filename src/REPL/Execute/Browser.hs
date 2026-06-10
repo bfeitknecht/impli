@@ -36,15 +36,25 @@ import REPL.State hiding (writeIMP)
 
 import qualified System.Exit as Exit
 
+-- TODO
+parse :: IO String -> IO JSVal
+parse = error "TODO"
+
 -- | Clear terminal screen and write welcome message.
+-- ! FIXME
+-- directly print clear code to xterm
 foreign import javascript unsafe "globalThis.impli.clear()" js_clear :: IO ()
 
 -- | Write IMP trace to plaintext file in new browser tab.
+-- ! FIXME
+-- fire event with trace as payload
 foreign import javascript unsafe "globalThis.impli.writeTrace($1, $2)" js_writeIMP :: JSString -> JSString -> IO ()
 
 -- | Write to JS console.
+-- ! FIXME
 foreign import javascript unsafe "console.log($1)" js_log :: JSString -> IO ()
 
+-- TODO
 logger :: String -> IO ()
 logger = js_log . toJSString
 
@@ -65,6 +75,7 @@ loop :: REPL IO ()
 loop = do
     prompt' <- gets _prompt
     separator' <- gets _separator
+    -- ! FIXME
     action <- liftIO $ readIORef inputter
     line <- liftIO $ action (prompt' ++ separator' : " ")
     case line of
@@ -104,6 +115,8 @@ instance Dispatches IO Command where
     dispatch command =
         case command of
             Help ->
+                -- ! FIXME
+                -- import from presets or something
                 explain
                     "All metacommands besides :(un)set can be abbreviated by their first letter"
                     [ ":help                    Show this help message"

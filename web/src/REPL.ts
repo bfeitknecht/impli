@@ -14,10 +14,10 @@ function getTheme() {
     getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 
   return {
-    background: getVar("--terminal-bg"),
-    foreground: getVar("--terminal-fg"),
-    cursor: getVar("--terminal-cursor"),
-    selectionBackground: getVar("--terminal-selection"),
+    background: getVar("--bg"),
+    foreground: getVar("--fg"),
+    cursor: getVar("--cursor"),
+    selectionBackground: getVar("--selection"),
   };
 }
 

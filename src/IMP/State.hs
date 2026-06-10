@@ -18,15 +18,14 @@ import Control.Exception (IOException, try)
 import Control.Monad.Except (MonadError, throwError)
 import Control.Monad.IO.Class
 import Data.IORef
+import IMP.Exception
+import IMP.Syntax
 import System.IO
 import System.IO.Unsafe (unsafePerformIO)
 import Text.Read (readMaybe)
 
 import qualified Control.Monad.Except as Except
 import qualified Data.Map as Map
-
-import IMP.Exception
-import IMP.Syntax
 
 -- | Encapsulation of computation in 'IMP.Semantics'.
 type IMP = Except.ExceptT Exception IO
@@ -48,6 +47,7 @@ initial :: State
 initial = (Map.empty, Map.empty, False)
 
 -- | Global IORef to store the current input action.
+-- ! FIXME
 {-# NOINLINE inputter #-}
 inputter :: IORef (String -> IO String)
 inputter = unsafePerformIO (newIORef (\prompt -> putStr prompt >> hFlush stdout >> getLine))
@@ -55,6 +55,7 @@ inputter = unsafePerformIO (newIORef (\prompt -> putStr prompt >> hFlush stdout 
 -- | Get value for provided variable with prompt.
 getVal :: String -> IMP Integer
 getVal x = do
+    -- ! FIXME
     action <- liftIO $ readIORef inputter
     input <-
         liftIO (try (action (x ++ " := ")) :: IO (Either IOException String))

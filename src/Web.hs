@@ -17,21 +17,25 @@ module Main where
 
 import Data.IORef
 import GHC.Wasm.Prim
-import System.IO
-
 import IMP.State (inputter)
 import REPL.Execute.Browser
 import REPL.State
+import System.IO
 
 -- | Read input from JavaScript (awaits promise from @impli.readInput()@).
+-- ! FIXME
 foreign import javascript safe "await globalThis.impli.readInput($1)" js_readInput :: JSString -> IO JSString
 
 -- | Get line from terminal via JSFFI.
+-- ! FIXME
 getInput :: String -> IO String
 getInput prompt = fromJSString <$> js_readInput (toJSString prompt)
 
 -- | Export main entrypoint.
 foreign export javascript "start" main :: IO ()
+
+-- | Export parse method.
+foreign export javascript "parse" parse :: IO String -> IO JSVal
 
 -- | Entrypoint for web/WASM IMP interpreter.
 main :: IO ()
@@ -39,6 +43,7 @@ main = do
     hSetBuffering stdout NoBuffering
     hSetBuffering stderr NoBuffering
     -- Override the global input action to use JSFFI bridge instead of standard getLine
+    -- ! FIXME
     writeIORef inputter getInput
     repl start -- INFO: Should never return
     error "how did you get here?"

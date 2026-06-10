@@ -19,6 +19,6 @@ IDEA
 - automatically view current REPL commandline if not empty
 
 TOOLS
-- CodeMirror live editor with feedback
+- CodeMirror editor with live feedback
 
 */
