@@ -5,15 +5,20 @@ export class EBNF extends Component {
   override render() {
     return html`
       <div class="placeholder">
-        <div class="placeholder-prompt">
-          <span class="placeholder-ps1">impli$</span>
-          <span class="placeholder-cmd"> ebnf</span>
-        </div>
-        <div class="placeholder-output">
-          <span class="placeholder-todo">[TODO]</span> EBNF grammar visualization not
-          yet implemented.
-        </div>
+        EBNF grammar visualization not yet implemented.
       </div>
     `;
   }
 }
+
+/*
+IDEA
+- copy of https://thomasgassmann.com/ebnf
+- verify / produce words
+- visualize EBNF in diagram
+- automatically view current REPL commandline if not empty
+
+TOOLS
+- CodeMirror live editor with feedback
+
+*/

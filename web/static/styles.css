@@ -80,7 +80,7 @@ body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  padding-top: 0.5lh;
+  padding-top: 0.25lh;
 }
 
 .tab-panel {
@@ -107,22 +107,24 @@ body {
   flex-shrink: 0;
 }
 
-.header-brand {
+.header-logo {
   display: flex;
   align-items: center;
-  padding: 0.5rem 1rem;
+  /*padding: 0.5rem 1.25rem */
+  padding: 0.5rem;
   border-right: 1px solid var(--header-border);
   cursor: pointer;
 }
 
 .logo {
   margin: 0;
-  line-height: 1.25;
+  /*line-height: 1.25;*/
   font-size: 12px;
   font-family: "CommitMono", monospace;
   font-weight: bolder;
   white-space: pre;
   opacity: 1;
+  font-variation-settings: "wght" 1000;
 }
 
 /* Nav tabs */
@@ -198,30 +200,6 @@ body {
   gap: 0.5rem;
 }
 
-.placeholder-prompt {
-  display: flex;
-  align-items: center;
-}
-
-.placeholder-ps1 {
-  color: var(--placeholder-accent);
-  font-weight: bold;
-}
-
-.placeholder-cmd {
-  opacity: 0.85;
-}
-
-.placeholder-output {
-  opacity: 0.55;
-  padding-left: 0.25rem;
-}
-
-.placeholder-todo {
-  color: var(--placeholder-accent);
-  opacity: 0.75;
-}
-
 /* Footer */
 
 .footer {
@@ -229,11 +207,11 @@ body {
   color: var(--terminal-fg);
   font-family: "CommitMono", monospace;
   font-size: 12px;
-  padding: 0.5rem 1rem;
+  padding: 0.5rem 0.5rem;
   border-top: 1px solid var(--header-border);
   flex-shrink: 0;
   opacity: 0.6;
-  line-height: 1.8;
+  line-height: 1;
 }
 
 .footer a {

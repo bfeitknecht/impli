@@ -26,7 +26,7 @@ export class Header extends Component<HeaderProps> {
 
     return html`
       <header class="header">
-        <div class="header-brand" onClick="${() => onTabChange("repl")}">
+        <div class="header-logo" onClick="${() => onTabChange("repl")}">
           <${Logo} />
         </div>
         <nav class="header-nav">

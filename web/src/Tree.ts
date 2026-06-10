@@ -5,15 +5,18 @@ export class Tree extends Component {
   override render() {
     return html`
       <div class="placeholder">
-        <div class="placeholder-prompt">
-          <span class="placeholder-ps1">impli$</span>
-          <span class="placeholder-cmd"> tree</span>
-        </div>
-        <div class="placeholder-output">
-          <span class="placeholder-todo">[TODO]</span> Inference tree visualization
-          not yet implemented.
-        </div>
+        Inference tree visualization not yet implemented.
       </div>
     `;
   }
 }
+
+/*
+IDEA
+- visualize inference rule tree
+- use canonical Typst rules
+- automatically view current REPL commandline if not empty
+
+TOOLS
+- typst.ts
+*/
