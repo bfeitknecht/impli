@@ -14,6 +14,7 @@
     "@xterm/addon-fit": "npm:xterm-addon-fit@^0.8.0",
     "@runno/wasi": "npm:@runno/wasi@^0.10.0",
     "@gytx/xterm-local-echo": "npm:@gytx/xterm-local-echo@^0.1.8",
+    "ebnf": "npm:ebnf@^1.9.1",
     "preact": "npm:preact@^10.29.1",
     "htm": "npm:htm@^3.1.1",
     "stub": "./public/stub.js",

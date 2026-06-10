@@ -27,6 +27,7 @@
     "npm:@preact/signals@^2.5.1": "2.9.0_preact@10.29.1",
     "npm:@preact/signals@^2.9.0": "2.9.0_preact@10.29.1",
     "npm:@runno/wasi@0.10": "0.10.0",
+    "npm:ebnf@^1.9.1": "1.9.1",
     "npm:esbuild-wasm@~0.25.11": "0.25.12",
     "npm:esbuild@0.25.7": "0.25.7",
     "npm:esbuild@~0.25.5": "0.25.7",
@@ -294,6 +295,10 @@
     "@runno/wasi@0.10.0": {
       "integrity": "sha512-xP9z38WCmR9ZAQf3F9FwbFV4xTjaNmM9Qvk2LWOBZZAhggteL2RQ730YGOIxx9bb9nj7e2/boo0B3AJkAJfDvw=="
     },
+    "ebnf@1.9.1": {
+      "integrity": "sha512-uW2UKSsuty9ANJ3YByIQE4ANkD8nqUPO7r6Fwcc1ADKPe9FRdcPpMl3VEput4JSvKBJ4J86npIC2MLP0pYkCuw==",
+      "bin": true
+    },
     "esbuild-wasm@0.25.12": {
       "integrity": "sha512-rZqkjL3Y6FwLpSHzLnaEy8Ps6veCNo1kZa9EOfJvmWtBq5dJH4iVjfmOO6Mlkv9B0tt9WFPFmb/VxlgJOnueNg==",
       "bin": true
@@ -449,6 +454,7 @@
       "npm:@myriaddreamin/typst.ts@0.7",
       "npm:@preact/signals@^2.9.0",
       "npm:@runno/wasi@0.10",
+      "npm:ebnf@^1.9.1",
       "npm:htm@^3.1.1",
       "npm:preact@^10.29.1",
       "npm:xterm-addon-fit@0.8",

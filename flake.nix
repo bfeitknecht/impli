@@ -224,9 +224,6 @@
             cd web
             ${pkgs.deno}/bin/deno task build
             echo "Done!"
-
-            echo "Copying assets in web/static to web/public..."
-            cp -r static/* public
           '';
         in
         {

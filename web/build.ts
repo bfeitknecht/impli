@@ -76,10 +76,39 @@ async function bundleApp() {
   }
 }
 
+async function copyStaticAssets() {
+  console.log("Copying static assets...");
+  const source = "./static";
+  const destination = `${OUTPUT}/static`;
+
+  try {
+    // Use an external command for recursive copying
+    const p = new Deno.Command("cp", {
+      args: ["-r", source, destination],
+      stdout: "piped",
+      stderr: "piped",
+    });
+    const { code, stdout, stderr } = await p.output();
+
+    if (code === 0) {
+      console.log(`✓ Successfully copied static assets to ${destination}`);
+    } else {
+      const decoder = new TextDecoder();
+      console.error("✗ Failed to copy static assets:");
+      console.error(decoder.decode(stderr));
+      Deno.exit(1);
+    }
+  } catch (error) {
+    console.error("✗ An error occurred during asset copying:", error);
+    Deno.exit(1);
+  }
+}
+
 async function main() {
   await Deno.mkdir(OUTPUT, { recursive: true });
   await generateExamples();
   await bundleApp();
+  await copyStaticAssets();
 }
 
 if (import.meta.main) {
