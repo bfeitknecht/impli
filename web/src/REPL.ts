@@ -4,7 +4,7 @@ import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { LocalEchoAddon } from "@gytx/xterm-local-echo";
 import { WASI } from "@runno/wasi";
-import { examples } from "examples";
+import examples from "examples" with { type: "json" };
 import stub from "stub";
 
 function getTheme() {
@@ -135,11 +135,20 @@ export class REPL extends Component {
     log("REPL", "Starting application...");
     globalThis.impli = this;
 
+    const fs = JSON.parse(
+      JSON.stringify(examples),
+      (key, value) => {
+        return ["access", "change", "modification"].includes(key)
+          ? new Date(value)
+          : value;
+      },
+    );
+
     const wasi = new WASI({
       args: ["impli"],
       env: {},
       // deno-lint-ignore no-explicit-any
-      fs: examples as any,
+      fs: fs as any,
       stdin: (_) => {
         console.error("WASI stdin requested - this should NEVER EVER happen!");
         this.write("\n");

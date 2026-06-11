@@ -1,55 +1,32 @@
-// Dedent template literal
-// deno-lint-ignore no-explicit-any
-function dedent(strings: TemplateStringsArray, ...values: any[]) {
-  const raw = strings.reduce(
-    (acc, str, i) => {
-      let val = String(values[i] ?? "");
-      if (val.includes("\n")) {
-        const match = (acc + str).match(/(?:^|\n)( *)$/);
-        if (match) {
-          val = val.split("\n").map((l, j) => j === 0 ? l : match[1] + l).join(
-            "\n",
-          );
-        }
-      }
-      return acc + str + val;
-    },
-    "",
-  );
+const OUTPUT = "./public";
+const EXAMPLES = "../docs/examples";
 
-  const lines = raw.split("\n");
-
-  const indent = lines
-    .filter((line) => line.trim().length > 0)
-    .reduce((min, line) => {
-      const match = line.match(/^(\s*)/);
-      return match ? Math.min(min, match[1].length) : min;
-    }, Infinity);
-
-  if (indent === Infinity) return raw;
-
-  return lines
-    .map((line) => line.slice(indent))
-    .join("\n");
+interface EBNFRule {
+  name: string;
+  rawRule: string;
+  comment: string | null;
 }
 
-const EXAMPLES = "../docs/examples";
-const OUTPUT = "./public";
+interface EBNFData {
+  rules: EBNFRule[];
+}
 
-async function generateExamples() {
-  console.log("Generating examples.js from IMP files...");
+interface Example {
+  path: string;
+  mode: string;
+  content: string;
+  timestamps: { access: Date; change: Date; modification: Date };
+}
 
-  // deno-lint-ignore no-explicit-any
-  const entries: { [key: string]: any } = {};
+async function generateExamplesJSON() {
+  console.log("Generating examples.json from IMP files...");
+  const fs: Record<string, Example> = {};
 
-  for await (const entry of Deno.readDir(EXAMPLES)) {
-    if (!entry.isFile || !entry.name.endsWith(".imp")) continue;
+  for await (const f of Deno.readDir(EXAMPLES)) {
+    if (!f.isFile || !f.name.endsWith(".imp")) continue;
 
-    const file = `${entry.name}`;
-    const content = await Deno.readTextFile(`${EXAMPLES}/${file}`);
-
-    // Escape critical characters and clean up comments
-    const clean = content
+    const path = "/" + f.name;
+    const content = (await Deno.readTextFile(`${EXAMPLES}/${f.name}`))
       .replace(/\\/g, "\\\\")
       .replace(/`/g, "\\`")
       .replace(/\$/g, "\\$")
@@ -58,40 +35,96 @@ async function generateExamples() {
       .replace(/\s+/g, " ")
       .trim();
 
-    const path = "/" + file;
-    const fd = {
-      path: path,
-      timestamps: {
-        access: "__NOW__",
-        change: "__NOW__",
-        modification: "__NOW__",
-      },
-      mode: "string",
-      content: clean,
+    const now = new Date();
+    const timestamp = {
+      access: now,
+      change: now,
+      modification: now,
     };
 
-    entries[path] = fd;
-    console.log(`  ✓ ${entry.name}`);
+    fs[path] = {
+      path: path,
+      mode: "string",
+      content: content,
+      timestamps: timestamp,
+    };
+
+    console.log(`  ✓ ${f.name}`);
   }
-  const output = dedent`\
-    // DO NOT EDIT MANUALLY
-    // This file is auto-generated from docs/examples
 
-    const now = new Date();
-    export const examples = ${
-    JSON.stringify(entries).replace(/"__NOW__"/g, "now") // Sorry for the spaghetti...
-  };`;
-
-  const result = OUTPUT + "/examples.js";
-  await Deno.writeTextFile(result, output);
+  const examples = JSON.stringify(fs);
+  const output = OUTPUT + "/examples.json";
+  await Deno.writeTextFile(output, examples);
   console.log(
-    `✓ Generated ${result} with ${Object.keys(entries).length} examples`,
+    `✓ Generated ${output} with ${Object.keys(examples).length} examples`,
   );
+}
+
+async function parseEBNFGrammar(): Promise<EBNFData> {
+  console.log("Parsing EBNF grammar...");
+  const grammarPath = "../docs/IMP.ebnf";
+  const content = await Deno.readTextFile(grammarPath);
+
+  const rules: EBNFRule[] = [];
+  const lines = content.split("\n");
+
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i].trim();
+    i++;
+
+    if (!line) continue;
+
+    const ruleMatch = line.match(/^([A-Z][a-zA-Z0-9]*)\s*::=\s*(.+)/);
+    if (!ruleMatch) continue;
+
+    const ruleName = ruleMatch[1];
+    let ruleBody = ruleMatch[2];
+    let comment: string | null = null;
+
+    const commentMatch = ruleBody.match(/(.+?)\s*\/\*\s*(.+?)\s*\*\/\s*$/);
+    if (commentMatch) {
+      ruleBody = commentMatch[1].trim();
+      comment = commentMatch[2].trim();
+    }
+
+    while (i < lines.length) {
+      const nextLine = lines[i].trim();
+      if (!nextLine) {
+        i++;
+        continue;
+      }
+      if (!nextLine.startsWith("|")) break;
+
+      i++;
+      let nextBody = nextLine.substring(1).trim();
+
+      const nextComment = nextBody.match(/(.+?)\s*\/\*\s*(.+?)\s*\*\/\s*$/);
+      if (nextComment) {
+        nextBody = nextComment[1].trim();
+        if (!comment) comment = nextComment[2].trim();
+      }
+
+      ruleBody += " | " + nextBody;
+    }
+
+    rules.push({ name: ruleName, rawRule: ruleBody, comment });
+  }
+
+  console.log(`  ✓ Parsed ${rules.length} rules`);
+  return { rules };
+}
+
+async function generateEBNFJson() {
+  console.log("Generating ebnf.json...");
+  const ebnfData = await parseEBNFGrammar();
+  const output = OUTPUT + "/ebnf.json";
+  await Deno.writeTextFile(output, JSON.stringify(ebnfData, null, 2));
+  console.log(`✓ Generated ${output}`);
 }
 
 async function bundleApp() {
   console.log("Bundling application...");
-  // LSP is old and forgets `.bundle()` was reintroduced to Deno
   // deno-lint-ignore no-explicit-any
   const result = await (Deno as any).bundle({
     entrypoints: ["src/App.ts"],
@@ -115,13 +148,12 @@ async function copyStaticAssets() {
   const destination = OUTPUT;
 
   try {
-    // Use an external command for recursive copying
     const p = new Deno.Command("cp", {
       args: ["-r", source + "/", destination + "/"],
       stdout: "piped",
       stderr: "piped",
     });
-    const { code, stdout, stderr } = await p.output();
+    const { code, stderr } = await p.output();
 
     if (code === 0) {
       console.log(`✓ Successfully copied static assets to ${destination}`);
@@ -137,27 +169,12 @@ async function copyStaticAssets() {
   }
 }
 
-async function copyGrammarFile() {
-  console.log("Copying EBNF grammar file...");
-  const source = "../docs/IMP.ebnf";
-  const destination = `${OUTPUT}/IMP.ebnf`;
-
-  try {
-    const content = await Deno.readTextFile(source);
-    await Deno.writeTextFile(destination, content);
-    console.log(`✓ Successfully copied grammar to ${destination}`);
-  } catch (error) {
-    console.error("✗ Failed to copy grammar file:", error);
-    Deno.exit(1);
-  }
-}
-
 async function main() {
   await Deno.mkdir(OUTPUT, { recursive: true });
-  await generateExamples();
+  await generateExamplesJSON();
+  await generateEBNFJson();
   await bundleApp();
   await copyStaticAssets();
-  await copyGrammarFile();
 }
 
 if (import.meta.main) {
