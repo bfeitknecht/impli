@@ -1,10 +1,8 @@
 {
   "tasks": {
-    "build": "deno run --allow-read --allow-write --unstable-bundle build.ts"
+    "build": "deno run --allow-read --allow-write --allow-run --unstable-bundle build.ts"
   },
   "compilerOptions": {
-    "baseUrl": ".",
-    "paths": { "@/*": ["./src/*"] },
     "lib": ["dom", "dom.iterable", "deno.ns", "esnext"]
   },
   "imports": {
@@ -17,9 +15,9 @@
     "ebnf": "npm:ebnf@^1.9.1",
     "preact": "npm:preact@^10.29.1",
     "htm": "npm:htm@^3.1.1",
+    "railroad-diagrams": "npm:railroad-diagrams@^1.0.0",
     "stub": "./public/stub.js",
     "examples": "./public/examples.js",
-    "fresh": "jsr:@fresh/core@^2.3.3",
-    "@preact/signals": "npm:@preact/signals@^2.9.0"
+    "fresh": "jsr:@fresh/core@^2.3.3"
   }
 }

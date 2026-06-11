@@ -35,7 +35,7 @@ getInput prompt = fromJSString <$> js_readInput (toJSString prompt)
 foreign export javascript "start" main :: IO ()
 
 -- | Export parse method.
-foreign export javascript "parse" parse :: IO String -> IO JSVal
+-- foreign export javascript "parse" parse :: IO String -> IO JSVal
 
 -- | Entrypoint for web/WASM IMP interpreter.
 main :: IO ()

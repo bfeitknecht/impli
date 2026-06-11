@@ -1,4 +1,37 @@
-import { dedent } from "@/util.ts";
+// Dedent template literal
+// deno-lint-ignore no-explicit-any
+function dedent(strings: TemplateStringsArray, ...values: any[]) {
+  const raw = strings.reduce(
+    (acc, str, i) => {
+      let val = String(values[i] ?? "");
+      if (val.includes("\n")) {
+        const match = (acc + str).match(/(?:^|\n)( *)$/);
+        if (match) {
+          val = val.split("\n").map((l, j) => j === 0 ? l : match[1] + l).join(
+            "\n",
+          );
+        }
+      }
+      return acc + str + val;
+    },
+    "",
+  );
+
+  const lines = raw.split("\n");
+
+  const indent = lines
+    .filter((line) => line.trim().length > 0)
+    .reduce((min, line) => {
+      const match = line.match(/^(\s*)/);
+      return match ? Math.min(min, match[1].length) : min;
+    }, Infinity);
+
+  if (indent === Infinity) return raw;
+
+  return lines
+    .map((line) => line.slice(indent))
+    .join("\n");
+}
 
 const EXAMPLES = "../docs/examples";
 const OUTPUT = "./public";
@@ -79,12 +112,12 @@ async function bundleApp() {
 async function copyStaticAssets() {
   console.log("Copying static assets...");
   const source = "./static";
-  const destination = `${OUTPUT}/static`;
+  const destination = OUTPUT;
 
   try {
     // Use an external command for recursive copying
     const p = new Deno.Command("cp", {
-      args: ["-r", source, destination],
+      args: ["-r", source + "/", destination + "/"],
       stdout: "piped",
       stderr: "piped",
     });
@@ -104,11 +137,27 @@ async function copyStaticAssets() {
   }
 }
 
+async function copyGrammarFile() {
+  console.log("Copying EBNF grammar file...");
+  const source = "../docs/IMP.ebnf";
+  const destination = `${OUTPUT}/IMP.ebnf`;
+
+  try {
+    const content = await Deno.readTextFile(source);
+    await Deno.writeTextFile(destination, content);
+    console.log(`✓ Successfully copied grammar to ${destination}`);
+  } catch (error) {
+    console.error("✗ Failed to copy grammar file:", error);
+    Deno.exit(1);
+  }
+}
+
 async function main() {
   await Deno.mkdir(OUTPUT, { recursive: true });
   await generateExamples();
   await bundleApp();
   await copyStaticAssets();
+  await copyGrammarFile();
 }
 
 if (import.meta.main) {

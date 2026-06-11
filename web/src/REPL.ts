@@ -1,12 +1,11 @@
 import { Component, createRef } from "preact";
-import { html } from "@/html.ts";
+import { html, log } from "@/html.ts";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { LocalEchoAddon } from "@gytx/xterm-local-echo";
 import { WASI } from "@runno/wasi";
 import { examples } from "examples";
 import stub from "stub";
-import { dedent, log } from "@/util.ts";
 
 function getTheme() {
   if (typeof globalThis === "undefined") return {};
@@ -116,29 +115,9 @@ export class REPL extends Component {
     this.write("\x1bc");
   }
 
-  private writeTips() {
-    const message = dedent`\
-      Here are some tips to get up to speed. Tab-autocomplete works for meta-commands and filenames.
-          - 'print' followed by an arithmetic expression outputs its evaluation
-          - 'read' followed by a variable name assigns the integer input to it
-          - 'x := 1' defines, 'x += 1' increments the named variable
-              - This principle also works to decrement, multiply, divide, and take the modulo
-          - ':load prime.imp' interprets the named file
-              - In this case that defines the procedure 'prime'
-              - To compute and print the k-th prime number enter 'prime(k; p); print p'
-      \n`;
-    this.write(message);
-  }
-
   public async readInput(prompt: string) {
     try {
-      const line = await this.echo!.read(prompt);
-      if ([":tips", ":t"].includes(line)) {
-        this.writeTips();
-        return "";
-      } else {
-        return line;
-      }
+      return await this.echo!.read(prompt);
     } catch (_) {
       // Ctrl-D — return EOT character to signal EOF
       return "\x04";

@@ -1,5 +1,6 @@
 import { Component } from "preact";
-import { html } from "@/html.ts";
+import { html, log } from "@/html.ts";
+import * as railroad from "railroad-diagrams";
 
 export class EBNF extends Component {
   override render() {
@@ -10,15 +11,3 @@ export class EBNF extends Component {
     `;
   }
 }
-
-/*
-IDEA
-- copy of https://thomasgassmann.com/ebnf
-- verify / produce words
-- visualize EBNF in diagram
-- automatically view current REPL commandline if not empty
-
-TOOLS
-- CodeMirror editor with live feedback
-
-*/

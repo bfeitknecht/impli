@@ -25,7 +25,6 @@
     "npm:@myriaddreamin/typst.ts@0.7": "0.7.0",
     "npm:@opentelemetry/api@^1.9.0": "1.9.1",
     "npm:@preact/signals@^2.5.1": "2.9.0_preact@10.29.1",
-    "npm:@preact/signals@^2.9.0": "2.9.0_preact@10.29.1",
     "npm:@runno/wasi@0.10": "0.10.0",
     "npm:ebnf@^1.9.1": "1.9.1",
     "npm:esbuild-wasm@~0.25.11": "0.25.12",
@@ -35,6 +34,7 @@
     "npm:preact-render-to-string@^6.6.3": "6.6.7_preact@10.29.1",
     "npm:preact@^10.28.2": "10.29.1",
     "npm:preact@^10.29.1": "10.29.1",
+    "npm:railroad-diagrams@1": "1.0.0",
     "npm:xterm-addon-fit@0.8": "0.8.0_xterm@5.3.0",
     "npm:xterm@^5.3.0": "5.3.0"
   },
@@ -73,7 +73,7 @@
         "jsr:@std/semver",
         "jsr:@std/uuid",
         "npm:@opentelemetry/api",
-        "npm:@preact/signals@^2.5.1",
+        "npm:@preact/signals",
         "npm:esbuild-wasm",
         "npm:esbuild@0.25.7",
         "npm:preact-render-to-string",
@@ -351,6 +351,9 @@
     "preact@10.29.1": {
       "integrity": "sha512-gQCLc/vWroE8lIpleXtdJhTFDogTdZG9AjMUpVkDf2iTCNwYNWA+u16dL41TqUDJO4gm2IgrcMv3uTpjd4Pwmg=="
     },
+    "railroad-diagrams@1.0.0": {
+      "integrity": "sha512-cz93DjNeLY0idrCNOH6PviZGRN9GJhsdm9hpn1YCS879fj4W+x5IFJhhkRZcwVgMmFF7R82UA/7Oh+R8lLZg6A=="
+    },
     "xterm-addon-fit@0.8.0_xterm@5.3.0": {
       "integrity": "sha512-yj3Np7XlvxxhYF/EJ7p3KHaMt6OdwQ+HDu573Vx1lRXsVxOcnVJs51RgjZOouIZOczTsskaS+CpXspK81/DLqw==",
       "dependencies": [
@@ -452,11 +455,11 @@
       "jsr:@fresh/core@^2.3.3",
       "npm:@gytx/xterm-local-echo@~0.1.8",
       "npm:@myriaddreamin/typst.ts@0.7",
-      "npm:@preact/signals@^2.9.0",
       "npm:@runno/wasi@0.10",
       "npm:ebnf@^1.9.1",
       "npm:htm@^3.1.1",
       "npm:preact@^10.29.1",
+      "npm:railroad-diagrams@1",
       "npm:xterm-addon-fit@0.8",
       "npm:xterm@^5.3.0"
     ]
