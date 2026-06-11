@@ -1,6 +1,12 @@
 import { Component } from "preact";
-import { html, log } from "@/html.ts";
+import { html } from "@/html.ts";
 import * as railroad from "railroad-diagrams";
+import ebnf from "ebnf" with { type: "json" };
+
+interface Rule {
+  name: string;
+  comment: string;
+}
 
 export class EBNF extends Component {
   override render() {

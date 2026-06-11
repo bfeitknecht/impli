@@ -1,14 +1,10 @@
 const OUTPUT = "./public";
 const EXAMPLES = "../docs/examples";
 
-interface EBNFRule {
+interface Rule {
   name: string;
-  rawRule: string;
+  raw: string;
   comment: string | null;
-}
-
-interface EBNFData {
-  rules: EBNFRule[];
 }
 
 interface Example {
@@ -60,12 +56,12 @@ async function generateExamplesJSON() {
   );
 }
 
-async function parseEBNFGrammar(): Promise<EBNFData> {
+async function parseEBNFGrammar(): Promise<Rule[]> {
   console.log("Parsing EBNF grammar...");
   const grammarPath = "../docs/IMP.ebnf";
   const content = await Deno.readTextFile(grammarPath);
 
-  const rules: EBNFRule[] = [];
+  const rules: Rule[] = [];
   const lines = content.split("\n");
 
   let i = 0;
@@ -108,11 +104,11 @@ async function parseEBNFGrammar(): Promise<EBNFData> {
       ruleBody += " | " + nextBody;
     }
 
-    rules.push({ name: ruleName, rawRule: ruleBody, comment });
+    rules.push({ name: ruleName, raw: ruleBody, comment });
   }
 
   console.log(`  ✓ Parsed ${rules.length} rules`);
-  return { rules };
+  return rules;
 }
 
 async function generateEBNFJson() {

@@ -7,6 +7,7 @@
   },
   "imports": {
     "@/": "./src/",
+    "@iconfu/svg-inject": "npm:@iconfu/svg-inject@^2.0.1",
     "@myriaddreamin/typst.ts": "npm:@myriaddreamin/typst.ts@^0.7.0",
     "@xterm/xterm": "npm:xterm@^5.3.0",
     "@xterm/addon-fit": "npm:xterm-addon-fit@^0.8.0",
