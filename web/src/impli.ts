@@ -34,7 +34,9 @@ function getTheme() {
 }
 
 declare global {
-  var impli: Impli;
+  var impliReadInput: (prompt: string) => Promise<string>;
+  var impliWriteWelcome: () => void;
+  var impliWriteTrace: (path: string, trace: string) => void;
 }
 
 export class Impli {
@@ -42,6 +44,7 @@ export class Impli {
   private fitter: FitAddon;
   private echo: LocalEchoAddon;
   public exports: any;
+  private running: boolean;
 
   constructor(container: HTMLElement) {
     this.terminal = new Terminal({
@@ -56,6 +59,7 @@ export class Impli {
 
     this.echo = new LocalEchoAddon();
     this.terminal.loadAddon(this.echo);
+    this.running = false;
 
     this.echo.addAutocompleteHandler((index: number, tokens: Array<string>) => {
       const metas = [
@@ -175,7 +179,10 @@ export class Impli {
 
   public async start() {
     log("Impli", "Starting application...");
-    globalThis.impli = this;
+    globalThis.impliReadInput = (prompt: string) => this.readInput(prompt);
+    globalThis.impliWriteWelcome = () => this.writeWelcome();
+    globalThis.impliWriteTrace = (path: string, trace: string) =>
+      this.writeTrace(path, trace);
     this.writeWelcome();
 
     const wasi = new WASI({
@@ -220,8 +227,14 @@ export class Impli {
       // Expose exports
       this.exports = exports;
 
-      // Start WASM
+      // Initialize WASM session API
       this.exports.start();
+      this.running = true;
+      while (this.running) {
+        const prompt = this.exports.getPrompt();
+        const line = await this.readInput(prompt);
+        this.running = Boolean(await this.exports.evalLine(line));
+      }
       log("Impli", "WASM module loaded and started");
     } catch (error) {
       console.error("Failed to load WASM module:", error);

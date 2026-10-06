@@ -128,6 +128,8 @@ executable impli-web
     -no-hs-main
     -optl-mexec-model=reactor
     "-optl-Wl,--export=start"
+    "-optl-Wl,--export=evalLine"
+    "-optl-Wl,--export=getPrompt"
 
 test-suite impli-test
   import: dependencies
