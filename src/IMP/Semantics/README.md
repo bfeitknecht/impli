@@ -21,7 +21,7 @@ Implements the big-step judgment $\langle s, \sigma \rangle \to \sigma'$, mappin
 run :: (Stm, State) -> IMP State
 ```
 
-This is the default execution model (`Config.structural = False`). It uses less memory since it does not maintain a state stack.
+This is the default execution model. It uses less memory since it does not maintain a state stack.
 
 #### Structural Semantics (`Structural.hs`)
 
@@ -32,7 +32,9 @@ step  :: (Stm, [State]) -> IMP Conf   -- single reduction step
 steps :: (Stm, [State]) -> IMP State  -- repeated application until completion
 ```
 
-The state stack enables step-by-step debugging and exposure of intermediate configurations. It is enabled by setting `Config.structural = True`.
+The state stack enables step-by-step debugging and exposure of intermediate configurations.
+
+For API-centric stepping and resumable execution (including explicit `Blocked` configurations for external input/choice), see `IMP.Kernel` and `IMP.Engine`.
 
 #### Unsupported Statements
 

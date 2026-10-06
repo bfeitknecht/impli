@@ -48,8 +48,10 @@ common shared
   -- cabal-gild: discover src --include=src/IMP/**
   other-modules:
     IMP.Config
+    IMP.Engine
     IMP.Exception
     IMP.Expression
+    IMP.Kernel
     IMP.Lexer
     IMP.Parser
     IMP.Pretty
@@ -95,8 +97,10 @@ library
   -- cabal-gild: discover src/ --include=src/IMP/**
   exposed-modules:
     IMP.Config
+    IMP.Engine
     IMP.Exception
     IMP.Expression
+    IMP.Kernel
     IMP.Lexer
     IMP.Parser
     IMP.Pretty
@@ -136,8 +140,10 @@ test-suite impli-test
     REPL.Preset
     REPL.State
     IMP.Config
+    IMP.Engine
     IMP.Exception
     IMP.Expression
+    IMP.Kernel
     IMP.Lexer
     IMP.Parser
     IMP.Pretty

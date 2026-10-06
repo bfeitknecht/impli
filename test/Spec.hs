@@ -9,6 +9,7 @@ import Test.Tasty
 import Test.Tasty.HUnit
 
 import IMP.Expression
+import IMP.Kernel
 import IMP.Parser
 import IMP.Pretty
 import IMP.State
@@ -17,6 +18,8 @@ import IMP.Syntax
 import REPL.Meta
 import REPL.Preset
 import REPL.State
+
+import qualified IMP.Engine as Engine
 
 main :: IO ()
 main = defaultMain tests
@@ -27,6 +30,7 @@ tests =
         "IMP Tests"
         [ testParse
         , testExec
+        , testKernel
         ]
 
 testParse :: TestTree
@@ -48,6 +52,43 @@ testExec =
         , testExecAexp
         , testExecBexp
         , testExecCommand
+        ]
+
+testKernel :: TestTree
+testKernel =
+    testGroup
+        "Kernel"
+        [ testCase "step vardef updates residual state" $
+            case step (VarDef "x" Def (Val 2), initial) of
+                Stepped Step {residual = (Skip, state')} -> getVar state' "x" @?= 2
+                conf -> assertFailure $ "expected stepped vardef, got: " ++ show conf
+        , testCase "read suspends and resumes with input value" $
+            case step (Read "x", initial) of
+                Blocked (AwaitInput "x") ->
+                    case resume (Read "x", initial) (ResolveInput 7) of
+                        Stepped Step {residual = (Skip, state')} -> getVar state' "x" @?= 7
+                        conf -> assertFailure $ "expected resumed read, got: " ++ show conf
+                conf -> assertFailure $ "expected blocked read, got: " ++ show conf
+        , testCase "sequential read suspension resumes into remaining sequence" $
+            case step (Seq (Read "x") (VarDef "y" Def (Val 1)), initial) of
+                Blocked (AwaitInput "x") ->
+                    case resume (Seq (Read "x") (VarDef "y" Def (Val 1)), initial) (ResolveInput 3) of
+                        Stepped Step {residual = (Seq Skip (VarDef "y" Def (Val 1)), state')} -> do
+                            getVar state' "x" @?= 3
+                        conf -> assertFailure $ "expected resumed sequence, got: " ++ show conf
+                conf -> assertFailure $ "expected blocked sequence, got: " ++ show conf
+        , testCase "engine resolves blocked session and advances" $ do
+            let session0 = Engine.boot (Read "x", initial)
+            result <- runExceptT $ flip execStateT session0 $ do
+                _ <- Engine.resolve (ResolveInput 9)
+                _ <- Engine.advance
+                return ()
+            case result of
+                Left e -> assertFailure $ "engine failed: " ++ show e
+                Right session ->
+                    case Engine.current session of
+                        Terminal state' -> getVar state' "x" @?= 9
+                        conf -> assertFailure $ "expected terminal state, got: " ++ show conf
         ]
 
 testParseStm :: TestTree
