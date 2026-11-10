@@ -8,16 +8,27 @@ Stability   : stable
 Portability : portable
 
 Implementation of natural (big-step) semantics for the IMP language.
-Allows execution of statement in one step to simply determine the final state.
+Execution is reified as a freer monad program over the 'Input', 'Output' and
+'Choose' effects so the semantics itself stays pure: an interpreter discharges
+the effects in whatever context the frontend supplies.
 -}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE GADTs #-}
+
 module IMP.Semantics.Natural (
+    Input (..),
+    Output (..),
+    Choose (..),
+    Effects,
+    input,
+    output,
+    choose,
+    fate,
     run,
 ) where
 
-import Control.Concurrent.Async (concurrently)
-import Control.Monad.Except (catchError, runExceptT, throwError)
-import Control.Monad.IO.Class (liftIO)
-import System.Random (randomIO)
+import Control.Monad.Freer (Eff, Member, send)
+import Control.Monad.Freer.Error (Error, catchError, throwError)
 
 import qualified Data.Map as Map
 
@@ -27,8 +38,40 @@ import IMP.Pretty
 import IMP.State
 import IMP.Syntax
 
+-- | Effect of reading an integer for a variable from the outside world.
+data Input a where
+    Input :: String -> Input Integer
+
+-- | Effect of writing evaluation output to the outside world.
+data Output a where
+    Emit :: String -> Output ()
+
+-- | Effect of an externally supplied arbitrary decision or value.
+data Choose a where
+    Pick :: Choose Bool -- ^ Pick a branch, 'True' for left.
+    Fate :: Choose Integer -- ^ Produce an arbitrary integer.
+
+-- | Canonical effect row for interpretation of 'run' programs.
+type Effects = '[Input, Output, Choose, Error Exception]
+
+-- | Read an integer for the named variable.
+input :: (Member Input effs) => String -> Eff effs Integer
+input x = send (Input x)
+
+-- | Emit evaluation output.
+output :: (Member Output effs) => String -> Eff effs ()
+output text = send (Emit text)
+
+-- | Pick a branch, 'True' for left.
+choose :: (Member Choose effs) => Eff effs Bool
+choose = send Pick
+
+-- | Obtain an arbitrary integer.
+fate :: (Member Choose effs) => Eff effs Integer
+fate = send Fate
+
 -- | Execute statement in the state, return final state.
-run :: (Stm, State) -> IMP State
+run :: (Member Input effs, Member Output effs, Member Choose effs, Member (Error Exception) effs) => Gamma -> Eff effs State
 run (stm, state) = case stm of
     Skip -> return state
     VarDef x dop a ->
@@ -55,9 +98,9 @@ run (stm, state) = case stm of
                     then run (s <> While b s, state)
                     else return $ resetBreak state
             else return state
-    Print e -> display (evaluate e state) >> return state
+    Print e -> output (show (evaluate e state)) >> return state
     Read x -> do
-        v <- getVal x
+        v <- input x
         return $ setVar state x v
     Local x a s -> do
         let
@@ -67,26 +110,22 @@ run (stm, state) = case stm of
         state' <- run (s, local)
         return $ setVar state' x old
     Par s1 s2 -> do
-        let runIMP = runExceptT . run
-        result <- liftIO $ concurrently (runIMP (s1, state)) (runIMP (s2, state))
-        case result of
-            (Left e, _) -> throwError e
-            (_, Left e) -> throwError e
-            (Right (vs1', ps1', flag'), Right (vs2', ps2', _)) ->
-                -- INFO: On conflict, state result from s1 dominates
-                return (Map.union vs1' vs2', Map.union ps1' ps2', flag')
+        (vs1', ps1', flag') <- run (s1, state)
+        (vs2', ps2', _) <- run (s2, state)
+        -- INFO: On conflict, state result from s1 dominates
+        return (Map.union vs1' vs2', Map.union ps1' ps2', flag')
     NonDet s1 s2 -> do
-        left <- randomIO :: IMP Bool
+        left <- choose
         if left
             then run (s1, state)
             else run (s2, state)
     ProcDef name params rets body -> return $ setProc state name (params, rets, body)
     ProcInvoc name arguments returns ->
         case getProc state name of
-            Nothing -> errata $ "undefined procedure: " ++ name
+            Nothing -> throwError . Error $ "undefined procedure: " ++ name
             Just (params, rets, body)
-                | length arguments /= length params -> errata "mismatched number of arguments to parameters"
-                | length returns /= length rets -> errata "mismatched number of return variables"
+                | length arguments /= length params -> throwError $ Error "mismatched number of arguments to parameters"
+                | length returns /= length rets -> throwError $ Error "mismatched number of return variables"
                 | otherwise -> do
                     let
                         vals = map (`evaluate` state) arguments -- evaluate arguments
@@ -94,8 +133,8 @@ run (stm, state) = case stm of
                     state' <- run (body, local) -- run body
                     let rets' = zip returns $ map (getVar state') rets -- extract returns
                     return $ setVars state rets' -- insert into callside
-    Restore _ -> error $ "illegal statement for run in natural semantics: " ++ show stm
-    Return _ _ -> error $ "illegal statement for run in natural semantics: " ++ show stm
+    Restore _ -> throwError . Error $ "illegal statement for run in natural semantics: " ++ show stm
+    Return {} -> throwError . Error $ "illegal statement for run in natural semantics: " ++ show stm
     Break -> return $ setBreak state
     Revert s b -> do
         let old = state
@@ -109,7 +148,7 @@ run (stm, state) = case stm of
             Just s -> run (s, state)
             Nothing -> run (d, state)
     Havoc x -> do
-        v <- randomIO :: IMP Integer
+        v <- fate
         return $ setVar state x v
     Assert b ->
         if evaluate b state
@@ -133,5 +172,5 @@ run (stm, state) = case stm of
             w = getVar state y
         in
             return $ setVars state [(x, w), (y, v)]
-    Timeout _ _ -> errata "timeout statement not supported in big-step semantics"
-    Alternate _ _ -> errata "alternate execution not supported in big-step semantics"
+    Timeout _ _ -> throwError $ Error "timeout statement not supported in big-step semantics"
+    Alternate _ _ -> throwError $ Error "alternate execution not supported in big-step semantics"

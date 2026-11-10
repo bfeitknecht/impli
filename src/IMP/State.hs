@@ -1,5 +1,3 @@
-{-# LANGUAGE FlexibleContexts #-}
-
 {- |
 Module      : IMP.State
 Description : State for the IMP language
@@ -11,25 +9,17 @@ Portability : portable
 
 State implementation for the IMP language.
 Provides definition and manipulation of state with some QOL helpers.
+Entirely pure: interpretation effects are reified by the semantics modules
+in @IMP.Semantics@ and discharged by frontends through @IMP.Engine@ handlers.
 -}
 module IMP.State where
 
-import Control.Exception (IOException, try)
-import Control.Monad.Except (MonadError, throwError)
-import Control.Monad.IO.Class
-import Data.IORef
-import System.IO
-import System.IO.Unsafe (unsafePerformIO)
-import Text.Read (readMaybe)
-
-import qualified Control.Monad.Except as Except
 import qualified Data.Map as Map
 
-import IMP.Exception
 import IMP.Syntax
 
--- | Encapsulation of computation in 'IMP.Semantics'.
-type IMP = Except.ExceptT Exception IO
+-- | Tuple of statement and state, the machine configuration between steps.
+type Gamma = (Stm, State)
 
 -- | Map of defined variables from string identifier to integer values.
 type Vars = Map.Map String Integer
@@ -40,33 +30,9 @@ type Procs = Map.Map String Proc
 -- | Interpreter state as triple of defined variables, procedures and break flag.
 type State = (Vars, Procs, Bool)
 
--- | Interpreter configuration as 2-tuple of remaining statement execution and state stack.
-type Conf = (Maybe Stm, [State])
-
 -- | Initial state with no variable definitions, no procedures defined and break flag unset.
 initial :: State
 initial = (Map.empty, Map.empty, False)
-
--- | Global IORef to store the current input action.
-{-# NOINLINE inputter #-}
-inputter :: IORef (String -> IO String)
-inputter = unsafePerformIO (newIORef (\prompt -> putStr prompt >> hFlush stdout >> getLine))
-
--- | Get value for provided variable with prompt.
-getVal :: String -> IMP Integer
-getVal x = do
-    action <- liftIO $ readIORef inputter
-    input <-
-        liftIO (try (action (x ++ " := ")) :: IO (Either IOException String))
-            >>= either (\_ -> Except.throwError Empty) return
-    case input of
-        "\EOT" -> Except.throwError Empty -- Ctrl-D EOF from browser
-        _ -> return ()
-    case readMaybe input of
-        Nothing -> do
-            inform "invalid input, please enter an integer"
-            getVal x
-        Just i -> return i
 
 -- | Get defined variables.
 getVars :: State -> Vars
@@ -135,18 +101,6 @@ setFlip state i = setVar state (flipvar i) 0
 setFlop :: State -> Integer -> State
 setFlop state i = setVar state (flipvar i) 1
 
--- | 'putStr' inside some IO Monad.
-output :: (MonadIO m) => String -> m ()
-output = liftIO . putStr
-
--- | 'putStrLn' inside some IO Monad.
-outputln :: (MonadIO m) => String -> m ()
-outputln = liftIO . putStrLn
-
--- | 'print' inside some IO Monad.
-display :: (MonadIO m, Show a) => a -> m ()
-display = liftIO . print
-
 -- | Safe division, zero if divisor is zero.
 (//) :: Integer -> Integer -> Integer
 (//) _ 0 = 0
@@ -156,11 +110,3 @@ display = liftIO . print
 (%%) :: Integer -> Integer -> Integer
 (%%) v1 0 = v1
 (%%) v1 v2 = mod v1 v2
-
--- | Convenient error passing.
-errata :: (MonadError Exception m) => String -> m a
-errata = throwError . Error
-
--- | Convenient information passing.
-inform :: (MonadIO m) => String -> m ()
-inform = display . Info

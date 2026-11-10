@@ -22,7 +22,6 @@ import Text.Parsec
 import Text.Parsec.Expr
 import Text.Parsec.String
 
-import IMP.Config
 import IMP.Lexer
 import IMP.Syntax
 
@@ -104,17 +103,12 @@ instance Parses Stm where
     parses = buildExpressionParser table term <?> "statement"
         where
             table =
-                if extensions
-                    then
-                        [ [Infix (NonDet <$ operator "[]") AssocLeft]
-                        , [Infix (Par <$ operator "par") AssocLeft]
-                        , [Infix (Alternate <$ operator "alternate") AssocLeft]
-                        , [Infix (Seq <$ operator ";") AssocLeft]
-                        ]
-                    else [[Infix (Seq <$ operator ";") AssocLeft]]
-            term =
-                choice . map try $
-                    if extensions then imp ++ ext else imp
+                [ [Infix (NonDet <$ operator "[]") AssocLeft]
+                , [Infix (Par <$ operator "par") AssocLeft]
+                , [Infix (Alternate <$ operator "alternate") AssocLeft]
+                , [Infix (Seq <$ operator ";") AssocLeft]
+                ]
+            term = choice . map try $ imp ++ ext
 
 -- | List of parsers for statements in the IMP language.
 imp :: [Parser Stm]

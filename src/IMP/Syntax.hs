@@ -20,6 +20,7 @@ module IMP.Syntax (
     Stm (..),
     Dop (..),
     Proc,
+    Snapshot,
     Construct (..),
     Variables,
     variables,
@@ -123,8 +124,8 @@ data Stm
     | NonDet Stm Stm -- ^ Non-deterministic choice.
     | ProcDef String [String] [String] Stm -- ^ Procedure definition.
     | ProcInvoc String [Aexp] [String] -- ^ Procedure invocation.
-    | Restore ([(String, Integer)], [(String, Proc)], Bool) -- ^ Restore state (internal use).
-    | Return [String] [String] -- ^ Return values (internal use).
+    | Restore Snapshot -- ^ Restore state snapshot (internal use).
+    | Return Snapshot [String] [String] -- ^ Return to caller state (internal use).
     | Break -- ^ Break loop.
     | Revert Stm Bexp -- ^ Transactional execution.
     | Match Aexp [(Integer, Stm)] Stm -- ^ Pattern match on integer values.
@@ -148,6 +149,9 @@ instance Monoid Stm where
 
 -- | Procedure encapsulation as signature and body.
 type Proc = ([String], [String], Stm)
+
+-- | State snapshot as association lists, captured for restoration or procedure return.
+type Snapshot = ([(String, Integer)], [(String, Proc)], Bool)
 
 -- | Construct in the IMP language.
 data Construct
@@ -195,7 +199,7 @@ instance Variables Stm where
         ProcDef p ps rs s -> p : ps ++ rs ++ variables s
         ProcInvoc p as rs -> p : rs ++ concatMap variables as
         Restore _ -> error $ "illegal statement for variables: " ++ show stm
-        Return _ _ -> error $ "illegal statement for variables: " ++ show stm
+        Return {} -> error $ "illegal statement for variables: " ++ show stm
         Break -> []
         Revert s b -> variables s ++ variables b
         Match a ms d -> variables d ++ variables a ++ concatMap (variables . snd) ms
