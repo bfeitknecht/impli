@@ -49,12 +49,13 @@ jobs:
       - name: Build impli
         shell: bash
         run: |
-          cabal update
           set -o pipefail
           cabal build exe:impli 2>&1 | tee build.log || {
-            tail -n 80 build.log | while read -r line; do
-              echo "::error::$line"
-            done
+            msg=$(grep -B4 -A25 -m2 -E 'error:|Error' build.log | head -n 60)
+            msg="${msg//%/%25}"
+            msg="${msg//$'\n'/%0A}"
+            msg="${msg//$'\r'/%0D}"
+            printf '::error::%s\n' "$msg"
             exit 1
           }
 
@@ -129,9 +130,11 @@ jobs:
         run: |
           set -o pipefail
           nix build .#impli-web 2>&1 | tee build.log || {
-            tail -n 80 build.log | while read -r line; do
-              echo "::error::$line"
-            done
+            msg=$(grep -B4 -A25 -m2 -E 'error:|Error' build.log | head -n 60)
+            msg="${msg//%/%25}"
+            msg="${msg//$'\n'/%0A}"
+            msg="${msg//$'\r'/%0D}"
+            printf '::error::%s\n' "$msg"
             exit 1
           }
 

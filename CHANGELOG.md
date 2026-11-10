@@ -14,7 +14,7 @@ The next (hopefully last) huge refactor (#80, also #79, #77, #31).
     `havoc` and non-deterministic or parallel choice; complete coverage
     of all statements of the language
   - `IMP.Semantics.Natural`: big-step semantics reified as a freer monad
-    program (`freer-simple`) over `Input`/`Output`/`Choose` effects and
+    program (`IMP.Freer`) over `Input`/`Output`/`Choose` effects and
     `Error`, interpreted by the engine
   - Stack-free machine: procedure invocation and local scope rewrite to
     `Return`/`Restore` sequences carrying state snapshots, the machine

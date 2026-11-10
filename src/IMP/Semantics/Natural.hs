@@ -27,13 +27,11 @@ module IMP.Semantics.Natural (
     run,
 ) where
 
-import Control.Monad.Freer (Eff, Member, send)
-import Control.Monad.Freer.Error (Error, catchError, throwError)
-
 import qualified Data.Map as Map
 
 import IMP.Exception
 import IMP.Expression
+import IMP.Freer (Eff, Error, Member, catchError, send, throwError)
 import IMP.Pretty
 import IMP.State
 import IMP.Syntax

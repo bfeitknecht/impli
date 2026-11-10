@@ -45,7 +45,7 @@ performs a single transition over `Gamma = (Stm, State)` and may yield a
 choice, which the frontend resolves and continues with
 `resume :: Gamma -> Resolution -> Configuration`. The natural semantics is
 reified as a freer monad program over `Input`, `Output` and `Choose` effects
-(`freer-simple`) plus `Error Exception`. All statements keep the machine
+(`IMP.Freer`) plus `Error Exception`. All statements keep the machine
 configuration a plain `Gamma`: procedure invocation and local scope rewrite
 to `Return`/`Restore` sequences carrying state snapshots, so no state stack
 is needed.

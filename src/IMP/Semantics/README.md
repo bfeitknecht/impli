@@ -35,7 +35,7 @@ so suspension and resumption only need the plain configuration.
 
 #### Natural Semantics (`Natural.hs`)
 
-Implements the big-step judgment $\langle s, \sigma \rangle \to \sigma'$ as a freer monad program (`freer-simple`) over the effects `Input`, `Output`, `Choose` and `Error Exception`.
+Implements the big-step judgment $\langle s, \sigma \rangle \to \sigma'$ as a freer monad program (`IMP.Freer`) over the effects `Input`, `Output`, `Choose` and `Error Exception`.
 
 ```
 run    :: Gamma -> Eff Effects State             -- program, interpreted by an engine

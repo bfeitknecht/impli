@@ -39,8 +39,7 @@ module IMP.Kernel (
     run,
 ) where
 
-import Control.Monad.Freer (Eff)
-
+import IMP.Freer (Eff)
 import IMP.Semantics.Natural (Choose (..), Effects, Input (..), Output (..), choose, fate, input, output)
 import IMP.Semantics.Structural
 import IMP.State (Gamma, State)

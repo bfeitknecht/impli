@@ -43,21 +43,20 @@ module IMP.Engine (
 ) where
 
 import Control.Monad.Except
-import Control.Monad.Freer (send)
-import Control.Monad.Freer.Error (runError)
 import Control.Monad.Reader
 import Control.Monad.State hiding (State)
 import Control.Monad.Trans.Class (lift)
 
-import qualified Control.Monad.Freer as Freer
 import qualified Data.Map as Map
 
 import IMP.Exception
+import IMP.Freer (runError, send)
 import IMP.Kernel
 import IMP.Pretty
 import IMP.State
 import IMP.Syntax
 
+import qualified IMP.Freer as Freer
 import qualified IMP.Semantics.Natural as Natural
 
 -- | Aspect of the session environment to reset or render.
