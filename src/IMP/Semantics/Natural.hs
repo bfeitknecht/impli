@@ -71,7 +71,10 @@ fate :: (Member Choose effs) => Eff effs Integer
 fate = send Fate
 
 -- | Execute statement in the state, return final state.
-run :: (Member Input effs, Member Output effs, Member Choose effs, Member (Error Exception) effs) => Gamma -> Eff effs State
+run ::
+    (Member Input effs, Member Output effs, Member Choose effs, Member (Error Exception) effs) =>
+    Gamma ->
+    Eff effs State
 run (stm, state) = case stm of
     Skip -> return state
     VarDef x dop a ->

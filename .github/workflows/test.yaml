@@ -26,7 +26,13 @@ jobs:
       - name: Update and build dependencies
         run: |
           cabal update
-          cabal build impli-test
+          set -o pipefail
+          cabal build impli-test 2>&1 | tee build.log || {
+            tail -n 80 build.log | while read -r line; do
+              echo "::error::$line"
+            done
+            exit 1
+          }
 
       - name: Run tests
         run: cabal test impli-test

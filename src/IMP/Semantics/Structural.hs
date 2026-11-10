@@ -120,7 +120,8 @@ step (stm, state) = case stm of
                 Prod -> v * v'
                 Quot -> v // v'
                 Rem -> v %% v'
-        in Stepped Step {residual = (Skip, state'), effects = [], rule = RuleVarDef}
+        in
+            Stepped Step {residual = (Skip, state'), effects = [], rule = RuleVarDef}
     Seq s1 s2 ->
         case step (s1, state) of
             Terminal state' -> Stepped Step {residual = (s2, state'), effects = [], rule = RuleSeq}
@@ -144,7 +145,8 @@ step (stm, state) = case stm of
         let
             snapshot = ([(x, getVar state x)], Map.toList (getProcs state), getBreak state)
             local = setVar state x (evaluate a state)
-        in Stepped Step {residual = (s <> Restore snapshot, local), effects = [], rule = RuleLocal}
+        in
+            Stepped Step {residual = (s <> Restore snapshot, local), effects = [], rule = RuleLocal}
     Par _ _ -> Blocked AwaitChoice
     NonDet _ _ -> Blocked AwaitChoice
     ProcDef name params rets body ->
@@ -160,7 +162,13 @@ step (stm, state) = case stm of
                         vals = map (`evaluate` state) arguments -- evaluate arguments
                         local = (Map.fromList (zip params vals), getProcs state, getBreak state) -- into local state
                         snapshot = (Map.toList (getVars state), Map.toList (getProcs state), getBreak state)
-                    in Stepped Step {residual = (body <> Return snapshot rets returns, local), effects = [], rule = RuleProcInvoc}
+                    in
+                        Stepped $
+                            Step
+                                { residual = (body <> Return snapshot rets returns, local)
+                                , effects = []
+                                , rule = RuleProcInvoc
+                                }
     Restore (vars, procs, flag) ->
         let state' = setVars (getVars state, Map.fromList procs, flag) vars
         in Stepped Step {residual = (Skip, state'), effects = [], rule = RuleRestore}
@@ -169,7 +177,8 @@ step (stm, state) = case stm of
             vals = map (getVar state) rets -- extract returns from callee state
             caller = (Map.fromList vars, Map.fromList procs, flag)
             state' = setVars caller $ zip returns vals -- insert into callside
-        in Stepped Step {residual = (Skip, state'), effects = [], rule = RuleReturn}
+        in
+            Stepped Step {residual = (Skip, state'), effects = [], rule = RuleReturn}
     Break -> Stepped Step {residual = (Skip, setBreak state), effects = [], rule = RuleBreak}
     Revert s b ->
         -- INFO: Uninitialized variables can't be restored

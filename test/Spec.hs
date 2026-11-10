@@ -152,17 +152,19 @@ testKernel =
                         Stepped Step {residual = (Skip, state')} -> getVar state' "x" @?= 7
                         conf -> assertFailure $ "expected resumed havoc, got: " ++ show conf
                 conf -> assertFailure $ "expected blocked havoc, got: " ++ show conf
-        , testCase "nondet suspends and resumes with branch choice" $
-            case step (NonDet (VarDef "x" Def (Val 1)) (VarDef "x" Def (Val 2)), initial) of
+        , testCase "nondet suspends and resumes with branch choice" $ do
+            let stm = NonDet (VarDef "x" Def (Val 1)) (VarDef "x" Def (Val 2))
+            case step (stm, initial) of
                 Blocked AwaitChoice ->
-                    case resume (NonDet (VarDef "x" Def (Val 1)) (VarDef "x" Def (Val 2)), initial) (ResolveChoice False) of
+                    case resume (stm, initial) (ResolveChoice False) of
                         Stepped Step {residual = (VarDef "x" Def (Val 2), _)} -> return ()
                         conf -> assertFailure $ "expected resumed right branch, got: " ++ show conf
                 conf -> assertFailure $ "expected blocked choice, got: " ++ show conf
-        , testCase "parallel suspends and resumes with order choice" $
-            case step (Par (VarDef "x" Def (Val 1)) (VarDef "y" Def (Val 2)), initial) of
+        , testCase "parallel suspends and resumes with order choice" $ do
+            let stm = Par (VarDef "x" Def (Val 1)) (VarDef "y" Def (Val 2))
+            case step (stm, initial) of
                 Blocked AwaitChoice ->
-                    case resume (Par (VarDef "x" Def (Val 1)) (VarDef "y" Def (Val 2)), initial) (ResolveChoice False) of
+                    case resume (stm, initial) (ResolveChoice False) of
                         Stepped Step {residual = (Seq (VarDef "y" Def (Val 2)) (VarDef "x" Def (Val 1)), _)} -> return ()
                         conf -> assertFailure $ "expected resumed reorder, got: " ++ show conf
                 conf -> assertFailure $ "expected blocked choice, got: " ++ show conf

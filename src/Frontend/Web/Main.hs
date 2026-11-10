@@ -240,9 +240,11 @@ evaluateAPI input = do
         Right construct -> case construct of
             Statement stm -> runStatement session stm
             Arithmetic aexp ->
-                jsonOut (Envelope [show (evaluate aexp (environment session))] (Done (environment session) emptyProfile))
+                let value = show (evaluate aexp (environment session))
+                in jsonOut (Envelope [value] (Done (environment session) emptyProfile))
             Boolean bexp ->
-                jsonOut (Envelope [if evaluate bexp (environment session) then "true" else "false"] (Done (environment session) emptyProfile))
+                let value = if evaluate bexp (environment session) then "true" else "false"
+                in jsonOut (Envelope [value] (Done (environment session) emptyProfile))
             Whitespace -> jsonOut (Envelope [] (Done (environment session) emptyProfile))
 
 -- | Export input resolution API.
@@ -346,7 +348,12 @@ resetSessionAPI :: JSString -> IO JSString
 resetSessionAPI input = do
     session <- readIORef sessionRef
     case parseAspect (fromJSString input) of
-        Nothing -> jsonOut (object ["tag" .= ("error" :: String), "message" .= ("unknown aspect: " ++ fromJSString input)])
+        Nothing ->
+            jsonOut $
+                object
+                    [ "tag" .= ("error" :: String)
+                    , "message" .= ("unknown aspect: " ++ fromJSString input)
+                    ]
         Just aspect -> do
             outcome <- runEngine webHandlers session (resetAspect aspect)
             case outcome of
