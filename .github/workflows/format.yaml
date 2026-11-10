@@ -18,9 +18,24 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Check Haskell formatting
-        uses: haskell-actions/run-fourmolu@v11
-        with:
-          version: "0.19.0.1"
+        shell: bash
+        run: |
+          mkdir -p "$HOME/.local/bin"
+          curl -sL https://github.com/fourmolu/fourmolu/releases/download/v0.19.0.1/fourmolu-0.19.0.1-linux-x86_64 -o "$HOME/.local/bin/fourmolu"
+          chmod +x "$HOME/.local/bin/fourmolu"
+          status=0
+          for f in $(git ls-files '*.hs'); do
+            "$HOME/.local/bin/fourmolu" --mode inplace "$f" >/dev/null 2>&1 || true
+            if ! git diff --quiet -- "$f"; then
+              echo "::error file=$f::would be reformatted:"
+              git diff -- "$f" | grep '^[-+]' | grep -v '^[-+][-+][-+]' | head -n 40 | while read -r line; do
+                echo "::error file=$f::$line"
+              done
+              git checkout -- "$f"
+              status=1
+            fi
+          done
+          exit $status
 
       - name: Install Nix
         uses: cachix/install-nix-action@v24
