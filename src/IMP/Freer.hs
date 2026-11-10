@@ -43,6 +43,7 @@ data Union effs a where
 class Member eff effs where
     -- | Inject an effect request into the union.
     inj :: eff a -> Union effs a
+
     -- | Project a request of the effect out of the union, if present.
     prj :: Union effs a -> Maybe (eff a)
 
