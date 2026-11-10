@@ -36,8 +36,8 @@ import System.Exit (exitFailure, exitSuccess)
 import System.IO (hFlush, stdout)
 import System.IO.Error (isEOFError)
 import System.Random (randomIO)
-import Text.Read (readMaybe)
 import Text.Printf (printf)
+import Text.Read (readMaybe)
 
 import qualified Control.Exception as Exception
 import qualified System.Console.ANSI as ANSI
@@ -46,20 +46,22 @@ import IMP.Engine
 import IMP.Exception (Exception (..))
 import IMP.Expression
 import IMP.Parser
+import Frontend.Native.Meta
 import IMP.Syntax
 
 import qualified Paths_impli as Paths
-
-import Frontend.Native.Meta
 
 -- | Type alias for haskeline-based IO.
 type IO' = InputT IO
 
 -- | Options of the native frontend.
 data Options = Options
-    { optLevel :: Level -- ^ Verbosity level.
-    , optSemantics :: Semantics -- ^ Semantics to interpret with.
-    , optHistory :: Maybe FilePath -- ^ History file for haskeline.
+    { optLevel :: Level
+    -- ^ Verbosity level.
+    , optSemantics :: Semantics
+    -- ^ Semantics to interpret with.
+    , optHistory :: Maybe FilePath
+    -- ^ History file for haskeline.
     }
 
 -- | Default options: normal verbosity, natural semantics, no history file.
@@ -301,13 +303,13 @@ commandeer command l@(Loop options session) = case command of
                     else outputStrLn . show $ executed !! (length executed - n)
                 return (Just l)
     Verbose level -> inform ("verbosity: " ++ levelName level) >> return (Just l {options = options {optLevel = level}})
-  where
-    message aspect = case aspect of
-        All -> "environment reset"
-        Vars -> "variables reset"
-        Procs -> "procedures reset"
-        Flag -> "break flag reset"
-        Trace -> "trace reset"
+    where
+        message aspect = case aspect of
+            All -> "environment reset"
+            Vars -> "variables reset"
+            Procs -> "procedures reset"
+            Flag -> "break flag reset"
+            Trace -> "trace reset"
 
 -- | Interpret IMP source non-interactively via channel name, exiting with failure on error.
 interpret :: Semantics -> String -> String -> IO ()

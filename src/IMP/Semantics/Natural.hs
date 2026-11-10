@@ -15,7 +15,6 @@ Execution is reified as a freer monad program over the 'Input', 'Output' and
 'Choose' effects so the semantics itself stays pure: an interpreter discharges
 the effects in whatever context the frontend supplies.
 -}
-
 module IMP.Semantics.Natural (
     Input (..),
     Output (..),
@@ -49,8 +48,12 @@ data Output a where
 
 -- | Effect of an externally supplied arbitrary decision or value.
 data Choose a where
-    Pick :: Choose Bool -- ^ Pick a branch, 'True' for left.
-    Fate :: Choose Integer -- ^ Produce an arbitrary integer.
+    Pick ::
+        -- | Pick a branch, 'True' for left.
+        Choose Bool
+    Fate ::
+        -- | Produce an arbitrary integer.
+        Choose Integer
 
 -- | Canonical effect row for interpretation of 'run' programs.
 type Effects = '[Input, Output, Choose, Error Exception]
@@ -73,7 +76,7 @@ fate = send Fate
 
 -- | Execute statement in the state, return final state.
 run ::
-    (Member Input effs, Member Output effs, Member Choose effs, Member (Error Exception) effs) =>
+    (Member (Error Exception) effs, Member Choose effs, Member Input effs, Member Output effs) =>
     Gamma ->
     Eff effs State
 run (stm, state) = case stm of

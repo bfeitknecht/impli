@@ -18,7 +18,6 @@ through the @resolve@ exports. All results are JSON protocol envelopes.
 The @start@ export runs a naive stdio REPL usable in wasmtime and friends,
 handling only plain statements and a minimal set of metacommands.
 -}
-
 module Main where
 
 import Data.Aeson

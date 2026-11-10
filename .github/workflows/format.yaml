@@ -27,7 +27,7 @@ jobs:
           for f in $(git ls-files '*.hs'); do
             "$HOME/.local/bin/fourmolu" --mode inplace "$f" >/dev/null 2>&1 || true
             if ! git diff --quiet -- "$f"; then
-              msg=$(git diff --no-color -- "$f" | sed -n '1,80p')
+              msg=$(git diff --no-color -- "$f" | sed -n '1,400p')
               msg=${msg//'%'/'%25'}
               msg=${msg//$'\n'/'%0A'}
               msg=${msg//$'\r'/'%0D'}

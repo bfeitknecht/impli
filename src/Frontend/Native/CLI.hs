@@ -14,7 +14,6 @@ Handles parsing of arguments and options, then runs in the appropriate
 mode: the interactive REPL, file (or stdin) interpretation, command
 execution, or printing the version, help or AST of a construct.
 -}
-
 module Frontend.Native.CLI (
     parseCLI,
     runCLI,

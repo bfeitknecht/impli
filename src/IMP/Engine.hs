@@ -19,7 +19,6 @@ handlers supplied by frontends, and records history.
 The engine itself performs no IO: frontends drive it through 'runEngine' with
 their own base monad and 'Handlers'.
 -}
-
 module IMP.Engine (
     Aspect (..),
     Semantics (..),
@@ -44,12 +43,11 @@ module IMP.Engine (
 ) where
 
 import Control.Monad.Except
+import Control.Monad.Freer (send)
+import Control.Monad.Freer.Error (runError)
 import Control.Monad.Reader
 import Control.Monad.State hiding (State)
 import Control.Monad.Trans.Class (lift)
-
-import Control.Monad.Freer (send)
-import Control.Monad.Freer.Error (runError)
 
 import qualified Control.Monad.Freer as Freer
 import qualified Data.Map as Map
@@ -79,9 +77,12 @@ data Semantics
 
 -- | Resource profile collected during structural interpretation.
 data Profile = Profile
-    { stepCount :: Int -- ^ Number of steps taken.
-    , ruleCount :: Map.Map Rule Int -- ^ Applied inference rules.
-    , outputCount :: Int -- ^ Emitted outputs.
+    { stepCount :: Int
+    -- ^ Number of steps taken.
+    , ruleCount :: Map.Map Rule Int
+    -- ^ Applied inference rules.
+    , outputCount :: Int
+    -- ^ Emitted outputs.
     }
     deriving (Eq, Show)
 
@@ -91,20 +92,30 @@ emptyProfile = Profile {stepCount = 0, ruleCount = Map.empty, outputCount = 0}
 
 -- | Handlers supplied by frontends to discharge kernel suspensions and effects.
 data Handlers m = Handlers
-    { onInput :: String -> m Integer -- ^ Read value for variable.
-    , onOutput :: String -> m () -- ^ Emit output line.
-    , onChoice :: m Bool -- ^ Decide nondeterministic or parallel branch.
-    , onRandom :: m Integer -- ^ Produce arbitrary integer.
-    , pollInterrupt :: m Bool -- ^ Whether an interrupt is pending.
+    { onInput :: String -> m Integer
+    -- ^ Read value for variable.
+    , onOutput :: String -> m ()
+    -- ^ Emit output line.
+    , onChoice :: m Bool
+    -- ^ Decide nondeterministic or parallel branch.
+    , onRandom :: m Integer
+    -- ^ Produce arbitrary integer.
+    , pollInterrupt :: m Bool
+    -- ^ Whether an interrupt is pending.
     }
 
 -- | Engine-level failure.
 data Fault
-    = RuntimeFault Exception -- ^ Kernel semantics reported stuck.
-    | InvalidResolution Gamma Resolution -- ^ Resolution does not match the current suspension.
-    | NoFlight -- ^ No interpretation currently running or suspended.
-    | BusyFlight -- ^ Interpretation already running or suspended.
-    | Interrupted -- ^ Interpretation interrupted on frontend request.
+    = -- | Kernel semantics reported stuck.
+      RuntimeFault Exception
+    | -- | Resolution does not match the current suspension.
+      InvalidResolution Gamma Resolution
+    | -- | No interpretation currently running or suspended.
+      NoFlight
+    | -- | Interpretation already running or suspended.
+      BusyFlight
+    | -- | Interpretation interrupted on frontend request.
+      Interrupted
     deriving (Eq)
 
 -- | Instance of 'Show' with severity marker followed by content.
@@ -118,19 +129,27 @@ instance Show Fault where
 
 -- | In-flight interpretation under the structural semantics.
 data Flight = Flight
-    { statement :: Stm -- ^ Statement under interpretation.
-    , focus :: Gamma -- ^ Current configuration focus.
-    , blocked :: Configuration -- ^ Latest configuration of the focus.
+    { statement :: Stm
+    -- ^ Statement under interpretation.
+    , focus :: Gamma
+    -- ^ Current configuration focus.
+    , blocked :: Configuration
+    -- ^ Latest configuration of the focus.
     }
     deriving (Eq, Show)
 
 -- | Session state managed by the engine.
 data Session = Session
-    { environment :: State -- ^ Committed interpreter environment.
-    , flight :: Maybe Flight -- ^ In-flight interpretation, if any.
-    , trace :: [Stm] -- ^ Executed statements, newest first.
-    , stepHistory :: [Step] -- ^ Steps taken by the latest interpretation, newest first.
-    , profile :: Profile -- ^ Resource profile of the latest interpretation.
+    { environment :: State
+    -- ^ Committed interpreter environment.
+    , flight :: Maybe Flight
+    -- ^ In-flight interpretation, if any.
+    , trace :: [Stm]
+    -- ^ Executed statements, newest first.
+    , stepHistory :: [Step]
+    -- ^ Steps taken by the latest interpretation, newest first.
+    , profile :: Profile
+    -- ^ Resource profile of the latest interpretation.
     }
     deriving (Eq, Show)
 
@@ -236,8 +255,8 @@ renderAspect session aspect = case aspect of
                 index = '#' : show i ++ space 2
                 buffer = repeat . space $ length (show i) + 3
             ]
-  where
-    (vars, procs, flag) = environment session
+    where
+        (vars, procs, flag) = environment session
 
 -- | Render performed step for debug output.
 renderStep :: Step -> String

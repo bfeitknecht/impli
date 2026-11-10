@@ -13,7 +13,6 @@ JSON serialization (aeson) of kernel configurations, syntax trees, states and
 exceptions, plus the protocol envelopes exchanged with the web frontend.
 Encoding only: the frontend sends plain strings and the backend answers JSON.
 -}
-
 module IMP.JSON (
     TraceEntry (..),
     Envelope (..),
@@ -35,29 +34,38 @@ import IMP.Syntax
 
 -- | Entry of the statement trace for the web frontend.
 data TraceEntry = TraceEntry
-    { traceIndex :: Int -- ^ Index from newest statement backwards, starting at one.
-    , traceSource' :: String -- ^ Pretty-printed source text.
-    , traceAst :: Stm -- ^ Abstract syntax tree.
+    { traceIndex :: Int
+    -- ^ Index from newest statement backwards, starting at one.
+    , traceSource' :: String
+    -- ^ Pretty-printed source text.
+    , traceAst :: Stm
+    -- ^ Abstract syntax tree.
     }
 
 -- | Events and status envelope exchanged with the web frontend.
 data Envelope = Envelope
-    { envelopeEvents :: [String] -- ^ Output lines emitted during interpretation.
-    , envelopeStatus :: Status -- ^ Status of the interpretation.
+    { envelopeEvents :: [String]
+    -- ^ Output lines emitted during interpretation.
+    , envelopeStatus :: Status
+    -- ^ Status of the interpretation.
     }
 
 -- | Status of an interpretation for the web protocol.
 data Status
-    = Done State Profile -- ^ Interpretation completed with resulting state.
-    | Awaiting Suspension (Maybe (Stm, String)) Bool
-    -- ^ Blocked on suspension with optional focus statement and pretty-printed
-    -- source, flag whether retry after invalid resolution.
-    | Failed Fault -- ^ Interpretation faulted.
+    = -- | Interpretation completed with resulting state.
+      Done State Profile
+    | -- | Blocked on suspension with optional focus statement and pretty-printed
+      -- source, flag whether retry after invalid resolution.
+      Awaiting Suspension (Maybe (Stm, String)) Bool
+    | -- | Interpretation faulted.
+      Failed Fault
 
 -- | Steps taken by the latest interpretation for the inference tree tab.
 data Steps = Steps
-    { stepsTaken :: [Step] -- ^ Steps in chronological order.
-    , stepsProfile :: Profile -- ^ Resource profile.
+    { stepsTaken :: [Step]
+    -- ^ Steps in chronological order.
+    , stepsProfile :: Profile
+    -- ^ Resource profile.
     }
 
 -- | Apply tag with fields to JSON object.

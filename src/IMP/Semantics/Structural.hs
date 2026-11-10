@@ -42,16 +42,22 @@ import IMP.Syntax
 
 -- | Blocking step awaiting an external decision or value.
 data Suspension
-    = AwaitInput String -- ^ @read@ statement awaits an integer for the variable.
-    | AwaitHavoc String -- ^ @havoc@ statement awaits an arbitrary integer for the variable.
-    | AwaitChoice -- ^ Nondeterministic or parallel statement awaits which side to take.
+    = -- | @read@ statement awaits an integer for the variable.
+      AwaitInput String
+    | -- | @havoc@ statement awaits an arbitrary integer for the variable.
+      AwaitHavoc String
+    | -- | Nondeterministic or parallel statement awaits which side to take.
+      AwaitChoice
     deriving (Eq, Show)
 
 -- | Unblocking step with nondeterministic choice or read value.
 data Resolution
-    = ResolveInput Integer -- ^ Resolve @read@ suspension with the integer.
-    | ResolveHavoc Integer -- ^ Resolve @havoc@ suspension with the integer.
-    | ResolveChoice Bool -- ^ Resolve choice suspension, whether to branch left.
+    = -- | Resolve @read@ suspension with the integer.
+      ResolveInput Integer
+    | -- | Resolve @havoc@ suspension with the integer.
+      ResolveHavoc Integer
+    | -- | Resolve choice suspension, whether to branch left.
+      ResolveChoice Bool
     deriving (Eq, Show)
 
 -- | Observable effect emitted by a step.
@@ -91,18 +97,25 @@ data Rule
 
 -- | One successfully performed step.
 data Step = Step
-    { residual :: Gamma -- ^ Configuration after the step.
-    , effects :: [Effect] -- ^ Effects emitted by the step.
-    , rule :: Rule -- ^ Applied inference rule.
+    { residual :: Gamma
+    -- ^ Configuration after the step.
+    , effects :: [Effect]
+    -- ^ Effects emitted by the step.
+    , rule :: Rule
+    -- ^ Applied inference rule.
     }
     deriving (Eq, Show)
 
 -- | Machine configuration between steps.
 data Configuration
-    = Stepped Step -- ^ Step taken, residual configuration available.
-    | Blocked Suspension -- ^ Execution suspended until externally resolved.
-    | Stuck Exception -- ^ Execution failed.
-    | Terminal State -- ^ Execution completed.
+    = -- | Step taken, residual configuration available.
+      Stepped Step
+    | -- | Execution suspended until externally resolved.
+      Blocked Suspension
+    | -- | Execution failed.
+      Stuck Exception
+    | -- | Execution completed.
+      Terminal State
     deriving (Eq, Show)
 
 -- | Small-step transition between configurations.
@@ -210,10 +223,9 @@ step (stm, state) = case stm of
     Timeout s duration ->
         if evaluate duration state <= 0
             then Stepped Step {residual = (Skip, state), effects = [], rule = RuleTimeout}
-            else
-                case step (s, state) of
-                    Terminal state' -> Stepped Step {residual = (Skip, state'), effects = [], rule = RuleTimeout}
-                    conf -> rewrap conf $ \(s', state') -> (Timeout s' (duration - 1), state')
+            else case step (s, state) of
+                Terminal state' -> Stepped Step {residual = (Skip, state'), effects = [], rule = RuleTimeout}
+                conf -> rewrap conf $ \(s', state') -> (Timeout s' (duration - 1), state')
     Alternate s1 s2 ->
         case step (s1, state) of
             Terminal state' -> Stepped Step {residual = (s2, state'), effects = [], rule = RuleAlternate}

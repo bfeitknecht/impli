@@ -18,7 +18,6 @@ a 'Resolution'. The natural (big-step) semantics of "IMP.Semantics.Natural"
 is reified as a freer monad program over 'Input', 'Output' and 'Choose'
 effects plus 'Error' 'Exception', interpreted by an engine or frontend.
 -}
-
 module IMP.Kernel (
     Gamma,
     Suspension (..),
