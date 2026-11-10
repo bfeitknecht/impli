@@ -1,3 +1,6 @@
+{-# LANGUAGE JavaScriptFFI #-}
+{-# LANGUAGE OverloadedStrings #-}
+
 {- |
 Module      : Main
 Description : WASM API entrypoint for the JavaScript-driven IMP frontend
@@ -15,8 +18,6 @@ through the @resolve@ exports. All results are JSON protocol envelopes.
 The @start@ export runs a naive stdio REPL usable in wasmtime and friends,
 handling only plain statements and a minimal set of metacommands.
 -}
-{-# LANGUAGE JavaScriptFFI #-}
-{-# LANGUAGE OverloadedStrings #-}
 
 module Main where
 

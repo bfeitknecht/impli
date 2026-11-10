@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 {- |
 Module      : IMP.JSON
 Description : JSON serialization for the IMP language kernel and protocol
@@ -11,7 +13,6 @@ JSON serialization (aeson) of kernel configurations, syntax trees, states and
 exceptions, plus the protocol envelopes exchanged with the web frontend.
 Encoding only: the frontend sends plain strings and the backend answers JSON.
 -}
-{-# LANGUAGE OverloadedStrings #-}
 
 module IMP.JSON (
     TraceEntry (..),

@@ -1,3 +1,6 @@
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE GADTs #-}
+
 {- |
 Module      : IMP.Semantics.Natural
 Description : Natural semantics for the IMP language
@@ -12,8 +15,6 @@ Execution is reified as a freer monad program over the 'Input', 'Output' and
 'Choose' effects so the semantics itself stays pure: an interpreter discharges
 the effects in whatever context the frontend supplies.
 -}
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE GADTs #-}
 
 module IMP.Semantics.Natural (
     Input (..),

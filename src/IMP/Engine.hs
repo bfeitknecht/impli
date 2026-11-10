@@ -1,3 +1,7 @@
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE GADTs #-}
+
 {- |
 Module      : IMP.Engine
 Description : Runtime session engine over the pure kernel API
@@ -15,9 +19,6 @@ handlers supplied by frontends, and records history.
 The engine itself performs no IO: frontends drive it through 'runEngine' with
 their own base monad and 'Handlers'.
 -}
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE GADTs #-}
 
 module IMP.Engine (
     Aspect (..),

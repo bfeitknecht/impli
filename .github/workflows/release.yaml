@@ -125,7 +125,15 @@ jobs:
         uses: cachix/install-nix-action@v24
 
       - name: Build WASM binary
-        run: nix build .#impli-web
+        shell: bash
+        run: |
+          set -o pipefail
+          nix build .#impli-web 2>&1 | tee build.log || {
+            tail -n 80 build.log | while read -r line; do
+              echo "::error::$line"
+            done
+            exit 1
+          }
 
       - name: Upload WASM binary
         uses: actions/upload-artifact@v4

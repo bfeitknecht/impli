@@ -1,3 +1,5 @@
+{-# LANGUAGE TypeApplications #-}
+
 {- |
 Module      : Frontend.Native.CLI
 Description : Commandline interface for the IMP language interpreter
@@ -12,7 +14,6 @@ Handles parsing of arguments and options, then runs in the appropriate
 mode: the interactive REPL, file (or stdin) interpretation, command
 execution, or printing the version, help or AST of a construct.
 -}
-{-# LANGUAGE TypeApplications #-}
 
 module Frontend.Native.CLI (
     parseCLI,
@@ -33,7 +34,7 @@ import IMP.Syntax
 import qualified Paths_impli as Paths
 
 import Frontend.Native.Meta (Level (..), levelName, parseLevel)
-import Frontend.Native.REPL
+import Frontend.Native.REPL (Options (..), interpret, repl)
 
 -- | Mode to run the CLI.
 {- FOURMOLU_DISABLE -}
