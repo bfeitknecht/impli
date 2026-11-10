@@ -49,6 +49,7 @@ jobs:
       - name: Build impli
         shell: bash
         run: |
+          cabal update
           set -o pipefail
           cabal build exe:impli 2>&1 | tee build.log || {
             msg=$(grep -B4 -A25 -m2 -E 'error:|Error' build.log | head -n 60)
