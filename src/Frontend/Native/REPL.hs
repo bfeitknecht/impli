@@ -301,13 +301,13 @@ commandeer command l@(Loop options session) = case command of
                     else outputStrLn . show $ executed !! (length executed - n)
                 return (Just l)
     Verbose level -> inform ("verbosity: " ++ levelName level) >> return (Just l {options = options {optLevel = level}})
-    where
-        message aspect = case aspect of
-            All -> "environment reset"
-            Vars -> "variables reset"
-            Procs -> "procedures reset"
-            Flag -> "break flag reset"
-            Trace -> "trace reset"
+  where
+    message aspect = case aspect of
+        All -> "environment reset"
+        Vars -> "variables reset"
+        Procs -> "procedures reset"
+        Flag -> "break flag reset"
+        Trace -> "trace reset"
 
 -- | Interpret IMP source non-interactively via channel name, exiting with failure on error.
 interpret :: Semantics -> String -> String -> IO ()

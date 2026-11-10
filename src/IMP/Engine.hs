@@ -235,8 +235,8 @@ renderAspect session aspect = case aspect of
                 index = '#' : show i ++ space 2
                 buffer = repeat . space $ length (show i) + 3
             ]
-    where
-        (vars, procs, flag) = environment session
+  where
+    (vars, procs, flag) = environment session
 
 -- | Render performed step for debug output.
 renderStep :: Step -> String
