@@ -47,9 +47,16 @@ jobs:
           key: ${{ runner.os }}-${{ matrix.arch }}-cabal
 
       - name: Build impli
+        shell: bash
         run: |
           cabal update
-          cabal build exe:impli
+          set -o pipefail
+          cabal build exe:impli 2>&1 | tee build.log || {
+            tail -n 80 build.log | while read -r line; do
+              echo "::error::$line"
+            done
+            exit 1
+          }
 
       - name: Prepare native binaries
         shell: bash
