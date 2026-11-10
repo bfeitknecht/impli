@@ -27,10 +27,11 @@ jobs:
           for f in $(git ls-files '*.hs'); do
             "$HOME/.local/bin/fourmolu" --mode inplace "$f" >/dev/null 2>&1 || true
             if ! git diff --quiet -- "$f"; then
-              echo "::error file=$f::would be reformatted:"
-              git diff -- "$f" | grep '^[-+]' | grep -v '^[-+][-+][-+]' | head -n 40 | while read -r line; do
-                echo "::error file=$f::$line"
-              done
+              msg=$(git diff --no-color -- "$f" | sed -n '1,80p')
+              msg=${msg//'%'/'%25'}
+              msg=${msg//$'\n'/'%0A'}
+              msg=${msg//$'\r'/'%0D'}
+              echo "::error file=$f::$msg"
               git checkout -- "$f"
               status=1
             fi

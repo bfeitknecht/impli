@@ -5,6 +5,7 @@ module Main where
 import Test.Tasty
 import Test.Tasty.HUnit
 
+import Frontend.Native.Meta
 import IMP.Engine
 import IMP.Exception (Exception (..))
 import IMP.Expression
@@ -13,8 +14,6 @@ import IMP.Parser
 import IMP.Pretty
 import IMP.State
 import IMP.Syntax
-
-import Frontend.Native.Meta
 
 main :: IO ()
 main = defaultMain tests

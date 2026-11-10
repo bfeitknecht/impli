@@ -26,15 +26,14 @@ import System.Exit (exitFailure)
 
 import qualified Control.Exception as Exception
 
+import Frontend.Native.Meta (Level (..), levelName, parseLevel)
+import Frontend.Native.REPL (Options (..), interpret, repl)
 import IMP.Engine (Semantics (..))
 import IMP.Exception
 import IMP.Parser
 import IMP.Syntax
 
 import qualified Paths_impli as Paths
-
-import Frontend.Native.Meta (Level (..), levelName, parseLevel)
-import Frontend.Native.REPL (Options (..), interpret, repl)
 
 -- | Mode to run the CLI.
 {- FOURMOLU_DISABLE -}
