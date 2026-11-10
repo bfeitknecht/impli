@@ -84,6 +84,7 @@ executable impli
     Frontend.Native.CLI
     Frontend.Native.Meta
     Frontend.Native.REPL
+    Paths_impli
   autogen-modules:
     Paths_impli
 
@@ -93,6 +94,7 @@ executable impli-web
   main-is: Frontend/Web/Main.hs
   other-modules:
     IMP.JSON
+    Paths_impli
   autogen-modules:
     Paths_impli
 
@@ -133,6 +135,7 @@ test-suite impli-test
     IMP.Semantics.Structural
     IMP.State
     IMP.Syntax
+    Paths_impli
   autogen-modules:
     Paths_impli
   build-depends:
