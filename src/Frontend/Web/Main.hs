@@ -125,11 +125,18 @@ parseAspect name = case name of
 respond :: Configuration -> Session -> IO JSString
 respond conf session = do
     events <- reverse <$> readIORef outputsRef
-    let stat = case conf of
-            Terminal state' -> Done state' (profile session)
-            Blocked suspension -> Awaiting suspension False
+    let stat = case (conf, flight session) of
+            (Terminal state', _) -> Done state' (profile session)
+            (Blocked suspension, Just fl) -> Awaiting suspension (focusOf fl) False
+            (Blocked suspension, Nothing) -> Awaiting suspension Nothing False
             _ -> Failed (RuntimeFault (Error "unreachable engine state"))
     jsonOut (Envelope events stat)
+    where
+        focusOf = Just . focusDetail
+
+-- | Focus statement and its pretty-printed source for choice screens.
+focusDetail :: Flight -> (Stm, String)
+focusDetail fl = (fst (focus fl), prettify (fst (focus fl)))
 
 -- | Fault response rendering: buffered events plus failed status.
 failWith :: Fault -> IO JSString
@@ -165,7 +172,8 @@ retrySuspension = do
     session <- readIORef sessionRef
     case flight session of
         Just fl
-            | Blocked suspension <- blocked fl -> jsonOut (Envelope [] (Awaiting suspension True))
+            | Blocked suspension <- blocked fl ->
+                jsonOut (Envelope [] (Awaiting suspension (Just (focusDetail fl)) True))
         _ -> jsonOut (Envelope [] (Failed NoFlight))
 
 -- | Export startup API.

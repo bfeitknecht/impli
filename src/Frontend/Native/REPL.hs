@@ -88,6 +88,50 @@ separator Normal = '>'
 separator Profile = '+'
 separator Debug = '*'
 
+-- | Read a possibly multi-line construct, continuing as long as parentheses
+-- or @end@-terminated blocks are unbalanced. Metacommands stay single-line.
+readInput :: Level -> IO' (Maybe String)
+readInput level = do
+    line <- getInputLine (prompt level)
+    case line of
+        Nothing -> return Nothing
+        Just input@(':' : _) -> return (Just input) -- metacommand, always single line
+        Just input -> continue input
+    where
+        continue input
+            | depthIn input <= 0 = return (Just input)
+            | otherwise = do
+                line <- getInputLine ("IMP" ++ '|' : " ")
+                case line of
+                    Nothing -> return Nothing -- ctrl-d during continuation, abort input
+                    Just more -> continue (input ++ "\n" ++ more)
+
+-- | Balance score: parentheses plus end-terminated block keywords.
+depthIn :: String -> Int
+depthIn input = sum (map paren input) + sum (map blocks (words input))
+    where
+        paren '(' = 1
+        paren ')' = -1
+        paren _ = 0
+        blocks word
+            | word `elem` openings = 1
+            | word == "end" = -1
+            | otherwise = 0
+        openings =
+            [ "if"
+            , "while"
+            , "do"
+            , "for"
+            , "repeat"
+            , "let"
+            , "procedure"
+            , "revert"
+            , "match"
+            , "flip"
+            , "try"
+            , "timeout"
+            ]
+
 -- | Exception thrown on read abort, caught for clean exit.
 data Aborted = Aborted
     deriving (Eq, Show)
@@ -165,7 +209,7 @@ loop l = handleInterrupt (loop l) $ do
 -- | One iteration of the REPL loop, return 'Nothing' to terminate.
 iteration :: Loop -> IO' (Maybe Loop)
 iteration l@(Loop options _) = do
-    line <- getInputLine (prompt (optLevel options))
+    line <- readInput (optLevel options)
     case line of
         Nothing -> return Nothing -- ctrl-d, exit cleanly
         Just ":)" -> outputStrLn "You look good today!" >> return (Just l) -- it's true

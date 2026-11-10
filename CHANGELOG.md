@@ -4,6 +4,49 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [6.0.0] - 2026-11-10
+
+The next (hopefully last) huge refactor (#80, also #79, #77, #31).
+
+- Restructure interpreter into a pure kernel, an engine, and thin frontends
+  - `IMP.Semantics.Structural`: pure, serialisable small-step semantics
+    on configurations with explicit suspension/resolution for `read`,
+    `havoc` and non-deterministic or parallel choice; complete coverage
+    of all statements of the language
+  - `IMP.Semantics.Natural`: big-step semantics reified as a freer monad
+    program (`freer-simple`) over `Input`/`Output`/`Choose` effects and
+    `Error`, interpreted by the engine
+  - Stack-free machine: procedure invocation and local scope rewrite to
+    `Return`/`Restore` sequences carrying state snapshots, the machine
+    configuration stays a plain `(Stm, State)`
+  - `IMP.Engine`: session layer discharging effects through frontend
+    handlers, managing environment, statement trace, step history and
+    resource profile
+- Remove `IMP.Config` and `IMP.Statement` and the old REPL architecture
+  (`REPL.*`, `IMP.Execute.*`); language extensions are now always enabled
+- Native frontend improvements
+  - Drop VIM input mode and customizable welcome/prompt/separator/goodbye
+  - Verbosity levels `normal`/`profile`/`debug` via `--verbose` CLI flag
+    and `:set verbose LEVEL` REPL command; level switches prompt
+    separator (`>`, `+`, `*`); `profile` reports elapsed time and steps
+    taken, `debug` additionally prints the parsed AST and intermediate
+    small-step configurations
+  - `--structural` CLI flag to interpret with the small-step semantics
+  - Multi-line input: lines leaving parentheses or blocks unbalanced
+    continue on subsequent lines
+- Web frontend rework
+  - Export-only WASM API; no foreign imports, no side-channel globals
+  - JSON (aeson) protocol envelopes: buffered output events plus status
+    (`done`, `await-input`, `await-havoc`, `await-choice`, or `error`)
+  - JavaScript drives prompt, input and all metacommands; suspended
+    interpretation resolves interactively (input prompt, havoc, and a
+    choice screen displaying both branches)
+  - Ctrl-C interrupts, Ctrl-D exits; multi-line input via local-echo
+  - App shell with tabs: Terminal, State, Trace (inference rules), AST,
+    and EBNF railroad diagrams
+
+---
+
 ## [5.0.0] - 2026-02-25
 
 - Complete web support with WASM build and `xterm.js` integration

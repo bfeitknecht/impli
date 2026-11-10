@@ -48,7 +48,9 @@ data Envelope = Envelope
 -- | Status of an interpretation for the web protocol.
 data Status
     = Done State Profile -- ^ Interpretation completed with resulting state.
-    | Awaiting Suspension Bool -- ^ Blocked on suspension, flag whether retry after invalid resolution.
+    | Awaiting Suspension (Maybe (Stm, String)) Bool
+    -- ^ Blocked on suspension with optional focus statement and pretty-printed
+    -- source, flag whether retry after invalid resolution.
     | Failed Fault -- ^ Interpretation faulted.
 
 -- | Steps taken by the latest interpretation for the inference tree tab.
@@ -238,13 +240,16 @@ instance ToJSON TraceEntry where
             ]
 
 instance ToJSON Status where
-    toJSON status = case status of
-        Done state prof -> tag "done" ["state" .= state, "profile" .= prof]
-        Awaiting suspension retry -> object $ case suspension of
-            AwaitInput x -> ["tag" .= ("await-input" :: Text), "variable" .= x, "retry" .= retry]
-            AwaitHavoc x -> ["tag" .= ("await-havoc" :: Text), "variable" .= x, "retry" .= retry]
-            AwaitChoice -> ["tag" .= ("await-choice" :: Text), "retry" .= retry]
-        Failed fault -> tag "error" ["fault" .= fault]
+    toJSON (Done state prof) = tag "done" ["state" .= state, "profile" .= prof]
+    toJSON (Awaiting suspension focus retry) = object $ fields suspension ++ focused focus
+        where
+            fields suspension = case suspension of
+                AwaitInput x -> ["tag" .= ("await-input" :: Text), "variable" .= x]
+                AwaitHavoc x -> ["tag" .= ("await-havoc" :: Text), "variable" .= x]
+                AwaitChoice -> ["tag" .= ("await-choice" :: Text)]
+            focused (Just (stm, source)) = ["retry" .= retry, "focus" .= source, "stm" .= stm]
+            focused Nothing = ["retry" .= retry]
+    toJSON (Failed fault) = tag "error" ["fault" .= fault]
 
 instance ToJSON Envelope where
     toJSON envelope =

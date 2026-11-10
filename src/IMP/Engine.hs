@@ -45,6 +45,7 @@ module IMP.Engine (
 import Control.Monad.Except
 import Control.Monad.Reader
 import Control.Monad.State hiding (State)
+import Control.Monad.Trans.Class (lift)
 
 import Control.Monad.Freer (send)
 import Control.Monad.Freer.Error (runError)

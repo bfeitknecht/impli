@@ -46,6 +46,321 @@ body {
   overflow: hidden;
 }
 
+/* Application layout */
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.topbar {
+  display: flex;
+  align-items: stretch;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  border-bottom: 1px solid
+    color-mix(in srgb, var(--terminal-fg) 25%, transparent);
+  flex: 0 0 auto;
+}
+
+.topbar button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.35rem 0.75rem;
+  border-radius: 4px;
+}
+
+.brand {
+  font-weight: bold;
+  font-size: 1.05em;
+}
+
+.burger {
+  display: none;
+  margin-left: auto;
+}
+
+.tabs {
+  display: flex;
+  align-items: stretch;
+  margin-left: 0.5rem;
+}
+
+.tabs .tab:hover,
+.brand:hover {
+  background: color-mix(in srgb, var(--terminal-fg) 10%, transparent);
+}
+
+.tabs .tab.active {
+  font-weight: bold;
+  box-shadow: inset 0 -2px 0 var(--terminal-fg);
+}
+
+@media (max-width: 700px) {
+  .burger {
+    display: block;
+  }
+
+  .tabs {
+    display: none;
+    position: absolute;
+    top: 2.6rem;
+    right: 0.5rem;
+    flex-direction: column;
+    background: var(--terminal-bg);
+    border: 1px solid
+      color-mix(in srgb, var(--terminal-fg) 25%, transparent);
+    border-radius: 4px;
+    padding: 0.25rem;
+    z-index: 10;
+  }
+
+  .tabs.open {
+    display: flex;
+  }
+
+  .tabs .tab {
+    text-align: left;
+  }
+
+  .tabs .tab.active {
+    box-shadow: inset 2px 0 0 var(--terminal-fg);
+  }
+}
+
+.content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.tabpanel {
+  display: none;
+  flex: 1;
+  min-height: 0;
+}
+
+.tabpanel.active {
+  display: flex;
+  flex-direction: column;
+}
+
+.panel {
+  flex: 1;
+  overflow: auto;
+  padding: 0.75rem 1rem 2rem;
+  line-height: 1.45;
+}
+
+.panel h3 {
+  margin: 1rem 0 0.35rem;
+}
+
+.panel h3:first-child {
+  margin-top: 0;
+}
+
+.panel-note {
+  opacity: 0.7;
+}
+
+.kv {
+  border-collapse: collapse;
+}
+
+.kv-key {
+  padding-right: 0.5rem;
+}
+
+.proc summary {
+  cursor: pointer;
+}
+
+pre.source,
+code.source {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.steps {
+  border-collapse: collapse;
+}
+
+.steps th,
+.steps td {
+  text-align: left;
+  padding: 0.15rem 0.75rem 0.15rem 0;
+  vertical-align: top;
+}
+
+.step .effect {
+  background: color-mix(in srgb, var(--terminal-fg) 12%, transparent);
+  border-radius: 3px;
+  padding: 0 0.35em;
+}
+
+.trace-entry {
+  display: flex;
+  gap: 0.5rem;
+  align-items: baseline;
+  padding: 0.1rem 0;
+}
+
+button.link {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+}
+
+.ast-input-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.ast-input {
+  flex: 1;
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 1px solid
+    color-mix(in srgb, var(--terminal-fg) 35%, transparent);
+  border-radius: 4px;
+  padding: 0.35rem 0.5rem;
+}
+
+.ast-input-row button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 1px solid
+    color-mix(in srgb, var(--terminal-fg) 35%, transparent);
+  border-radius: 4px;
+  padding: 0.35rem 0.75rem;
+  cursor: pointer;
+}
+
+details.ast-node {
+  margin-left: 1rem;
+}
+
+.ast-leaf {
+  margin-left: 1.35rem;
+}
+
+.ast-tag {
+  font-weight: bold;
+}
+
+.ast-scalar {
+  opacity: 0.75;
+  margin-left: 0.5em;
+}
+
+.ast-children {
+  margin-left: 0.5rem;
+  border-left: 1px dotted
+    color-mix(in srgb, var(--terminal-fg) 35%, transparent);
+  padding-left: 0.75rem;
+}
+
+.ast-field {
+  display: flex;
+  gap: 0.5rem;
+  align-items: baseline;
+}
+
+.ast-field-name {
+  opacity: 0.6;
+  font-size: 0.9em;
+  min-width: 5.5em;
+  text-align: right;
+  flex: 0 0 auto;
+}
+
+.ast-field-child {
+  display: inline;
+}
+
+/* Railroad diagrams, adapted from railroad-diagrams (CC0) */
+
+.railroad svg.railroad-diagram {
+  max-width: 100%;
+  height: auto;
+}
+
+.railroad .railroad-diagram path {
+  stroke-width: 3;
+  stroke: var(--terminal-fg);
+  fill: none;
+}
+
+.railroad .railroad-diagram text {
+  font: bold 13px "CommitMono", monospace;
+  text-anchor: middle;
+  fill: var(--terminal-fg);
+}
+
+.railroad .railroad-diagram text.diagram-text {
+  font-size: 12px;
+}
+
+.railroad .railroad-diagram text.diagram-arrow {
+  font-size: 16px;
+}
+
+.railroad .railroad-diagram text.label {
+  text-anchor: start;
+}
+
+.railroad .railroad-diagram text.comment {
+  font: italic 12px "CommitMono", monospace;
+}
+
+.railroad .railroad-diagram g.non-terminal text {
+  font-style: italic;
+}
+
+.railroad .railroad-diagram rect {
+  stroke-width: 3;
+  stroke: var(--terminal-fg);
+  fill: color-mix(in srgb, var(--terminal-fg) 12%, transparent);
+}
+
+.railroad .railroad-diagram g.non-terminal rect {
+  fill: none;
+}
+
+.railroad .railroad-diagram rect.group-box {
+  stroke: color-mix(in srgb, var(--terminal-fg) 50%, transparent);
+  stroke-dasharray: 3 3;
+  fill: none;
+}
+
+.railroad .railroad-diagram path.diagram-text {
+  stroke-width: 3;
+  stroke: var(--terminal-fg);
+  fill: var(--terminal-fg);
+  cursor: help;
+}
+
+.railroad .railroad-diagram g.diagram-text:hover path.diagram-text {
+  fill: #eee;
+}
+
+.ebnf .railroad {
+  overflow-x: auto;
+}
+
 .xterm {
   height: 100%;
 }
