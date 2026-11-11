@@ -32,17 +32,7 @@ jobs:
           nix_path: nixpkgs=channel:nixos-unstable
 
       - name: Build impli web REPL (WASM binary and JS artifacts)
-        shell: bash
-        run: |
-          set -o pipefail
-          nix run .#build -L 2>&1 | tee build.log || {
-            msg=$(tail -n 45 build.log)
-            msg="${msg//%/%25}"
-            msg="${msg//$'\n'/%0A}"
-            msg="${msg//$'\r'/%0D}"
-            printf '::error::%s\n' "$msg"
-            exit 1
-          }
+        run: nix run .#build
 
       - name: Copy paper to server
         run: cp docs/paper/IMP.pdf web/public/

@@ -18,25 +18,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Check Haskell formatting
-        shell: bash
-        run: |
-          mkdir -p "$HOME/.local/bin"
-          curl -sL https://github.com/fourmolu/fourmolu/releases/download/v0.19.0.1/fourmolu-0.19.0.1-linux-x86_64 -o "$HOME/.local/bin/fourmolu"
-          chmod +x "$HOME/.local/bin/fourmolu"
-          status=0
-          for f in $(git ls-files '*.hs'); do
-            "$HOME/.local/bin/fourmolu" --mode inplace "$f" >/dev/null 2>&1 || true
-            if ! git diff --quiet -- "$f"; then
-              msg=$(git diff --no-color -- "$f" | sed -n '1,400p')
-              msg=${msg//'%'/'%25'}
-              msg=${msg//$'\n'/'%0A'}
-              msg=${msg//$'\r'/'%0D'}
-              echo "::error file=$f::$msg"
-              git checkout -- "$f"
-              status=1
-            fi
-          done
-          exit $status
+        uses: haskell-actions/run-fourmolu@v11
+        with:
+          version: "0.19.0.1"
 
       - name: Install Nix
         uses: cachix/install-nix-action@v24
