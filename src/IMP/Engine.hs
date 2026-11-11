@@ -41,6 +41,7 @@ module IMP.Engine (
 import Control.Monad.Except
 import Control.Monad.Reader
 import Control.Monad.State hiding (State)
+import Control.Monad.Trans.Class (lift)
 
 import qualified Data.Map as Map
 
@@ -164,7 +165,7 @@ drive semantics stm = case semantics of
         handlers <- ask
         st <- gets environment
         modify $ \session -> session {stepHistory = [], profile = emptyProfile}
-        let computation = Natural.run handlers (stm, st) :: ExceptT Exception m State
+        let computation = Natural.run (hoistHandlers lift handlers) (stm, st) :: ExceptT Exception m State
         result <- hoistEngine $ runExceptT computation
         case result of
             Left e -> throwError (RuntimeFault e)
