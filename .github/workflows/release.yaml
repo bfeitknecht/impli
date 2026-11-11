@@ -118,7 +118,15 @@ jobs:
         uses: cachix/install-nix-action@v31
 
       - name: Build WASM binary
-        run: nix build .#impli-web
+        run: nix build .#impli-web 2>&1 | tee wasm-build.log
+
+      - name: Upload WASM build log on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: impli-wasm-log
+          path: wasm-build.log
+          if-no-files-found: ignore
 
       - name: Upload WASM binary
         uses: actions/upload-artifact@v7
