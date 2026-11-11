@@ -33,7 +33,7 @@ jobs:
       - name: Annotate fourmolu diff on failure
         if: failure()
         run: |
-          nix run nixpkgs#fourmolu -- --mode diff $(git ls-files '*.hs') 2>&1 | tr '\n' '~' | head -c 3400 > fourmolu-diff.txt || true
+          nix run nixpkgs#fourmolu -- --mode diff $(git ls-files '*.hs') 2>/dev/null | tr '\n' '~' | head -c 12000 > fourmolu-diff.txt || true
           echo "::error title=fourmolu-diff::$(cat fourmolu-diff.txt)"
 
       - name: Check Nix formatting
