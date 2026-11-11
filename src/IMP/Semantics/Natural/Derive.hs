@@ -52,7 +52,7 @@ data Derivation = Derivation
     , stdout :: [String]
     -- ^ Accumulation of everything printed, in order.
     }
-    deriving (Eq, Show, Generic)
+    deriving (Eq, Generic, Show)
 
 instance ToJSON Derivation
 
@@ -65,12 +65,12 @@ data Rule = Rule
     , premise :: [Rule]
     -- ^ Premises, i.e. the derivations of the substatements.
     }
-    deriving (Eq, Show, Generic)
+    deriving (Eq, Generic, Show)
 
 instance ToJSON Rule
 
 -- | One concluded derivation: the applied rule and the resulting state.
-data Node = Node { rule :: Rule, result :: State }
+data Node = Node {rule :: Rule, result :: State}
 
 -- | Pretty-print the statement of a configuration.
 source :: Stm -> String
@@ -113,10 +113,9 @@ next derivation = case stdin derivation of
     [] -> (0, derivation)
     (v : rest) -> (v, derivation {stdin = rest})
 
-{- | Execute a statement like "IMP.Semantics.Natural" but return its
-derivation tree alongside the final state; see the module documentation for
-how @read@, @havoc@ and nondeterministic choice behave here.
--}
+-- | Execute a statement like "IMP.Semantics.Natural" but return its
+-- derivation tree alongside the final state; see the module documentation for
+-- how @read@, @havoc@ and nondeterministic choice behave here.
 deriveWith :: (MonadError Exception m) => Derivation -> Gamma -> m (Derivation, Node)
 deriveWith derivation (stm, state) = case stm of
     Skip ->
@@ -256,9 +255,8 @@ deriveWith derivation (stm, state) = case stm of
     Timeout _ _ -> throwError $ Error "timeout statement not supported in big-step semantics"
     Alternate _ _ -> throwError $ Error "alternate execution not supported in big-step semantics"
 
-{- | Derive the statement in the given state without any input replay,
-seeding the nondeterminism from the derivation context.
--}
+-- | Derive the statement in the given state without any input replay,
+-- seeding the nondeterminism from the derivation context.
 derive :: (MonadError Exception m) => Derivation -> Gamma -> m (Derivation, Rule)
 derive derivation conf = do
     (derivation', node) <- deriveWith derivation conf

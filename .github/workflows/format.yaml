@@ -40,12 +40,9 @@ jobs:
           echo "::notice title=fourmolu-files::$(echo $FILES | tr '\n' ' ' | tr ' ' '~')"
           ./fourmolu --mode check $FILES 2>&1 | tr '\n' '~' | head -c 1400 > fourmolu-check.txt || true
           echo "::error title=fourmolu-check::$(cat fourmolu-check.txt)"
-          ./fourmolu --mode diff $FILES | tr '\n' '~' > fourmolu-diff.txt || true
+          ./fourmolu --mode diff $FILES | grep -E '^(--- |\+\+\+ |@@|[-+])' | tr '\n' '~' | head -c 3000 > fourmolu-diff.txt || true
           if [ -s fourmolu-diff.txt ]; then
-            split -b 1400 fourmolu-diff.txt fourmolu-chunk- || true
-            for chunk in fourmolu-chunk-*; do
-              echo "::error title=fourmolu-diff::$(cat $chunk)"
-            done
+            echo "::error title=fourmolu-diff::$(cat fourmolu-diff.txt)"
           else
             echo "::error title=fourmolu-diff::(empty diff)"
           fi
