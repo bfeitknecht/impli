@@ -40,6 +40,7 @@ module IMP.Engine (
     traceSource,
 ) where
 
+import Control.Algebra ((:+:) (..))
 import Control.Carrier.Error.Either (runError)
 import Control.Carrier.Interpret (runInterpret)
 import Control.Carrier.Lift (runM)
