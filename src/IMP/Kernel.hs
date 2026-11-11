@@ -29,6 +29,7 @@ module IMP.Kernel (
     step,
     resume,
     Handlers (..),
+    hoistHandlers,
     run,
 ) where
 
