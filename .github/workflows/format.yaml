@@ -33,7 +33,10 @@ jobs:
       - name: Annotate fourmolu diff on failure
         if: failure()
         run: |
-          nix run nixpkgs#fourmolu -- --mode diff $(git ls-files '*.hs') 2>/dev/null | tr '\n' '~' > fourmolu-diff.txt || true
+          if ! nix run nixpkgs#fourmolu -- --mode diff $(git ls-files '*.hs') > fourmolu-diff-raw.txt 2> fourmolu-error.txt; then
+            echo "::error title=fourmolu-run::$(tr '\n' '~' < fourmolu-error.txt | head -c 1400)"
+          fi
+          tr '\n' '~' < fourmolu-diff-raw.txt > fourmolu-diff.txt || true
           if [ -s fourmolu-diff.txt ]; then
             split -b 1400 fourmolu-diff.txt fourmolu-chunk- || true
             for chunk in fourmolu-chunk-*; do

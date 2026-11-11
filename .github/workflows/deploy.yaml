@@ -42,11 +42,13 @@ jobs:
               LINE=$(grep -n ': error' nix-full.log | head -1 | cut -d: -f1)
               if [ -n "$LINE" ]; then
                 START=$((LINE > 12 ? LINE - 12 : 1))
-                sed -n "${START},$((LINE + 40))p" nix-full.log | tr '\n' '~' | head -c 3400 > nix-log-tail.txt
+                sed -n "${START},$((LINE + 40))p" nix-full.log > nix-log-tail.txt
               else
-                tail -70 nix-full.log | tr '\n' '~' | head -c 3400 > nix-log-tail.txt
+                tail -70 nix-full.log > nix-log-tail.txt
               fi
-              echo "::error title=nix-log-tail::$(cat nix-log-tail.txt)"
+              echo "::notice title=nix-log-probe::lines=$(wc -l < nix-log-tail.txt)"
+              tr '\n' '~' < nix-log-tail.txt | sed 's/::/;/g' | head -c 3000 > nix-log-tail-clean.txt || true
+              echo "::error title=nix-log-tail::$(cat nix-log-tail-clean.txt)"
             fi
             exit 1
           fi

@@ -128,11 +128,13 @@ jobs:
               LINE=$(grep -n ': error' wasm-full.log | head -1 | cut -d: -f1)
               if [ -n "$LINE" ]; then
                 START=$((LINE > 12 ? LINE - 12 : 1))
-                sed -n "${START},$((LINE + 40))p" wasm-full.log | tr '\n' '~' | head -c 3400 > wasm-log-tail.txt
+                sed -n "${START},$((LINE + 40))p" wasm-full.log > wasm-log-tail.txt
               else
-                tail -70 wasm-full.log | tr '\n' '~' | head -c 3400 > wasm-log-tail.txt
+                tail -70 wasm-full.log > wasm-log-tail.txt
               fi
-              echo "::error title=nix-log-tail::$(cat wasm-log-tail.txt)"
+              echo "::notice title=nix-log-probe::lines=$(wc -l < wasm-log-tail.txt)"
+              tr '\n' '~' < wasm-log-tail.txt | sed 's/::/;/g' | head -c 3000 > wasm-log-tail-clean.txt || true
+              echo "::error title=nix-log-tail::$(cat wasm-log-tail-clean.txt)"
             fi
             exit 1
           fi
