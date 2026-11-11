@@ -302,7 +302,7 @@ retryWith :: Session -> IO JSString
 retryWith session = case flight session of
     Just fl
         | Blocked suspension <- blocked fl ->
-            respondNow session (Awaiting suspension (Just (focusDetail fl))) []
+            respondNow session (Awaiting suspension (Just (focusDetail fl)) True) []
     _ -> respondNow session (Failed NoFlight) []
 
 -- | Export cancellation API.
