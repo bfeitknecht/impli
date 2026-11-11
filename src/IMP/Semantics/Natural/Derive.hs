@@ -1,6 +1,5 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE OverloadedStrings #-}
 
 {- |
 Module      : IMP.Semantics.Natural.Derive
@@ -34,8 +33,9 @@ module IMP.Semantics.Natural.Derive (
 import Control.Monad.Except (MonadError, catchError, throwError)
 import Data.Aeson (ToJSON)
 import Data.List (isPrefixOf)
-import qualified Data.Map as Map
 import GHC.Generics (Generic)
+
+import qualified Data.Map as Map
 
 import IMP.Exception
 import IMP.Expression
@@ -70,7 +70,7 @@ data Rule = Rule
 instance ToJSON Rule
 
 -- | One concluded derivation: the applied rule and the resulting state.
-data Node = Node {rule :: Rule, result :: State}
+data Node = Node { rule :: Rule, result :: State }
 
 -- | Pretty-print the statement of a configuration.
 source :: Stm -> String

@@ -124,7 +124,7 @@ jobs:
             DRV=$(grep -oE '/nix/store/[a-z0-9]+-[^ ]*\.drv' wasm-build.log | tail -1)
             echo "::error title=nix-build-failed::drv=$DRV"
             if [ -n "$DRV" ]; then
-              nix log "$DRV" 2>&1 > wasm-full.log || true
+              nix log "$DRV" 2>&1 | sed -e 's/\x1b\[[0-9;]*m//g' -e 's/\x1b\[[0-9;]*[A-Za-z]//g' > wasm-full.log || true
               LINE=$(grep -n ': error' wasm-full.log | head -1 | cut -d: -f1)
               if [ -n "$LINE" ]; then
                 START=$((LINE > 12 ? LINE - 12 : 1))

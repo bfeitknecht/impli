@@ -47,7 +47,6 @@ import IMP.Pretty (prettify)
 import IMP.Syntax
 
 import qualified IMP.Semantics.Natural.Derive as Derive
-
 import qualified Paths_impli as Paths
 
 -- | Handlers over IO for explicit browser driving with call-scoped output buffering.

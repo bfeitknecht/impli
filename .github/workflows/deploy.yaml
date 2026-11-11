@@ -38,7 +38,7 @@ jobs:
             DRV=$(grep -oE '/nix/store/[a-z0-9]+-impli-wasm32-wasi-[^ ]*\.drv' web-build.log | tail -1)
             echo "::error title=nix-run-failed::drv=$DRV"
             if [ -n "$DRV" ]; then
-              nix log "$DRV" 2>&1 > nix-full.log || true
+              nix log "$DRV" 2>&1 | sed -e 's/\x1b\[[0-9;]*m//g' -e 's/\x1b\[[0-9;]*[A-Za-z]//g' > nix-full.log || true
               LINE=$(grep -n ': error' nix-full.log | head -1 | cut -d: -f1)
               if [ -n "$LINE" ]; then
                 START=$((LINE > 12 ? LINE - 12 : 1))
