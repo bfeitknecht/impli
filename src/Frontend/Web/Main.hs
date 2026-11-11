@@ -101,8 +101,8 @@ defaultFuel :: Int
 defaultFuel = 16384
 
 -- | Parse a fuel argument, defaulting on junk.
-parseFuel :: String -> Int
-parseFuel text = maybe defaultFuel id (readMaybe text)
+parseFuel :: JSString -> Int
+parseFuel raw = maybe defaultFuel id (readMaybe (fromJSString raw))
 
 -- | Encode value as JSON across the FFI boundary.
 jsonOut :: (ToJSON a) => a -> IO JSString
