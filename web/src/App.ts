@@ -51,7 +51,6 @@ interface AppState {
   panel: Tab;
   /** Whether the viewport is wide enough to show the terminal plus a panel. */
   wide: boolean;
-  menuOpen: boolean;
   session: SessionView | null;
   /** Newest committed statement; all panels center on it. */
   current: TraceEntryJson | null;
@@ -571,7 +570,6 @@ export class App extends Component<{}, AppState> {
     tab: "terminal",
     panel: "state",
     wide: globalThis.matchMedia?.(WIDE_QUERY).matches ?? false,
-    menuOpen: false,
     session: null,
     current: null,
     tree: null,
@@ -656,7 +654,6 @@ export class App extends Component<{}, AppState> {
   private setTab(tab: Tab) {
     this.setState({
       tab,
-      menuOpen: false,
       ...(tab === "terminal" ? {} : { panel: tab }),
     });
   }
@@ -712,36 +709,13 @@ export class App extends Component<{}, AppState> {
       return html`<${Unsupported} />`;
     }
 
-    const { tab, menuOpen, wide, panel, current } = this.state;
+    const { tab, wide, panel } = this.state;
     const activeTab = (id: Tab) => (wide ? panel === id : tab === id);
+    // wide: the terminal is always in view, so the dock only switches panels
+    const tabs = wide ? PANEL_TABS : TABS;
 
     return html`
       <div class=${"app" + (wide ? " wide" : "")}>
-        <header class="topbar">
-          <button
-            class="brand"
-            title="The IMP Language Interpreter in the browser"
-            onClick=${() => this.setTab("terminal")}
-            >impli</button
-          >
-          <button
-            class="burger"
-            aria-label="menu"
-            onClick=${() => this.setState({ menuOpen: !menuOpen })}
-            >≡</button
-          >
-          <nav class=${"tabs" + (menuOpen ? " open" : "")}>
-            ${TABS.map(
-              (t) => html`
-                <button
-                  class=${"tab" + (activeTab(t.id) ? " active" : "")}
-                  onClick=${() => this.setTab(t.id)}
-                  >${t.label}</button
-                >
-              `,
-            )}
-          </nav>
-        </header>
         <main class="content">
           <div
             class=${"pane terminal-pane" +
@@ -753,22 +727,32 @@ export class App extends Component<{}, AppState> {
             class=${"pane side-pane" +
             (wide || tab !== "terminal" ? "" : " hidden")}
           >
-            <nav class="tabs side-tabs">
-              ${PANEL_TABS.map(
-                (t) => html`
-                  <button
-                    class=${"tab" + (activeTab(t.id) ? " active" : "")}
-                    onClick=${() => this.setTab(t.id)}
-                    >${t.label}</button
-                  >
-                `,
-              )}
-            </nav>
-            <div class=${"tabpanel" + (tab === "terminal" && !wide ? "" : " active")}>
+            <div class="tabpanel active">
               ${this.panelContent(wide ? panel : tab)}
             </div>
           </div>
         </main>
+        <footer class="dock">
+          <button
+            class="brand"
+            title="The IMP Language Interpreter in the browser"
+            onClick=${() => this.setTab("terminal")}
+            >impli</button
+          >
+          <nav class="segments" role="tablist">
+            ${tabs.map(
+              (t) => html`
+                <button
+                  role="tab"
+                  aria-selected=${activeTab(t.id)}
+                  class=${"segment" + (activeTab(t.id) ? " active" : "")}
+                  onClick=${() => this.setTab(t.id)}
+                  >${t.label}</button
+                >
+              `,
+            )}
+          </nav>
+        </footer>
       </div>
     `;
   }
