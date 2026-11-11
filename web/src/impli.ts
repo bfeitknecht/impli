@@ -41,7 +41,10 @@ const banner = dedent`\0\
  * this many structural steps before yielding back to the event loop,
  * mirroring `defaultFuel` of `src/Frontend/Web/Main.hs`.
  */
-const FUEL = "16384";
+const FUEL = "4096";
+
+/** Number of recent steps kept for the steps view, per interpretation. */
+const STEP_CAP = 1024;
 
 /** localStorage key under which the session persists across page loads. */
 const SESSION_KEY = "impli:session:v2";
@@ -157,6 +160,10 @@ export class Impli {
   private stepStopRequested: boolean = false;
   public onSession: ((view: SessionView) => void) | null = null;
   public onAst: ((node: StmNode) => void) | null = null;
+  /** Fired whenever an interpretation commits a statement to the trace. */
+  public onStatement: ((entry: TraceEntryJson) => void) | null = null;
+  /** AST parse feedback for the AST panel; null clears it. */
+  public onAstMessage: ((message: string | null) => void) | null = null;
 
   constructor(container: HTMLElement) {
     this.terminal = new Terminal({
@@ -295,6 +302,7 @@ export class Impli {
   private adopt(envelope: Envelope) {
     this.session = envelope.session;
     this.steps.push(...envelope.steps);
+    if (this.steps.length > STEP_CAP) this.steps = this.steps.slice(-STEP_CAP);
   }
 
   /** Persist the current session for resumption across page loads. */
@@ -359,12 +367,20 @@ export class Impli {
     this.ctrlCRequested = false;
   }
 
+  /** Publish the latest traced statement as the reference of the side panels. */
+  private publishStatement() {
+    if (!this.onStatement) return;
+    const entry = traceViewOf(this.session?.trace ?? [])[0];
+    if (entry) this.onStatement(entry);
+  }
+
   /** Adopt a stepping envelope, print its events, refresh and persist. */
   private finishStepping(envelope: Envelope): Status {
     this.adopt(envelope);
     for (const event of envelope.events) this.terminal.writeln(event);
     this.refreshSession();
     this.persist();
+    if (envelope.status.tag === "done") this.publishStatement();
     return envelope.status;
   }
 
@@ -554,6 +570,7 @@ export class Impli {
         case "done":
           this.refreshSession();
           this.persist();
+          this.publishStatement();
           return;
         case "error":
           for (const line of showFault(status.fault).split("\n")) {
@@ -684,7 +701,7 @@ export class Impli {
         this.metaWrite(args);
         break;
       case "ast":
-        this.metaAst(args);
+        await this.metaAst(args);
         break;
       default:
         this.terminal.writeln(`unrecognized meta command: :${meta}`);
@@ -796,17 +813,23 @@ export class Impli {
   }
 
   private async metaAst(input: string) {
+    if (input.trim() === "") {
+      this.onAstMessage?.("usage: :ast <construct> or :ast #<trace index>");
+      return;
+    }
     if (input.trim().startsWith("#")) {
       const n = parseInt(input.trim().slice(1), 10);
       const trace = traceViewOf(this.session?.trace ?? []);
       const entry = trace.find((e) => e.index === n);
       if (!entry) {
         this.terminal.writeln(`*** ERROR: index out of bounds: #${n}`);
+        this.onAstMessage?.(`index out of bounds: #${n}`);
         return;
       }
       this.openAst(entry.ast);
       return;
     }
+    this.onAstMessage?.(null);
     const result = JSON.parse(await this.exports.parseAst(input));
     if (result.tag === "ok") {
       const construct = result.construct;
@@ -823,6 +846,7 @@ export class Impli {
           break;
         default:
           this.terminal.writeln("+++ INFO: whitespace");
+          this.onAstMessage?.("input was whitespace or a comment");
           return;
       }
       this.openAst(node);
@@ -830,6 +854,7 @@ export class Impli {
       for (const line of String(result.message).split("\n")) {
         this.terminal.writeln(line);
       }
+      this.onAstMessage?.(String(result.message));
     }
   }
 

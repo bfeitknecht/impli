@@ -1,5 +1,5 @@
 import { Component, createRef, h, render } from "preact";
-import { useState } from "preact/hooks";
+import { useEffect, useState } from "preact/hooks";
 import htm from "htm";
 import { Unsupported } from "@/Unsupported.ts";
 import { Impli, SessionView, initTerminal } from "@/impli.ts";
@@ -8,6 +8,7 @@ import {
   RuleJson,
   Status,
   StmNode,
+  TraceEntryJson,
   showFault,
   stmToSource,
 } from "@/protocol.ts";
@@ -19,15 +20,21 @@ const html = (htm as any).bind(h);
 
 type Tab = "terminal" | "step" | "tree" | "state" | "trace" | "ast" | "ebnf";
 
-const TABS: { id: Tab; label: string }[] = [
-  { id: "terminal", label: "Terminal" },
+const PANEL_TABS: { id: Tab; label: string }[] = [
+  { id: "state", label: "State" },
   { id: "step", label: "Step" },
   { id: "tree", label: "Tree" },
-  { id: "state", label: "State" },
   { id: "trace", label: "Trace" },
   { id: "ast", label: "AST" },
   { id: "ebnf", label: "EBNF" },
 ];
+
+const TABS: { id: Tab; label: string }[] = [
+  { id: "terminal", label: "Terminal" },
+  ...PANEL_TABS,
+];
+
+const WIDE_QUERY = "(min-width: 900px)";
 
 function supported() {
   const hasWasm = typeof WebAssembly === "object" &&
@@ -39,11 +46,18 @@ function supported() {
 
 interface AppState {
   tab: Tab;
+  /** Last viewed side panel; drives the right-hand pane on wide viewports. */
+  panel: Tab;
+  /** Whether the viewport is wide enough to show the terminal plus a panel. */
+  wide: boolean;
   menuOpen: boolean;
   session: SessionView | null;
+  /** Newest committed statement; all panels center on it. */
+  current: TraceEntryJson | null;
   tree: { index: number; result: DerivationJson } | null;
   ast: StmNode | null;
   astSource: string;
+  astMessage: string | null;
 }
 
 function StateTab({ session }: { session: SessionView | null }) {
@@ -132,6 +146,8 @@ function TraceTab({
           : ""}
       </p>
       <h3>Steps with applied inference rules</h3>
+      ${steps.steps.length >= 1024 &&
+      html`<p class="panel-note">showing the latest 1024 steps</p>`}
       ${steps.steps.length === 0
         ? html`<p class="panel-note">(none yet)</p>`
         : html`
@@ -187,10 +203,12 @@ function TraceTab({
 function AstTab({
   ast,
   astSource,
+  astMessage,
   impli,
 }: {
   ast: StmNode | null;
   astSource: string;
+  astMessage: string | null;
   impli: Impli | null;
 }) {
   let input: HTMLInputElement | null = null;
@@ -212,15 +230,15 @@ function AstTab({
         />
         <button onClick=${parse}>Parse</button>
       </div>
+      ${astMessage && html`<p class="panel-note">${astMessage}</p>`}
       ${ast
         ? html`
-            <p class="panel-note"><code>${astSource}</code></p>
             <${AstTree} node=${ast} />
           `
         : html`
             <p class="panel-note">
-              No tree yet. Use the input above, the <code>:ast</code>
-              metacommand, or an entry of the trace tab.
+              run a statement in the REPL, pick one from the trace, or parse a
+              construct above; its syntax tree appears here.
             </p>
           `}
     </div>
@@ -230,11 +248,18 @@ function AstTab({
 function StepTab({
   session,
   impli,
+  prefill,
 }: {
   session: SessionView | null;
   impli: Impli | null;
+  /** Source of the latest REPL statement, filled in while untouched. */
+  prefill: string;
 }) {
   const [source, setSource] = useState("");
+  const [auto, setAuto] = useState(true);
+  useEffect(() => {
+    if (auto && prefill !== "") setSource(prefill);
+  }, [prefill, auto]);
   const [status, setStatus] = useState<Status | null>(null);
   const [resolution, setResolution] = useState("");
   const [runningAll, setRunningAll] = useState(false);
@@ -332,8 +357,11 @@ function StepTab({
               class="ast-input"
               placeholder="begin stepping a statement…"
               value=${source}
-              onInput=${(event: Event) =>
-                setSource((event.target as HTMLInputElement).value)}
+              onInput=${(event: Event) => {
+                const value = (event.target as HTMLInputElement).value;
+                setSource(value);
+                setAuto(value.trim() === "");
+              }}
               onKeyDown=${(event: KeyboardEvent) => {
                 if (event.key === "Enter") start();
               }}
@@ -439,7 +467,8 @@ function RuleNode({ rule }: { rule: RuleJson }) {
     <div class="tree-node">
       ${premises.length > 0 &&
       html`<div class="tree-premises">${premises}</div>`}
-      <div class="tree-bar">
+      <div class="tree-rule">
+        <span class="tree-rule-line"></span>
         <span class="tree-label">${rule.name}</span>
       </div>
       <code class="tree-conclusion">${rule.conclusion}</code>
@@ -451,11 +480,13 @@ function TreeTab({
   session,
   impli,
   tree,
+  current,
   onTree,
 }: {
   session: SessionView | null;
   impli: Impli | null;
   tree: { index: number; result: DerivationJson } | null;
+  current: TraceEntryJson | null;
   onTree: (tree: { index: number; result: DerivationJson } | null) => void;
 }) {
   if (!session || !impli) {
@@ -472,17 +503,22 @@ function TreeTab({
       <p class="panel-note">
         Natural-semantics proof trees of the statements in the trace,
         replaying exactly the values entered and choices made during their
-        execution. Statements run in the natural semantics do not record
-        resolutions, so trees of reads, havocs and nondeterministic choices
-        require the interactive stepper.
+        execution. Resolutions are only recorded by the structural semantics,
+        so trees involving reads, havocs or nondeterministic choices require
+        the stepper.
       </p>
       ${rows.length === 0
         ? html`<p class="panel-note">trace is empty</p>`
         : rows.map(
             (row) => html`
-              <div class="trace-entry">
+              <div
+                class=${"trace-entry" +
+                (current && row.index === current.index ? " current" : "")}
+              >
                 <button class="link" onClick=${() => derive(row.index)}>
-                  #${row.index}
+                  ${current && row.index === current.index
+                    ? "derive"
+                    : `#${row.index}`}
                 </button>
                 <code>${row.source}</code>
               </div>
@@ -537,15 +573,28 @@ export class App extends Component<{}, AppState> {
 
   override state: AppState = {
     tab: "terminal",
+    panel: "state",
+    wide: globalThis.matchMedia?.(WIDE_QUERY).matches ?? false,
     menuOpen: false,
     session: null,
+    current: null,
     tree: null,
     ast: null,
     astSource: "",
+    astMessage: null,
   };
+
+  /** How many steps a statement may take before trees are not derived implicitly. */
+  private static AUTO_DERIVE_STEPS = 256;
 
   override async componentDidMount() {
     if (!supported()) return;
+
+    globalThis.matchMedia(WIDE_QUERY).addEventListener("change", (event) => {
+      this.setState({ wide: event.matches });
+      this.impli?.refit();
+    });
+    globalThis.addEventListener("resize", () => this.impli?.refit());
 
     if (this.containerRef.current) {
       if (document.readyState !== "complete") {
@@ -563,22 +612,106 @@ export class App extends Component<{}, AppState> {
         this.setState({
           ast: node,
           astSource: stmToSource(node),
+          astMessage: null,
           tab: "ast",
+          panel: "ast",
+        });
+      };
+      this.impli.onAstMessage = (message) => this.setState({ astMessage: message });
+      this.impli.onStatement = (entry) => {
+        this.setState({
+          current: entry,
+          ast: entry.ast,
+          astSource: entry.source,
+          astMessage: null,
         });
       };
       this.impli.start();
     }
   }
 
-  override componentDidUpdate(_: {}, previous: AppState) {
-    if (previous.tab !== "terminal" && this.state.tab === "terminal") {
-      this.impli?.refit();
+  override async componentDidUpdate(_: {}, previous: AppState) {
+    const hiddenBefore = !previous.wide && previous.tab !== "terminal";
+    const visibleNow = this.state.wide || this.state.tab === "terminal";
+    if (hiddenBefore && visibleNow) this.impli?.refit();
+
+    // Derive the tree of a freshly committed statement when it is small and
+    // the tree panel is looking at it.
+    const treePanelActive = this.state.wide
+      ? this.state.panel === "tree"
+      : this.state.tab === "tree";
+    const current = this.state.current;
+    if (
+      treePanelActive &&
+      current &&
+      previous.current !== current &&
+      this.state.session &&
+      !this.state.session.flight &&
+      this.state.session.steps.steps.length <= App.AUTO_DERIVE_STEPS &&
+      this.impli
+    ) {
+      const result = await this.impli.deriveTree(1);
+      if (result && this.state.current === current) {
+        this.setState({ tree: { index: 1, result } });
+      }
     }
   }
 
   private setTab(tab: Tab) {
-    this.setState({ tab, menuOpen: false });
-    if (tab === "terminal") this.impli?.refit();
+    this.setState({
+      tab,
+      menuOpen: false,
+      ...(tab === "terminal" ? {} : { panel: tab }),
+    });
+  }
+
+  /** Panel body for the given side tab. */
+  private panelContent(which: Tab) {
+    const { session, tree, ast, astSource, astMessage, current } = this.state;
+    switch (which) {
+      case "step":
+        return html`
+          <${StepTab}
+            session=${session}
+            impli=${this.impli}
+            prefill=${current?.source ?? ""}
+          />
+        `;
+      case "tree":
+        return html`
+          <${TreeTab}
+            session=${session}
+            impli=${this.impli}
+            tree=${tree}
+            current=${current}
+            onTree=${(next: { index: number; result: DerivationJson } | null) =>
+              this.setState({ tree: next })}
+          />
+        `;
+      case "state":
+        return html`<${StateTab} session=${session} />`;
+      case "trace":
+        return html`
+          <${TraceTab}
+            session=${session}
+            onAst=${(node: StmNode, source: string) =>
+              this.setState({ ast: node, astSource: source, tab: "ast", panel: "ast" })}
+          />
+        `;
+      case "ast":
+        return html`
+          <${AstTab}
+            ast=${ast}
+            astSource=${astSource}
+            astMessage=${astMessage}
+            impli=${this.impli}
+          />
+        `;
+      case "ebnf":
+        return html`<${EbnfTab} />`;
+      default:
+        return null;
+    }
   }
 
   override render() {
@@ -586,10 +719,11 @@ export class App extends Component<{}, AppState> {
       return html`<${Unsupported} />`;
     }
 
-    const { tab, menuOpen, session, tree, ast, astSource } = this.state;
+    const { tab, menuOpen, wide, panel, current } = this.state;
+    const activeTab = (id: Tab) => (wide ? panel === id : tab === id);
 
     return html`
-      <div class="app">
+      <div class=${"app" + (wide ? " wide" : "")}>
         <header class="topbar">
           <button
             class="brand"
@@ -607,7 +741,7 @@ export class App extends Component<{}, AppState> {
             ${TABS.map(
               (t) => html`
                 <button
-                  class=${"tab" + (tab === t.id ? " active" : "")}
+                  class=${"tab" + (activeTab(t.id) ? " active" : "")}
                   onClick=${() => this.setTab(t.id)}
                   >${t.label}</button
                 >
@@ -617,48 +751,30 @@ export class App extends Component<{}, AppState> {
         </header>
         <main class="content">
           <div
-            class=${"tabpanel" + (tab === "terminal" ? " active" : "")}
+            class=${"pane terminal-pane" +
+            (wide || tab === "terminal" ? "" : " hidden")}
           >
             <div id="terminal" ref=${this.containerRef} />
           </div>
-          ${tab === "step" &&
-          html`<div class="tabpanel active">
-            <${StepTab} session=${session} impli=${this.impli} />
-          </div>`}
-          ${tab === "tree" &&
-          html`<div class="tabpanel active">
-            <${TreeTab}
-              session=${session}
-              impli=${this.impli}
-              tree=${tree}
-              onTree=${(next: { index: number; result: DerivationJson } | null) =>
-                this.setState({ tree: next })}
-            />
-          </div>`}
-          ${tab === "state" &&
-          html`<div class="tabpanel active">
-            <${StateTab} session=${session} />
-          </div>`}
-          ${tab === "trace" &&
-          html`<div class="tabpanel active">
-            <${TraceTab}
-              session=${session}
-              onAst=${(node: StmNode, source: string) =>
-                this.setState({ ast: node, astSource: source, tab: "ast" })}
-            />
-          </div>`}
-          ${tab === "ast" &&
-          html`<div class="tabpanel active">
-            <${AstTab}
-              ast=${ast}
-              astSource=${astSource}
-              impli=${this.impli}
-            />
-          </div>`}
-          ${tab === "ebnf" &&
-          html`<div class="tabpanel active">
-            <${EbnfTab} />
-          </div>`}
+          <div
+            class=${"pane side-pane" +
+            (wide || tab !== "terminal" ? "" : " hidden")}
+          >
+            <nav class="tabs side-tabs">
+              ${PANEL_TABS.map(
+                (t) => html`
+                  <button
+                    class=${"tab" + (activeTab(t.id) ? " active" : "")}
+                    onClick=${() => this.setTab(t.id)}
+                    >${t.label}</button
+                  >
+                `,
+              )}
+            </nav>
+            <div class=${"tabpanel" + (tab === "terminal" && !wide ? "" : " active")}>
+              ${this.panelContent(wide ? panel : tab)}
+            </div>
+          </div>
         </main>
       </div>
     `;

@@ -200,12 +200,54 @@ body {
   font-weight: bold;
 }
 
-@media (max-width: 760px) {
+/*
+ * Layout: on wide viewports the terminal is always in view on the left and
+ * the side pane on the right carries its own tab strip; on narrow viewports
+ * the topbar tabs switch between the terminal and one panel at a time.
+ */
+.terminal-pane,
+.side-pane {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.terminal-pane.hidden,
+.side-pane.hidden {
+  display: none;
+}
+
+.side-pane {
+  flex: 1;
+}
+
+.side-tabs {
+  border-bottom: 1px solid var(--chrome-line);
+  line-height: 2rem;
+  padding: 0 0.5rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.side-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.terminal-pane {
+  flex: 1;
+}
+
+@media (max-width: 899px) {
+  .side-tabs {
+    display: none;
+  }
+
   .burger {
     display: block;
   }
 
-  .tabs {
+  .topbar > .tabs {
     display: none;
     position: absolute;
     top: 2.1rem;
@@ -219,17 +261,32 @@ body {
     white-space: normal;
   }
 
-  .tabs.open {
+  .topbar > .tabs.open {
     display: flex;
   }
 
-  .tabs .tab {
+  .topbar > .tabs .tab {
     text-align: left;
   }
 
-  .tabs .tab::before,
-  .tabs .tab::after {
+  .topbar > .tabs .tab::before,
+  .topbar > .tabs .tab::after {
     opacity: 0.45;
+  }
+}
+
+@media (min-width: 900px) {
+  .content {
+    flex-direction: row;
+  }
+
+  .topbar > .tabs,
+  .burger {
+    display: none;
+  }
+
+  .terminal-pane {
+    border-right: 1px solid var(--chrome-line);
   }
 }
 
@@ -247,7 +304,21 @@ body {
   overflow: hidden;
   /* anchor for ghostty-web's hidden input textarea */
   position: relative;
-  caret-color: var(--terminal-cursor);
+  /* ghostty-web draws its own block cursor on the canvas; the editable
+   * container must never show a native caret. */
+  caret-color: transparent;
+}
+
+/* ghostty-web's focus target: keep it focusable but off-screen so no caret
+ * artifact blinks along the terminal's left edge. */
+#terminal textarea {
+  position: fixed !important;
+  left: -100vw !important;
+  top: 0 !important;
+  width: 1px !important;
+  height: 1px !important;
+  opacity: 0 !important;
+  caret-color: transparent !important;
 }
 
 .tabpanel {
@@ -296,7 +367,7 @@ body {
 }
 
 .panel-note::before {
-  content: "; ";
+  content: "// ";
 }
 
 a,
@@ -377,6 +448,10 @@ code.source {
   gap: 0.5rem;
   align-items: baseline;
   padding: 0.1rem 0;
+}
+
+.trace-entry.current code {
+  color: var(--ansi-bright-cyan);
 }
 
 /* Bracketed, square buttons — closer to a curses UI than a web form. */
@@ -587,22 +662,25 @@ details.ast-node {
   justify-content: center;
 }
 
-.tree-bar {
-  position: relative;
+.tree-rule {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  margin-top: 0.45rem;
+}
+
+.tree-rule-line {
+  flex: 1;
+  min-width: 1.5rem;
   border-top: 1.5px solid
-    color-mix(in srgb, var(--terminal-fg) 60%, transparent);
-  margin-top: 0.5rem;
+    color-mix(in srgb, var(--terminal-fg) 65%, transparent);
 }
 
 .tree-label {
-  position: absolute;
-  right: -0.5rem;
-  top: -1.35rem;
-  padding-left: 0.4rem;
   font-size: 0.85em;
   font-weight: 600;
   color: var(--ansi-green);
-  background: var(--terminal-bg);
+  white-space: nowrap;
 }
 
 .tree-conclusion {
