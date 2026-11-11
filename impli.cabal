@@ -57,6 +57,7 @@ library
     IMP.Parser
     IMP.Pretty
     IMP.Semantics.Natural
+    IMP.Semantics.Natural.Derive
     IMP.Semantics.Structural
     IMP.State
     IMP.Syntax
@@ -114,6 +115,7 @@ executable impli-web
     "-optl-Wl,--export=helpText"
     "-optl-Wl,--export=versionText"
     "-optl-Wl,--export=parseAst"
+    "-optl-Wl,--export=deriveTree"
     "-optl-Wl,--export=resetSession"
 
 test-suite impli-test

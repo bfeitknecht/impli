@@ -3,18 +3,26 @@ import { useState } from "preact/hooks";
 import htm from "htm";
 import { Unsupported } from "@/Unsupported.ts";
 import { Impli, SessionView, initTerminal } from "@/impli.ts";
-import { Status, StmNode, showFault, stmToSource } from "@/protocol.ts";
+import {
+  DerivationJson,
+  RuleJson,
+  Status,
+  StmNode,
+  showFault,
+  stmToSource,
+} from "@/protocol.ts";
 import { AstTree } from "@/ast.ts";
 import { renderEbnf } from "@/ebnf.ts";
 
 // LSP isn't hip enough to know about HTM
 const html = (htm as any).bind(h);
 
-type Tab = "terminal" | "step" | "state" | "trace" | "ast" | "ebnf";
+type Tab = "terminal" | "step" | "tree" | "state" | "trace" | "ast" | "ebnf";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "terminal", label: "Terminal" },
   { id: "step", label: "Step" },
+  { id: "tree", label: "Tree" },
   { id: "state", label: "State" },
   { id: "trace", label: "Trace" },
   { id: "ast", label: "AST" },
@@ -33,6 +41,7 @@ interface AppState {
   tab: Tab;
   menuOpen: boolean;
   session: SessionView | null;
+  tree: DerivationJson | null;
   ast: StmNode | null;
   astSource: string;
 }
@@ -422,6 +431,93 @@ function chooseLabel(
   return left ? "first" : "second";
 }
 
+function RuleNode({ rule }: { rule: RuleJson }) {
+  const premises = rule.premise.map(
+    (child) => html`<${RuleNode} rule=${child} />`,
+  );
+  return html`
+    <div class="tree-node">
+      ${premises.length > 0 &&
+      html`<div class="tree-premises">${premises}</div>`}
+      <div class="tree-bar">
+        <span class="tree-label">${rule.name}</span>
+      </div>
+      <code class="tree-conclusion">${rule.conclusion}</code>
+    </div>
+  `;
+}
+
+function TreeTab({
+  impli,
+  tree,
+  onTree,
+}: {
+  impli: Impli | null;
+  tree: DerivationJson | null;
+  onTree: (tree: DerivationJson | null) => void;
+}) {
+  const [source, setSource] = useState("");
+  const [stdin, setStdin] = useState("");
+  if (!impli) return html`<p class="panel-note">awaiting interpreter…</p>`;
+
+  const derive = () => {
+    if (source.trim() === "") return;
+    const replay = stdin
+      .split(/[,\s]+/)
+      .map((part) => part.trim())
+      .filter((part) => part !== "")
+      .map(Number)
+      .filter((value) => Number.isInteger(value));
+    onTree(impli.deriveStatement(source, replay));
+  };
+
+  return html`
+    <div class="panel">
+      <h3>Derivation tree</h3>
+      <p class="panel-note">
+        Natural semantics proof tree following the rules of the paper. Read
+        statements replay the given stdin values in order (zeros when the
+        replay runs out); havocs and nondeterministic choices follow a seeded
+        default.
+      </p>
+      <div class="ast-input-row">
+        <input
+          class="ast-input"
+          placeholder="derive a statement…"
+          value=${source}
+          onInput=${(event: Event) =>
+            setSource((event.target as HTMLInputElement).value)}
+          onKeyDown=${(event: KeyboardEvent) => {
+            if (event.key === "Enter") derive();
+          }}
+        />
+        <input
+          class="ast-input tree-stdin"
+          placeholder="stdin replay, e.g. 3, 7"
+          value=${stdin}
+          onInput=${(event: Event) =>
+            setStdin((event.target as HTMLInputElement).value)}
+          onKeyDown=${(event: KeyboardEvent) => {
+            if (event.key === "Enter") derive();
+          }}
+        />
+        <button onClick=${derive}>Derive</button>
+      </div>
+      ${tree &&
+      (tree.tag === "error"
+        ? html`<p class="panel-note">${tree.message}</p>`
+        : html`
+          ${tree.stdout.length > 0 &&
+          html`<p class="panel-note">prints:
+            <code>${tree.stdout.join(", ")}</code></p>`}
+          <div class="tree-scroll">
+            <${RuleNode} rule=${tree.tree} />
+          </div>
+        `)}
+    </div>
+  `;
+}
+
 function EbnfTab() {
   return html`
     <div class="panel ebnf">
@@ -455,6 +551,7 @@ export class App extends Component<{}, AppState> {
     tab: "terminal",
     menuOpen: false,
     session: null,
+    tree: null,
     ast: null,
     astSource: "",
   };
@@ -501,7 +598,7 @@ export class App extends Component<{}, AppState> {
       return html`<${Unsupported} />`;
     }
 
-    const { tab, menuOpen, session, ast, astSource } = this.state;
+    const { tab, menuOpen, session, tree, ast, astSource } = this.state;
 
     return html`
       <div class="app">
@@ -539,6 +636,15 @@ export class App extends Component<{}, AppState> {
           ${tab === "step" &&
           html`<div class="tabpanel active">
             <${StepTab} session=${session} impli=${this.impli} />
+          </div>`}
+          ${tab === "tree" &&
+          html`<div class="tabpanel active">
+            <${TreeTab}
+              impli=${this.impli}
+              tree=${tree}
+              onTree=${(next: DerivationJson | null) =>
+                this.setState({ tree: next })}
+            />
           </div>`}
           ${tab === "state" &&
           html`<div class="tabpanel active">

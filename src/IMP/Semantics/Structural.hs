@@ -58,7 +58,7 @@ data Resolution
       ResolveHavoc Integer
     | -- | Resolve choice suspension, whether to branch left.
       ResolveChoice Bool
-    deriving (Eq, Show)
+    deriving (Eq, Ord, Show)
 
 -- | Observable effect emitted by a step.
 data Effect = Output String

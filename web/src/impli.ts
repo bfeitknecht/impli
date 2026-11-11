@@ -6,6 +6,7 @@ import { examples } from "examples";
 import stub from "stub";
 import { dedent, log } from "@/util.ts";
 import {
+  DerivationJson,
   deriveProfile,
   Envelope,
   FlightJson,
@@ -59,6 +60,7 @@ export interface ImpliExports {
   helpText: () => string;
   versionText: () => string;
   parseAst: (source: string) => string;
+  deriveTree: (session: string, line: string, stdin: string) => string;
   resetSession: (session: string, aspect: string) => string;
 }
 
@@ -404,6 +406,21 @@ export class Impli {
   /** Cancel the flight shown in the stepping tab. */
   public stepCancel() {
     this.cancelSession();
+  }
+
+  /**
+   * Derive the natural-semantics proof tree of a statement against the
+   * committed environment, replaying `stdin` at read statements.
+   */
+  public deriveStatement(line: string, stdin: number[]): DerivationJson | null {
+    if (!this.session) return null;
+    return JSON.parse(
+      this.exports.deriveTree(
+        JSON.stringify(this.session),
+        line,
+        JSON.stringify(stdin),
+      ),
+    ) as DerivationJson;
   }
 
   public async start() {

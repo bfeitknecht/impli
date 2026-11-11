@@ -102,6 +102,21 @@ export interface StepsJson {
   profile: Profile;
 }
 
+/** Derivation tree of the natural semantics, as produced by `deriveTree`. */
+export interface RuleJson {
+  /** Rule name as given in the paper. */
+  name: string;
+  /** Conclusion of the inference rule instance. */
+  conclusion: string;
+  /** Premises, i.e. the derivations of the substatements. */
+  premise: RuleJson[];
+}
+
+/** Result of a derivation: the proof tree and its replayed output, or an error. */
+export type DerivationJson =
+  | { tag: "tree"; tree: RuleJson; stdout: string[] }
+  | { tag: "error"; message: string };
+
 /** Trace row of the UI: newest statement first, one-based index. */
 export interface TraceEntryJson {
   index: number;

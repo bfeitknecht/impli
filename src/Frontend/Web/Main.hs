@@ -25,6 +25,7 @@ handling only plain statements and a minimal set of metacommands.
 -}
 module Main where
 
+import Control.Monad.Except (runExceptT)
 import Data.Aeson hiding (Error)
 import Data.IORef
 import Data.Version (showVersion)
@@ -44,6 +45,8 @@ import IMP.Kernel
 import IMP.Parser
 import IMP.Pretty (prettify)
 import IMP.Syntax
+
+import qualified IMP.Semantics.Natural.Derive as Derive
 
 import qualified Paths_impli as Paths
 
@@ -344,6 +347,34 @@ parseAstAPI input = do
     case parser "ast" line :: Either ParseError Construct of
         Left e -> jsonOut (object ["tag" .= ("error" :: String), "message" .= show e])
         Right construct -> jsonOut (object ["tag" .= ("ok" :: String), "construct" .= construct])
+
+-- | Export derivation tree API.
+foreign export javascript "deriveTree" deriveTreeAPI :: JSString -> JSString -> JSString -> IO JSString
+
+-- | Derive the @natural semantics@ proof tree of the given statement against
+-- the session environment, replaying the @stdin@ values supplied as a JSON
+-- list. The response carries the tree plus everything printed along the way.
+deriveTreeAPI :: JSString -> JSString -> JSString -> IO JSString
+deriveTreeAPI rawSession rawLine rawStdin = withSession rawSession $ \session -> do
+    let line = fromJSString rawLine
+    let start stdin = Derive.Derivation {Derive.seed = 1442695040888963407, Derive.stdin = stdin, Derive.stdout = []}
+    case (parser "derive" line, decode (ByteString.pack (fromJSString rawStdin)) :: Maybe [Integer]) of
+        (Left e, _) -> jsonOut (object ["tag" .= ("error" :: String), "message" .= show e])
+        (_, Nothing) -> jsonOut (object ["tag" .= ("error" :: String), "message" .= ("invalid stdin replay: " ++ fromJSString rawStdin)])
+        (Right construct, Just stdin) -> case construct of
+            Statement stm -> do
+                outcome <- runExceptT $ Derive.derive (start stdin) (stm, environment session)
+                case outcome of
+                    Left exception ->
+                        jsonOut (object ["tag" .= ("error" :: String), "message" .= show exception])
+                    Right (derived, tree) ->
+                        jsonOut $
+                            object
+                                [ "tag" .= ("tree" :: String)
+                                , "tree" .= tree
+                                , "stdout" .= Derive.stdout derived
+                                ]
+            _ -> jsonOut (object ["tag" .= ("error" :: String), "message" .= ("expected a statement" :: String)])
 
 -- | Export session reset API.
 foreign export javascript "resetSession" resetSessionAPI :: JSString -> JSString -> IO JSString

@@ -367,6 +367,12 @@ instance ToJSON Suspension where
         AwaitHavoc x -> tag "await-havoc" ["variable" .= x]
         AwaitChoice -> tag "await-choice" []
 
+instance ToJSON Resolution where
+    toJSON resolution = case resolution of
+        ResolveInput value -> tag "resolve-input" ["value" .= value]
+        ResolveHavoc value -> tag "resolve-havoc" ["value" .= value]
+        ResolveChoice left -> tag "resolve-choice" ["left" .= left]
+
 instance FromJSON Suspension where
     parseJSON = withObject "Suspension" $ \object ->
         tagOf object >>= \case

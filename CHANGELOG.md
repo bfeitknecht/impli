@@ -57,6 +57,14 @@ The next (hopefully last) huge refactor (#80, also #79, #77, #31).
     multi-line continuation, explicit Ctrl-C/Ctrl-D result protocol
   - App shell with tabs: Terminal, State, Trace (inference rules), AST,
     and EBNF railroad diagrams
+  - Stepping tab: begin a statement with zero steps and advance one small
+    step at a time (`advance 1`), run in chunks with stop, resolve input,
+    havoc and choice suspensions inline, and inspect the live focus
+    configuration; the State tab shows the in-flight focus state
+  - Tree tab: derivation trees of the natural semantics via the new
+    `IMP.Semantics.Natural.Derive` module (plain `Natural.run` untouched),
+    rendered as nested inference rules with the rule names of the paper;
+    read statements replay the stdin values given in the tab
 
 ---
 
