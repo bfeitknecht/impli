@@ -341,7 +341,7 @@ parseAstAPI input = do
         Right construct -> jsonOut (object ["tag" .= ("ok" :: String), "construct" .= construct])
 
 -- | Export session reset API.
-foreign export javascript "resetSession" resetSessionAPI :: IO JSString
+foreign export javascript "resetSession" resetSessionAPI :: JSString -> IO JSString
 
 -- | Reset the named aspect (or all on empty string) of the session environment.
 resetSessionAPI :: JSString -> IO JSString
