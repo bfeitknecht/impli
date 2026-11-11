@@ -35,7 +35,12 @@ jobs:
         run: |
           curl -sSL -o fourmolu https://github.com/fourmolu/fourmolu/releases/download/v0.19.0.1/fourmolu-0.19.0.1-linux-x86_64
           chmod +x fourmolu
-          ./fourmolu --mode diff $(git ls-files '*.hs') | tr '\n' '~' > fourmolu-diff.txt || true
+          echo "::notice title=fourmolu-version::$(./fourmolu --version | head -2 | tr '\n' '~')"
+          FILES=$(git ls-files '*.hs')
+          echo "::notice title=fourmolu-files::$(echo $FILES | tr '\n' ' ' | tr ' ' '~')"
+          ./fourmolu --mode check $FILES 2>&1 | tr '\n' '~' | head -c 1400 > fourmolu-check.txt || true
+          echo "::error title=fourmolu-check::$(cat fourmolu-check.txt)"
+          ./fourmolu --mode diff $FILES | tr '\n' '~' > fourmolu-diff.txt || true
           if [ -s fourmolu-diff.txt ]; then
             split -b 1400 fourmolu-diff.txt fourmolu-chunk- || true
             for chunk in fourmolu-chunk-*; do
