@@ -20,7 +20,7 @@ handling only plain statements and a minimal set of metacommands.
 -}
 module Main where
 
-import Data.Aeson
+import Data.Aeson hiding (Error)
 import Data.IORef
 import Data.Version (showVersion)
 import GHC.Wasm.Prim
