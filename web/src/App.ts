@@ -14,6 +14,7 @@ import {
 } from "@/protocol.ts";
 import { AstTree } from "@/ast.ts";
 import { renderEbnf } from "@/ebnf.ts";
+import { renderTree } from "@/prooftree.ts";
 
 // LSP isn't hip enough to know about HTM
 const html = (htm as any).bind(h);
@@ -50,7 +51,6 @@ interface AppState {
   panel: Tab;
   /** Whether the viewport is wide enough to show the terminal plus a panel. */
   wide: boolean;
-  menuOpen: boolean;
   session: SessionView | null;
   /** Newest committed statement; all panels center on it. */
   current: TraceEntryJson | null;
@@ -126,10 +126,10 @@ function StateTab({ session }: { session: SessionView | null }) {
 
 function TraceTab({
   session,
-  onAst,
+  onPick,
 }: {
   session: SessionView | null;
-  onAst: (node: StmNode, source: string) => void;
+  onPick: (entry: TraceEntryJson) => void;
 }) {
   if (!session) return html`<p class="panel-note">awaiting interpreter…</p>`;
   const { steps, trace } = session;
@@ -188,8 +188,8 @@ function TraceTab({
               <div class="trace-entry">
                 <button
                   class="link"
-                  onClick=${() => onAst(entry.ast, entry.source)}
-                  title="inspect AST"
+                  onClick=${() => onPick(entry)}
+                  title="make current and inspect its AST"
                   >${entry.index}</button
                 >
                 <code class="source">${entry.source}</code>
@@ -204,41 +204,24 @@ function AstTab({
   ast,
   astSource,
   astMessage,
-  impli,
 }: {
   ast: StmNode | null;
   astSource: string;
   astMessage: string | null;
-  impli: Impli | null;
 }) {
-  let input: HTMLInputElement | null = null;
-  const parse = async () => {
-    if (!impli || !input || input.value.trim() === "") return;
-    await impli.parseAstInput(input.value);
-    input.value = "";
-  };
   return html`
     <div class="panel">
-      <div class="ast-input-row">
-        <input
-          ref=${(el: HTMLInputElement | null) => (input = el)}
-          class="ast-input"
-          placeholder="parse an IMP construct into its AST…"
-          onKeyDown=${(event: KeyboardEvent) => {
-            if (event.key === "Enter") parse();
-          }}
-        />
-        <button onClick=${parse}>Parse</button>
-      </div>
       ${astMessage && html`<p class="panel-note">${astMessage}</p>`}
       ${ast
         ? html`
+            <p class="panel-note"><code>${astSource}</code></p>
             <${AstTree} node=${ast} />
           `
         : html`
             <p class="panel-note">
-              run a statement in the REPL, pick one from the trace, or parse a
-              construct above; its syntax tree appears here.
+              the syntax tree of what you run in the REPL appears here; pick
+              older statements in the trace tab, or parse anything explicitly
+              with the <code>:ast</code> metacommand.
             </p>
           `}
     </div>
@@ -248,18 +231,13 @@ function AstTab({
 function StepTab({
   session,
   impli,
-  prefill,
+  current,
 }: {
   session: SessionView | null;
   impli: Impli | null;
-  /** Source of the latest REPL statement, filled in while untouched. */
-  prefill: string;
+  /** Latest REPL statement; the stepper always starts from it. */
+  current: TraceEntryJson | null;
 }) {
-  const [source, setSource] = useState("");
-  const [auto, setAuto] = useState(true);
-  useEffect(() => {
-    if (auto && prefill !== "") setSource(prefill);
-  }, [prefill, auto]);
   const [status, setStatus] = useState<Status | null>(null);
   const [resolution, setResolution] = useState("");
   const [runningAll, setRunningAll] = useState(false);
@@ -274,8 +252,8 @@ function StepTab({
     blocked?.tag === "blocked" ? blocked.suspension : null;
 
   const start = async () => {
-    if (source.trim() === "") return;
-    const result = await impli.stepBegin(source);
+    if (!current) return;
+    const result = await impli.stepBegin(current.source);
     if (result) setStatus(result);
   };
 
@@ -352,22 +330,18 @@ function StepTab({
       <h3>Small-step interpretation</h3>
       ${!flight
         ? html`
-          <div class="ast-input-row">
-            <input
-              class="ast-input"
-              placeholder="begin stepping a statement…"
-              value=${source}
-              onInput=${(event: Event) => {
-                const value = (event.target as HTMLInputElement).value;
-                setSource(value);
-                setAuto(value.trim() === "");
-              }}
-              onKeyDown=${(event: KeyboardEvent) => {
-                if (event.key === "Enter") start();
-              }}
-            />
-            <button onClick=${start}>Step</button>
-          </div>
+          ${current
+            ? html`
+              <p class="panel-note">
+                statement: <code>${current.source}</code>
+              </p>
+              <div class="step-controls">
+                <button onClick=${start}>begin stepping</button>
+              </div>
+            `
+            : html`<p class="panel-note">
+              run a statement in the REPL — the stepper picks it up here.
+            </p>`}
         `
         : html`
           <p class="panel-note">
@@ -459,23 +433,6 @@ function chooseLabel(
   return left ? "first" : "second";
 }
 
-function RuleNode({ rule }: { rule: RuleJson }) {
-  const premises = rule.premise.map(
-    (child) => html`<${RuleNode} rule=${child} />`,
-  );
-  return html`
-    <div class="tree-node">
-      ${premises.length > 0 &&
-      html`<div class="tree-premises">${premises}</div>`}
-      <div class="tree-rule">
-        <span class="tree-rule-line"></span>
-        <span class="tree-label">${rule.name}</span>
-      </div>
-      <code class="tree-conclusion">${rule.conclusion}</code>
-    </div>
-  `;
-}
-
 function TreeTab({
   session,
   impli,
@@ -533,12 +490,50 @@ function TreeTab({
             ${tree.result.stdout.length > 0 &&
             html`<p class="panel-note">prints:
               <code>${tree.result.stdout.join(", ")}</code></p>`}
-            <div class="tree-scroll">
-              <${RuleNode} rule=${tree.result.tree} />
-            </div>
+            <${TypstTree} root=${tree.result.tree} />
           `}
       `}
     </div>
+  `;
+}
+
+/** Typst-typeset prooftree (curryst), rendered to inline SVG. */
+function TypstTree({ root }: { root: RuleJson }) {
+  const [svg, setSvg] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [typesetting, setTypesetting] = useState(true);
+  useEffect(() => {
+    let cancelled = false;
+    setTypesetting(true);
+    setError(null);
+    renderTree(root)
+      .then((out) => {
+        if (!cancelled) {
+          setSvg(out);
+          setTypesetting(false);
+        }
+      })
+      .catch((cause) => {
+        if (!cancelled) {
+          setError(String(cause));
+          setTypesetting(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [root]);
+  if (typesetting && !svg) {
+    return html`<p class="panel-note">typesetting proof tree with typst…</p>`;
+  }
+  if (error) {
+    return html`<p class="panel-note">typst error: ${error}</p>`;
+  }
+  return html`
+    <div
+      class="typst-tree"
+      dangerouslySetInnerHTML=${{ __html: svg ?? "" }}
+    />
   `;
 }
 
@@ -575,7 +570,6 @@ export class App extends Component<{}, AppState> {
     tab: "terminal",
     panel: "state",
     wide: globalThis.matchMedia?.(WIDE_QUERY).matches ?? false,
-    menuOpen: false,
     session: null,
     current: null,
     tree: null,
@@ -660,7 +654,6 @@ export class App extends Component<{}, AppState> {
   private setTab(tab: Tab) {
     this.setState({
       tab,
-      menuOpen: false,
       ...(tab === "terminal" ? {} : { panel: tab }),
     });
   }
@@ -671,11 +664,7 @@ export class App extends Component<{}, AppState> {
     switch (which) {
       case "step":
         return html`
-          <${StepTab}
-            session=${session}
-            impli=${this.impli}
-            prefill=${current?.source ?? ""}
-          />
+          <${StepTab} session=${session} impli=${this.impli} current=${current} />
         `;
       case "tree":
         return html`
@@ -694,18 +683,19 @@ export class App extends Component<{}, AppState> {
         return html`
           <${TraceTab}
             session=${session}
-            onAst=${(node: StmNode, source: string) =>
-              this.setState({ ast: node, astSource: source, tab: "ast", panel: "ast" })}
+            onPick=${(entry: TraceEntryJson) =>
+              this.setState({
+                current: entry,
+                ast: entry.ast,
+                astSource: entry.source,
+                tab: "ast",
+                panel: "ast",
+              })}
           />
         `;
       case "ast":
         return html`
-          <${AstTab}
-            ast=${ast}
-            astSource=${astSource}
-            astMessage=${astMessage}
-            impli=${this.impli}
-          />
+          <${AstTab} ast=${ast} astSource=${astSource} astMessage=${astMessage} />
         `;
       case "ebnf":
         return html`<${EbnfTab} />`;
@@ -719,36 +709,13 @@ export class App extends Component<{}, AppState> {
       return html`<${Unsupported} />`;
     }
 
-    const { tab, menuOpen, wide, panel, current } = this.state;
+    const { tab, wide, panel } = this.state;
     const activeTab = (id: Tab) => (wide ? panel === id : tab === id);
+    // wide: the terminal is always in view, so the dock only switches panels
+    const tabs = wide ? PANEL_TABS : TABS;
 
     return html`
       <div class=${"app" + (wide ? " wide" : "")}>
-        <header class="topbar">
-          <button
-            class="brand"
-            title="The IMP Language Interpreter in the browser"
-            onClick=${() => this.setTab("terminal")}
-            >impli</button
-          >
-          <button
-            class="burger"
-            aria-label="menu"
-            onClick=${() => this.setState({ menuOpen: !menuOpen })}
-            >≡</button
-          >
-          <nav class=${"tabs" + (menuOpen ? " open" : "")}>
-            ${TABS.map(
-              (t) => html`
-                <button
-                  class=${"tab" + (activeTab(t.id) ? " active" : "")}
-                  onClick=${() => this.setTab(t.id)}
-                  >${t.label}</button
-                >
-              `,
-            )}
-          </nav>
-        </header>
         <main class="content">
           <div
             class=${"pane terminal-pane" +
@@ -760,22 +727,32 @@ export class App extends Component<{}, AppState> {
             class=${"pane side-pane" +
             (wide || tab !== "terminal" ? "" : " hidden")}
           >
-            <nav class="tabs side-tabs">
-              ${PANEL_TABS.map(
-                (t) => html`
-                  <button
-                    class=${"tab" + (activeTab(t.id) ? " active" : "")}
-                    onClick=${() => this.setTab(t.id)}
-                    >${t.label}</button
-                  >
-                `,
-              )}
-            </nav>
-            <div class=${"tabpanel" + (tab === "terminal" && !wide ? "" : " active")}>
+            <div class="tabpanel active">
               ${this.panelContent(wide ? panel : tab)}
             </div>
           </div>
         </main>
+        <footer class="dock">
+          <button
+            class="brand"
+            title="The IMP Language Interpreter in the browser"
+            onClick=${() => this.setTab("terminal")}
+            >impli</button
+          >
+          <nav class="segments" role="tablist">
+            ${tabs.map(
+              (t) => html`
+                <button
+                  role="tab"
+                  aria-selected=${activeTab(t.id)}
+                  class=${"segment" + (activeTab(t.id) ? " active" : "")}
+                  onClick=${() => this.setTab(t.id)}
+                  >${t.label}</button
+                >
+              `,
+            )}
+          </nav>
+        </footer>
       </div>
     `;
   }

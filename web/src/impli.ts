@@ -543,18 +543,19 @@ export class Impli {
     }
   }
 
-  /** Drive one line: either a metacommand handled here or IMP source in WASM. */
-  public async drive(line: string) {
+  /** Drive one line: either a metacommand handled here or IMP source in WASM.
+   * Returns whether interpretation completed successfully. */
+  public async drive(line: string): Promise<boolean> {
     const trimmed = line.trim();
     if (trimmed === ":)") {
       this.terminal.writeln("You look good today!");
-      return;
+      return true;
     }
     if (trimmed.startsWith(":")) {
       await this.metacommand(trimmed.slice(1));
-      return;
+      return true;
     }
-    if (trimmed === "" || !this.session) return;
+    if (trimmed === "" || !this.session) return false;
 
     this.steps = [];
     this.ctrlCRequested = false;
@@ -571,21 +572,21 @@ export class Impli {
           this.refreshSession();
           this.persist();
           this.publishStatement();
-          return;
+          return true;
         case "error":
           for (const line of showFault(status.fault).split("\n")) {
             this.terminal.writeln(line);
           }
           this.refreshSession();
           this.persist();
-          return;
+          return false;
         case "running": {
           // Mid-flight pause on fuel exhaustion: yield to the event loop
           // so Ctrl-C can land, then continue with the next chunk.
           await yieldEventLoop();
           if (this.ctrlCRequested) {
             await this.cancelSession();
-            return;
+            return false;
           }
           envelope = JSON.parse(
             await this.exports.advance(JSON.stringify(this.session), FUEL),
@@ -599,7 +600,7 @@ export class Impli {
             status.variable,
             status.retry,
           );
-          if (text === null) return; // cancelled by Ctrl-C or Ctrl-D
+          if (text === null) return false; // cancelled by Ctrl-C or Ctrl-D
           this.ctrlCRequested = false;
           envelope = JSON.parse(
             status.tag === "await-input"
@@ -610,7 +611,7 @@ export class Impli {
         }
         case "await-choice": {
           const side = await this.resolveInteractiveChoice(status);
-          if (side === null) return; // cancelled by Ctrl-C or Ctrl-D
+          if (side === null) return false; // cancelled by Ctrl-C or Ctrl-D
           this.ctrlCRequested = false;
           envelope = JSON.parse(
             await this.exports.resolveChoice(JSON.stringify(this.session), side, FUEL),
@@ -785,8 +786,9 @@ export class Impli {
       this.terminal.writeln(`*** ERROR: file not found: ${file}`);
       return;
     }
-    await this.drive(entry.content);
-    this.terminal.writeln(`+++ INFO: interpreted: ${path.slice(1)}`);
+    if (await this.drive(entry.content)) {
+      this.terminal.writeln(`+++ INFO: interpreted: ${path.slice(1)}`);
+    }
   }
 
   private metaWrite(path: string) {
@@ -805,11 +807,6 @@ export class Impli {
     anchor.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
     this.terminal.writeln(`+++ INFO: wrote trace to: ${name}`);
-  }
-
-  /** Parse IMP source (or `#n` for the n-th traced statement) into the AST tab. */
-  public async parseAstInput(input: string) {
-    await this.metaAst(input);
   }
 
   private async metaAst(input: string) {

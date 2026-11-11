@@ -116,99 +116,15 @@ body {
 }
 
 /*
- * Status-line topbar: styled like a terminal status bar — square, bracketed
- * tabs, inverse video for the active entry.
- */
-.topbar {
-  display: flex;
-  align-items: stretch;
-  padding: 0 0.5rem;
-  border-bottom: 1px solid var(--chrome-line);
-  flex: 0 0 auto;
-  line-height: 2rem;
-  white-space: nowrap;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-
-.topbar::-webkit-scrollbar {
-  display: none;
-}
-
-.topbar button {
-  font: inherit;
-  color: inherit;
-  background: none;
-  border: none;
-  border-radius: 0;
-  cursor: pointer;
-  padding: 0 0.5rem;
-}
-
-.brand {
-  font-weight: bold;
-}
-
-.brand::after {
-  content: " ▮";
-  font-weight: normal;
-  opacity: 0.6;
-}
-
-.brand:hover::after {
-  opacity: 1;
-}
-
-.burger {
-  display: none;
-  margin-left: auto;
-  font-size: 1.1em;
-}
-
-.tabs {
-  display: flex;
-  align-items: stretch;
-}
-
-.tabs .tab {
-  color: var(--chrome-dim);
-}
-
-.tabs .tab::before {
-  content: "[";
-  opacity: 0;
-}
-
-.tabs .tab::after {
-  content: "]";
-  opacity: 0;
-}
-
-.tabs .tab:hover {
-  color: var(--terminal-fg);
-}
-
-.tabs .tab:hover::before,
-.tabs .tab:hover::after {
-  opacity: 0.45;
-}
-
-/* inverse video: the terminal-native way of marking "here" */
-.tabs .tab.active {
-  color: var(--terminal-bg);
-  background: var(--terminal-fg);
-  font-weight: bold;
-}
-
-/*
  * Layout: on wide viewports the terminal is always in view on the left and
- * the side pane on the right carries its own tab strip; on narrow viewports
- * the topbar tabs switch between the terminal and one panel at a time.
+ * the side pane on the right; on narrow viewports one of them fills the
+ * screen. Either way, the dock at the bottom switches what is shown.
  */
 .terminal-pane,
 .side-pane {
   display: flex;
   flex-direction: column;
+  flex: 1;
   min-width: 0;
   min-height: 0;
 }
@@ -218,75 +134,142 @@ body {
   display: none;
 }
 
-.side-pane {
-  flex: 1;
-}
-
-.side-tabs {
-  border-bottom: 1px solid var(--chrome-line);
-  line-height: 2rem;
-  padding: 0 0.5rem;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-
-.side-tabs::-webkit-scrollbar {
-  display: none;
-}
-
-.terminal-pane {
-  flex: 1;
-}
-
-@media (max-width: 899px) {
-  .side-tabs {
-    display: none;
-  }
-
-  .burger {
-    display: block;
-  }
-
-  .topbar > .tabs {
-    display: none;
-    position: absolute;
-    top: 2.1rem;
-    right: 0.5rem;
-    flex-direction: column;
-    line-height: 1.8;
-    background: var(--terminal-bg);
-    border: 1px solid var(--chrome-line);
-    padding: 0.35rem 0.5rem;
-    z-index: 10;
-    white-space: normal;
-  }
-
-  .topbar > .tabs.open {
-    display: flex;
-  }
-
-  .topbar > .tabs .tab {
-    text-align: left;
-  }
-
-  .topbar > .tabs .tab::before,
-  .topbar > .tabs .tab::after {
-    opacity: 0.45;
-  }
-}
-
 @media (min-width: 900px) {
-  .content {
+  .app .content {
     flex-direction: row;
   }
 
-  .topbar > .tabs,
-  .burger {
-    display: none;
+  .terminal-pane {
+    flex: 1.15;
+    border-right: 1px solid var(--chrome-line);
+  }
+}
+
+/*
+ * Dock: deliberately *not* terminal chrome. A quiet bar in the system UI
+ * font with a segmented control — a soft track and a raised thumb on the
+ * active entry — so the navigation reads as part of the page, not part of
+ * the interpreter's output.
+ */
+.dock {
+  --dock-font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+    sans-serif;
+  --dock-surface: color-mix(in srgb, var(--terminal-fg) 3%, var(--terminal-bg));
+  --dock-track: color-mix(in srgb, var(--terminal-fg) 7%, var(--terminal-bg));
+  --dock-thumb: var(--terminal-bg);
+  --dock-shadow: 0 1px 2px color-mix(in srgb, #000 18%, transparent),
+    0 0 0 0.5px color-mix(in srgb, #000 10%, transparent);
+
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.5rem 0.875rem calc(0.5rem + env(safe-area-inset-bottom));
+  background: var(--dock-surface);
+  border-top: 1px solid var(--chrome-line);
+  font-family: var(--dock-font);
+  font-size: 0.8125rem;
+  user-select: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  .dock {
+    --dock-surface: color-mix(in srgb, var(--terminal-fg) 4%, var(--terminal-bg));
+    --dock-track: color-mix(in srgb, #000 35%, var(--terminal-bg));
+    --dock-thumb: color-mix(in srgb, var(--terminal-fg) 14%, var(--terminal-bg));
+    --dock-shadow: 0 1px 2px color-mix(in srgb, #000 45%, transparent),
+      inset 0 0.5px 0 color-mix(in srgb, #fff 10%, transparent);
+  }
+}
+
+.dock button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  margin: 0;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.dock button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--ansi-blue) 70%, transparent);
+  outline-offset: 2px;
+}
+
+.brand {
+  font-family: "CommitMono", monospace;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  padding: 0.25rem 0.125rem;
+  opacity: 0.8;
+  transition: opacity 120ms ease;
+}
+
+.brand:hover {
+  opacity: 1;
+}
+
+.segments {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  margin-left: auto;
+  border-radius: 9px;
+  background: var(--dock-track);
+  overflow-x: auto;
+  scrollbar-width: none;
+  max-width: 100%;
+}
+
+.segments::-webkit-scrollbar {
+  display: none;
+}
+
+.segment {
+  flex: 0 0 auto;
+  padding: 0.3rem 0.85rem;
+  border-radius: 6px;
+  color: var(--chrome-dim) !important;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: color 140ms ease, background-color 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.segment:hover {
+  color: var(--terminal-fg) !important;
+}
+
+.segment.active {
+  color: var(--terminal-fg) !important;
+  background: var(--dock-thumb);
+  box-shadow: var(--dock-shadow);
+}
+
+@media (max-width: 899px) {
+  .dock {
+    gap: 0.5rem;
+    padding-inline: 0.5rem;
   }
 
-  .terminal-pane {
-    border-right: 1px solid var(--chrome-line);
+  .segments {
+    margin-left: 0;
+    flex: 1;
+  }
+
+  .segment {
+    flex: 1 0 auto;
+    padding-inline: 0.6rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .segment,
+  .brand {
+    transition: none;
   }
 }
 
@@ -641,52 +624,18 @@ details.ast-node {
   overflow-x: auto;
 }
 
-/* Derivation trees drawn like terminal inference rules. */
+/* Derivation trees are typeset by Typst (curryst) and embedded as SVG. */
 
-.tree-scroll {
-  overflow-x: auto;
-  padding: 1rem 0;
+.typst-tree {
+  overflow: auto;
+  padding: 0.75rem 0 1rem;
 }
 
-.tree-node {
-  display: inline-flex;
-  flex-direction: column;
-  align-items: stretch;
-  margin: 0 0.6rem;
-}
-
-.tree-premises {
-  display: flex;
-  gap: 1.2rem;
-  align-items: flex-end;
-  justify-content: center;
-}
-
-.tree-rule {
-  display: flex;
-  align-items: center;
-  gap: 0.6em;
-  margin-top: 0.45rem;
-}
-
-.tree-rule-line {
-  flex: 1;
-  min-width: 1.5rem;
-  border-top: 1.5px solid
-    color-mix(in srgb, var(--terminal-fg) 65%, transparent);
-}
-
-.tree-label {
-  font-size: 0.85em;
-  font-weight: 600;
-  color: var(--ansi-green);
-  white-space: nowrap;
-}
-
-.tree-conclusion {
-  padding: 0.4rem 0 0;
-  white-space: nowrap;
-  text-align: center;
+.typst-tree svg {
+  display: block;
+  height: auto;
+  /* trees may grow very wide; scroll instead of squashing */
+  max-width: none;
 }
 
 /*
