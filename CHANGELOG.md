@@ -52,7 +52,9 @@ The next (hopefully last) huge refactor (#80, also #79, #77, #31).
   - JavaScript drives prompt, input and all metacommands; suspended
     interpretation resolves interactively (input prompt, havoc, and a
     choice screen displaying both branches)
-  - Multi-line input via local-echo
+  - `web/readline.ts`: bespoke line reader replacing the xterm-local-echo
+    addon — line editing, history, tab-completion hooks, bracket-aware
+    multi-line continuation, explicit Ctrl-C/Ctrl-D result protocol
   - App shell with tabs: Terminal, State, Trace (inference rules), AST,
     and EBNF railroad diagrams
 

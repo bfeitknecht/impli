@@ -11,7 +11,6 @@
     "@/": "./src/",
     "ghostty-web": "npm:ghostty-web@^0.4.0",
     "@runno/wasi": "npm:@runno/wasi@^0.10.0",
-    "@gytx/xterm-local-echo": "npm:@gytx/xterm-local-echo@^0.1.8",
     "preact": "npm:preact@^10.29.1",
     "htm": "npm:htm@^3.1.1",
     "railroad-diagrams": "npm:railroad-diagrams@^1.0.0",

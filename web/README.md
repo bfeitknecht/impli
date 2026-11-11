@@ -35,8 +35,9 @@ input and all metacommands.
   converting `JSString`s across the boundary
 - **`@runno/wasi`**, in-browser WASI runtime instantiating the module
 - **`ghostty-web`**, terminal emulator built on Ghostty's WASM-compiled
-  VT100 implementation with an xterm.js-compatible API, plus a local-echo
-  addon for line editing, multi-line input, history, and tab-completion
+  VT100 implementation with an xterm.js-compatible API, plus a bespoke
+  `readline.ts` for line editing, bracket-aware multi-line input, history,
+  and tab-completion hooks
 - **Preact + HTM**, app shell with tabs: Terminal, State (live variables,
   procedures, break flag), Trace (statement trace and rule-labelled steps of
   the latest interpretation), AST (parse trees of arbitrary constructs) and

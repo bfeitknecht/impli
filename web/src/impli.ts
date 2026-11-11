@@ -1,7 +1,7 @@
 import { FitAddon, Terminal, init as initGhostty } from "ghostty-web";
 import type { ITheme } from "ghostty-web";
-import { LocalEchoAddon } from "@gytx/xterm-local-echo";
 import { WASI } from "@runno/wasi";
+import { Readline, ReadResult } from "@/readline.ts";
 import { examples } from "examples";
 import stub from "stub";
 import { dedent, log } from "@/util.ts";
@@ -93,13 +93,11 @@ function yieldEventLoop(): Promise<void> {
 export class Impli {
   public terminal: Terminal;
   private fitter: FitAddon;
-  private echo: LocalEchoAddon;
+  private readline: Readline;
   public exports!: ImpliExports;
   private running: boolean;
-  /** Whether the driver is awaiting a suspension resolution read. */
-  private resolving: boolean;
-  /** Whether the last aborted read was aborted by Ctrl-D. */
-  private eofSeen: boolean;
+  /** Whether a line read is currently active (the reader owns Ctrl-C then). */
+  private reading: boolean;
   /**
    * The interpreter session, owned here as plain JSON: every WASM API call
    * takes it as an argument and every envelope carries the update back.
@@ -123,19 +121,14 @@ export class Impli {
     this.fitter = new FitAddon();
     this.terminal.loadAddon(this.fitter);
 
-    this.echo = new LocalEchoAddon({ enableIncompleteInput: true });
-    this.terminal.loadAddon(this.echo);
+    this.readline = new Readline(this.terminal);
     this.running = false;
-    this.resolving = false;
-    this.eofSeen = false;
+    this.reading = false;
     this.session = null;
     this.steps = [];
     this.ctrlCRequested = false;
-    this.echo.onEof(() => {
-      this.eofSeen = true;
-    });
 
-    this.echo.addAutocompleteHandler((index: number, tokens: Array<string>) => {
+    this.readline.addCompletion((index: number, tokens: Array<string>) => {
       const metas = [
         ":help",
         ":tips",
@@ -153,14 +146,14 @@ export class Impli {
       }
       return [];
     });
-    this.echo.addAutocompleteHandler((index: number, tokens: Array<string>) => {
+    this.readline.addCompletion((index: number, tokens: Array<string>) => {
       const aspects = ["all", "vars", "procs", "break", "trace"];
       if (index == 1 && [":reset", ":show"].includes(tokens[0] ?? "")) {
         return aspects;
       }
       return [];
     });
-    this.echo.addAutocompleteHandler((index: number, tokens: Array<string>) => {
+    this.readline.addCompletion((index: number, tokens: Array<string>) => {
       const files = Object.keys(examples).map((key) =>
         key.startsWith("/") ? key.slice(1) : key
       );
@@ -173,20 +166,17 @@ export class Impli {
     // INFO: ghostty-web detects OSC-8 hyperlinks and URLs natively and opens
     // them on Ctrl/Cmd+click, no link handler is required.
 
-    // Ctrl-C aborts a pending suspension resolution read through the
-    // local-echo addon; otherwise it only requests interruption, which the
-    // interpretation loop honors after the current chunk returns to the
-    // event loop — at most one step budget of latency. At an idle prompt the
-    // addon clears the input line, shell behaviour.
+    // Ctrl-C during a line read is delivered to the reader as a byte and
+    // aborts the read; outside of reads it only requests interruption, which
+    // the interpretation loop honors after the current chunk returns to the
+    // event loop — at most one step budget of latency.
     // ghostty-web swallows the event on `true`, the inverse of xterm.js.
     this.terminal.attachCustomKeyEventHandler((event: KeyboardEvent) => {
       const keyC = event.key.toLowerCase() === "c";
       if (event.type === "keydown" && event.ctrlKey && keyC) {
-        if (this.resolving) {
-          this.echo.abortRead("^C");
-          return true;
-        }
+        if (this.reading) return false;
         this.ctrlCRequested = true;
+        return true;
       }
       return false;
     });
@@ -223,7 +213,7 @@ export class Impli {
   }
 
   public write(text: string) {
-    this.echo.print(text);
+    this.readline.print(text);
   }
 
   public refit() {
@@ -279,15 +269,13 @@ export class Impli {
     }
   }
 
-  /** Read one line with the given prompt, null on Ctrl-C or Ctrl-D abort. */
-  private async readLine(prompt: string): Promise<string | null> {
-    this.eofSeen = false;
+  /** Read one line with the given prompt; continuation prompt is `+ `. */
+  private async readLine(prompt: string): Promise<ReadResult> {
+    this.reading = true;
     try {
-      return await this.echo.read(prompt, "+ ");
-    } catch (_) {
-      return null;
+      return await this.readline.read(prompt, "+ ");
     } finally {
-      // neutralize this.resolving in the caller
+      this.reading = false;
     }
   }
 
@@ -368,12 +356,13 @@ export class Impli {
       this.running = true;
       // escape is only possible via :quit or Ctrl-D
       while (this.running) {
-        const line = await this.readLine(this.exports.getPrompt());
-        if (line === null) {
+        const result = await this.readLine(this.exports.getPrompt());
+        if (result.tag === "eof") {
           await this.quit(); // Ctrl-D at the prompt, exit cleanly
           break;
         }
-        await this.drive(line);
+        if (result.tag === "interrupt") continue; // Ctrl-C: fresh prompt
+        await this.drive(result.line);
       }
     } catch (error) {
       console.error("Failed to load WASM module:", error);
@@ -464,16 +453,14 @@ export class Impli {
     variable: string,
     retry: boolean,
   ): Promise<string | null> {
-    this.resolving = true;
-    const text = await this.readLine(this.promptFor(tag, variable, retry));
-    this.resolving = false;
-    if (text === null) {
+    const result = await this.readLine(this.promptFor(tag, variable, retry));
+    if (result.tag !== "line") {
       this.cancelSession();
       return null;
     }
-    return text.trim() === ""
+    return result.line.trim() === ""
       ? String(Math.floor(Math.random() * 2147483647) - 1073741823)
-      : text.trim();
+      : result.line.trim();
   }
 
   private promptFor(tag: string, variable: string, retry: boolean): string {
@@ -499,14 +486,12 @@ export class Impli {
     this.terminal.writeln("\x1b[1mchoose:\x1b[0m");
     this.terminal.writeln(`  1) ${left}`);
     this.terminal.writeln(`  2) ${right}`);
-    this.resolving = true;
-    const text = await this.readLine("choose 1 or 2: ");
-    this.resolving = false;
-    if (text === null) {
+    const result = await this.readLine("choose 1 or 2: ");
+    if (result.tag !== "line") {
       this.cancelSession();
       return null;
     }
-    return text.trim() === "1" ? "true" : "false";
+    return result.line.trim() === "1" ? "true" : "false";
   }
 
   /** Handle a metacommand (without the leading colon) on the JavaScript side. */
