@@ -32,8 +32,7 @@ jobs:
       - name: Annotate fourmolu diff on failure
         if: failure()
         run: |
-          curl -sSL -o fourmolu.tar.gz https://github.com/fourmolu/fourmolu/releases/download/v0.19.0.1/fourmolu-0.19.0.1-linux-x86_64.tar.gz
-          tar xzf fourmolu.tar.gz
+          curl -sSL -o fourmolu https://github.com/fourmolu/fourmolu/releases/download/v0.19.0.1/fourmolu-0.19.0.1-linux-x86_64
           chmod +x fourmolu
           ./fourmolu --mode diff $(git ls-files '*.hs') | tr '\n' '~' > fourmolu-diff.txt || true
           if [ -s fourmolu-diff.txt ]; then
