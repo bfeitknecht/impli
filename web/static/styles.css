@@ -240,7 +240,8 @@ button.link {
   padding: 0.35rem 0.5rem;
 }
 
-.ast-input-row button {
+.ast-input-row button,
+.step-controls button {
   font: inherit;
   color: inherit;
   background: none;
@@ -249,6 +250,13 @@ button.link {
   border-radius: 4px;
   padding: 0.35rem 0.75rem;
   cursor: pointer;
+}
+
+.step-controls {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
 }
 
 details.ast-node {

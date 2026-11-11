@@ -1,18 +1,20 @@
 import { Component, createRef, h, render } from "preact";
+import { useState } from "preact/hooks";
 import htm from "htm";
 import { Unsupported } from "@/Unsupported.ts";
 import { Impli, SessionView, initTerminal } from "@/impli.ts";
-import { StmNode, stmToSource } from "@/protocol.ts";
+import { Status, StmNode, showFault, stmToSource } from "@/protocol.ts";
 import { AstTree } from "@/ast.ts";
 import { renderEbnf } from "@/ebnf.ts";
 
 // LSP isn't hip enough to know about HTM
 const html = (htm as any).bind(h);
 
-type Tab = "terminal" | "state" | "trace" | "ast" | "ebnf";
+type Tab = "terminal" | "step" | "state" | "trace" | "ast" | "ebnf";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "terminal", label: "Terminal" },
+  { id: "step", label: "Step" },
   { id: "state", label: "State" },
   { id: "trace", label: "Trace" },
   { id: "ast", label: "AST" },
@@ -37,11 +39,30 @@ interface AppState {
 
 function StateTab({ session }: { session: SessionView | null }) {
   if (!session) return html`<p class="panel-note">awaiting interpreter…</p>`;
-  const { state } = session;
+  const { state, flight } = session;
   const vars = Object.entries(state.vars);
   const procs = Object.entries(state.procs);
   return html`
     <div class="panel">
+      ${flight &&
+      html`
+        <h3>In flight</h3>
+        <p class="panel-note">
+          <code>${stmToSource(flight.focus.statement)}</code>
+        </p>
+        <table class="kv">
+          <tbody>
+            ${Object.entries(flight.focus.state.vars)
+              .filter(([name]) => !name.startsWith("_"))
+              .map(
+                ([name, value]) => html`<tr>
+                  <td class="kv-key">${name}</td>
+                  <td> := ${value}</td>
+                </tr>`,
+              )}
+          </tbody>
+        </table>
+      `}
       <h3>Variables</h3>
       ${vars.length === 0
         ? html`<p class="panel-note">(empty)</p>`
@@ -197,6 +218,210 @@ function AstTab({
   `;
 }
 
+function StepTab({
+  session,
+  impli,
+}: {
+  session: SessionView | null;
+  impli: Impli | null;
+}) {
+  const [source, setSource] = useState("");
+  const [status, setStatus] = useState<Status | null>(null);
+  const [resolution, setResolution] = useState("");
+  const [runningAll, setRunningAll] = useState(false);
+  if (!session || !impli) {
+    return html`<p class="panel-note">awaiting interpreter…</p>`;
+  }
+
+  const flight = session.flight;
+  const blocked = flight?.blocked;
+  const beginning = blocked?.tag === "stepped";
+  const awaiting =
+    blocked?.tag === "blocked" ? blocked.suspension : null;
+
+  const start = () => {
+    if (source.trim() === "") return;
+    const result = impli.stepBegin(source);
+    if (result) setStatus(result);
+  };
+
+  const step = () => {
+    const result = impli.stepOnce();
+    if (result) setStatus(result);
+  };
+
+  const runAll = async () => {
+    setRunningAll(true);
+    try {
+      setStatus(await impli.stepRun());
+    } finally {
+      setRunningAll(false);
+    }
+  };
+
+  const stopAll = () => {
+    impli.requestStopStepping();
+  };
+
+  const cancel = () => {
+    impli.stepCancel();
+    setStatus(null);
+  };
+
+  const submitResolution = (havoc: boolean) => {
+    const value = resolution.trim() === ""
+      ? String(Math.floor(Math.random() * 2147483647) - 1073741823)
+      : resolution.trim();
+    setResolution("");
+    const result = impli.stepResolveInput(value, havoc);
+    if (result) setStatus(result);
+  };
+
+  const choose = (left: boolean) => {
+    const result = impli.stepResolveChoice(left);
+    if (result) setStatus(result);
+  };
+
+  const statusLine = () => {
+    if (runningAll) return html`<p class="panel-note">running…</p>`;
+    if (!status && !flight) return null;
+    switch (status?.tag) {
+      case "done":
+        return html`<p class="panel-note">done — state committed to the environment</p>`;
+      case "error":
+        return html`<p
+          class="panel-note"
+          style="color: var(--terminal-scrollback, inherit)"
+        >
+          ${showFault(status.fault)}
+        </p>`;
+      case "await-input":
+        return html`<p class="panel-note">awaits input for ${status.variable}…</p>`;
+      case "await-havoc":
+        return html`<p class="panel-note">awaits havoc value for ${status.variable}…</p>`;
+      case "await-choice":
+        return html`<p class="panel-note">awaits choice…</p>`;
+      case "running":
+        break;
+      default:
+        break;
+    }
+    if (flight) {
+      return html`<p class="panel-note">in flight,
+        ${session.steps.steps.length} steps taken</p>`;
+    }
+    return null;
+  };
+
+  return html`
+    <div class="panel">
+      <h3>Small-step interpretation</h3>
+      ${!flight
+        ? html`
+          <div class="ast-input-row">
+            <input
+              class="ast-input"
+              placeholder="begin stepping a statement…"
+              value=${source}
+              onInput=${(event: Event) =>
+                setSource((event.target as HTMLInputElement).value)}
+              onKeyDown=${(event: KeyboardEvent) => {
+                if (event.key === "Enter") start();
+              }}
+            />
+            <button onClick=${start}>Step</button>
+          </div>
+        `
+        : html`
+          <p class="panel-note">
+            focus: <code>${stmToSource(flight.focus.statement)}</code>
+          </p>
+          ${statusLine()}
+          <div class="step-controls">
+            ${beginning &&
+            html`
+              <button onClick=${step}>one step</button>
+              ${!runningAll
+                ? html`<button onClick=${runAll}>run</button>`
+                : html`<button onClick=${stopAll}>stop</button>`}
+            `}
+            ${awaiting?.tag === "await-input" || awaiting?.tag === "await-havoc"
+              ? html`
+                <div class="ast-input-row">
+                  <input
+                    class="ast-input"
+                    placeholder="${awaiting.variable} := "
+                    value=${resolution}
+                    onInput=${(event: Event) =>
+                      setResolution((event.target as HTMLInputElement).value)}
+                    onKeyDown=${(event: KeyboardEvent) => {
+                      if (event.key === "Enter") {
+                        submitResolution(awaiting.tag === "await-havoc");
+                      }
+                    }}
+                  />
+                  <button
+                    onClick=${() =>
+                      submitResolution(awaiting.tag === "await-havoc")}
+                  >
+                    resolve
+                  </button>
+                </div>
+              `
+              : null}
+            ${awaiting?.tag === "await-choice"
+              ? html`
+                <button onClick=${() => choose(true)}>
+                  take left: ${chooseLabel(flight, true)}
+                </button>
+                <button onClick=${() => choose(false)}>
+                  take right: ${chooseLabel(flight, false)}
+                </button>
+              `
+              : null}
+            <button onClick=${cancel}>cancel</button>
+          </div>
+        `}
+      <h3>Current state</h3>
+      ${flight
+        ? html`
+          <table class="kv">
+            <tbody>
+              ${visibleEntries(flight.focus.state.vars).map(
+                ([name, value]) => html`<tr>
+                  <td class="kv-key">${name}</td>
+                  <td> := ${value}</td>
+                </tr>`,
+              )}
+              ${visibleEntries(flight.focus.state.vars).length === 0
+                ? html`<tr><td class="panel-note">(empty)</td></tr>`
+                : null}
+            </tbody>
+          </table>
+        `
+        : html`<p class="panel-note">no interpretation in flight</p>`}
+    </div>
+  `;
+}
+
+/** Visible (non-bookkeeping) variable entries of a state during stepping. */
+function visibleEntries(vars: { [name: string]: number }): [string, number][] {
+  return Object.entries(vars).filter(([name]) => !name.startsWith("_"));
+}
+
+/** Label one side of a choice for the stepping tab. */
+function chooseLabel(
+  flight: { focus: { statement: StmNode } },
+  left: boolean,
+): string {
+  const node = flight.focus.statement;
+  if (node.tag === "nondet" || node.tag === "par") {
+    const side = node[left ? "left" : "right"] as StmNode;
+    return stmToSource(side);
+  }
+  return left ? "first" : "second";
+}
+
 function EbnfTab() {
   return html`
     <div class="panel ebnf">
@@ -311,6 +536,10 @@ export class App extends Component<{}, AppState> {
           >
             <div id="terminal" ref=${this.containerRef} />
           </div>
+          ${tab === "step" &&
+          html`<div class="tabpanel active">
+            <${StepTab} session=${session} impli=${this.impli} />
+          </div>`}
           ${tab === "state" &&
           html`<div class="tabpanel active">
             <${StateTab} session=${session} />

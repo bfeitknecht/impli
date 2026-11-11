@@ -8,9 +8,11 @@ import { dedent, log } from "@/util.ts";
 import {
   deriveProfile,
   Envelope,
+  FlightJson,
   SessionJson,
   showFault,
   StateJson,
+  Status,
   StepJson,
   TraceEntryJson,
   traceViewOf,
@@ -60,11 +62,13 @@ export interface ImpliExports {
   resetSession: (session: string, aspect: string) => string;
 }
 
-/** Current interpreter state, refreshed after each completed drive. */
+/** Current interpreter state, refreshed after each completed drive or step. */
 export interface SessionView {
   state: StateJson;
   trace: TraceEntryJson[];
   steps: { steps: StepJson[]; profile: ReturnType<typeof deriveProfile> };
+  /** In-flight interpretation, exposed live for the stepping tab. */
+  flight: FlightJson | null;
 }
 
 /** Initialize the libghostty WASM backend; must resolve before constructing `Terminal`. */
@@ -107,6 +111,8 @@ export class Impli {
   private steps: StepJson[];
   /** Set by Ctrl-C between chunk boundaries; stops the interpretation loop. */
   private ctrlCRequested: boolean;
+  /** Set via the stepping tab to stop a run-all loop. */
+  private stepStopRequested: boolean = false;
   public onSession: ((view: SessionView) => void) | null = null;
   public onAst: ((node: StmNode) => void) | null = null;
 
@@ -287,6 +293,7 @@ export class Impli {
         state: visibleState(this.session.environment),
         trace: traceViewOf(this.session.trace),
         steps: { steps: this.steps, profile: deriveProfile(this.steps) },
+        flight: this.session.flight,
       });
     } catch (error) {
       log("Impli", "Failed to refresh session view:", error);
@@ -308,6 +315,95 @@ export class Impli {
     this.refreshSession();
     this.persist();
     this.ctrlCRequested = false;
+  }
+
+  /** Adopt a stepping envelope, print its events, refresh and persist. */
+  private finishStepping(envelope: Envelope): Status {
+    this.adopt(envelope);
+    for (const event of envelope.events) this.terminal.writeln(event);
+    this.refreshSession();
+    this.persist();
+    return envelope.status;
+  }
+
+  /** Begin stepping through the given source, without taking any step yet. */
+  public stepBegin(source: string): Status | null {
+    if (!this.session) return null;
+    this.steps = [];
+    this.ctrlCRequested = false;
+    return this.finishStepping(
+      JSON.parse(
+        this.exports.evaluate(JSON.stringify(this.session), source, "0"),
+      ) as Envelope,
+    );
+  }
+
+  /** Advance the in-flight interpretation by exactly one small step. */
+  public stepOnce(): Status | null {
+    if (!this.session) return null;
+    return this.finishStepping(
+      JSON.parse(
+        this.exports.advance(JSON.stringify(this.session), "1"),
+      ) as Envelope,
+    );
+  }
+
+  /** Resolve a pending input or havoc suspension from the stepping tab. */
+  public stepResolveInput(text: string, havoc: boolean): Status | null {
+    if (!this.session) return null;
+    const raw = JSON.stringify(this.session);
+    const response = havoc
+      ? this.exports.resolveHavoc(raw, text, FUEL)
+      : this.exports.resolveInput(raw, text, FUEL);
+    return this.finishStepping(JSON.parse(response) as Envelope);
+  }
+
+  /** Resolve a pending choice suspension from the stepping tab. */
+  public stepResolveChoice(left: boolean): Status | null {
+    if (!this.session) return null;
+    return this.finishStepping(
+      JSON.parse(
+        this.exports.resolveChoice(
+          JSON.stringify(this.session),
+          left ? "true" : "false",
+          FUEL,
+        ),
+      ) as Envelope,
+    );
+  }
+
+  /**
+   * Continue the in-flight interpretation to the next pause point in chunked
+   * runs, honoring stop requests and Ctrl-C; mirrors the terminal drive loop.
+   */
+  public async stepRun(): Promise<Status> {
+    if (!this.session) return { tag: "error", fault: { tag: "no-flight" } };
+    this.ctrlCRequested = false;
+    let status: Status = { tag: "running" };
+    while (status.tag === "running") {
+      await yieldEventLoop();
+      if (this.ctrlCRequested || this.stepStopRequested) {
+        this.cancelSession();
+        this.stepStopRequested = false;
+        return { tag: "error", fault: { tag: "interrupted" } };
+      }
+      status = this.finishStepping(
+        JSON.parse(
+          this.exports.advance(JSON.stringify(this.session), FUEL),
+        ) as Envelope,
+      );
+    }
+    return status;
+  }
+
+  /** Ask an ongoing stepRun loop to stop after the current chunk. */
+  public requestStopStepping() {
+    this.stepStopRequested = true;
+  }
+
+  /** Cancel the flight shown in the stepping tab. */
+  public stepCancel() {
+    this.cancelSession();
   }
 
   public async start() {
