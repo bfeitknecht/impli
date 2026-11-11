@@ -165,8 +165,7 @@ drive semantics stm = case semantics of
         handlers <- ask
         st <- gets environment
         modify $ \session -> session {stepHistory = [], profile = emptyProfile}
-        let computation = Natural.run (hoistHandlers lift handlers) (stm, st) :: ExceptT Exception m State
-        result <- hoistEngine $ runExceptT computation
+        result <- hoistEngine $ runExceptT $ Natural.run (hoistHandlers lift handlers) (stm, st)
         case result of
             Left e -> throwError (RuntimeFault e)
             Right state' -> do
