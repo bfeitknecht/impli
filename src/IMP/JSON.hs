@@ -20,7 +20,7 @@ module IMP.JSON (
     Steps (..),
 ) where
 
-import Data.Aeson
+import Data.Aeson hiding (Error)
 import Data.Aeson.Types (Pair)
 import Data.Text (Text)
 

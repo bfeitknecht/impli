@@ -2,14 +2,14 @@
 
 module Main where
 
-import Test.Tasty
+import Test.Tasty hiding (Timeout)
 import Test.Tasty.HUnit
 
 import Frontend.Native.Meta
-import IMP.Engine
+import IMP.Engine hiding (Profile)
 import IMP.Exception (Exception (..))
 import IMP.Expression
-import IMP.Kernel
+import IMP.Kernel hiding (Input)
 import IMP.Parser
 import IMP.Pretty
 import IMP.State
