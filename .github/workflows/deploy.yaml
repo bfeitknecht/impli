@@ -32,7 +32,11 @@ jobs:
           nix_path: nixpkgs=channel:nixos-unstable
 
       - name: Build impli web REPL (WASM binary and JS artifacts)
-        run: nix run .#build 2>&1 | tee web-build.log
+        run: |
+          nix run .#build 2>&1 | tee web-build.log || true
+          TAIL=$(tail -8 web-build.log | tr '\n' '~')
+          echo "::notice title=build-tail::$TAIL"
+          echo "::notice title=after-build::pwd=$(pwd) web=$(ls -d web 2>&1) public=$(ls web/public 2>&1 | tr '\n' '|')"
 
       - name: Upload web build log on failure
         if: failure()
