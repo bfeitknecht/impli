@@ -7,6 +7,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 {- |
 Module      : IMP.Freer
@@ -93,7 +94,7 @@ send :: (Member eff effs) => eff a -> Eff effs a
 send request = Impure (inj request) Pure
 
 -- | Send an action of the final monadic effect, aiding instance resolution.
-sendM :: (Monad m, LastMember m effs) => m a -> Eff effs a
+sendM :: (LastMember m effs, Monad m) => m a -> Eff effs a
 sendM = send
 
 -- | Handle the topmost effect by translating its requests into the rest of the row.
