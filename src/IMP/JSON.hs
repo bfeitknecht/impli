@@ -114,7 +114,7 @@ instance ToJSON Bexp where
         Not b -> tag "not" ["expr" .= b]
         Rel rop left right -> tag "rel" ["op" .= rop, "left" .= left, "right" .= right]
 
-instance ToJSON Proc where
+instance {-# OVERLAPPING #-} ToJSON Proc where
     toJSON (params, rets, body) =
         object ["params" .= params, "returns" .= rets, "body" .= body]
 
