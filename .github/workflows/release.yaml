@@ -118,7 +118,17 @@ jobs:
         uses: cachix/install-nix-action@v31
 
       - name: Build WASM binary
-        run: nix build .#impli-web 2>&1 | tee wasm-build.log
+        run: |
+          set -o pipefail
+          if ! nix build .#impli-web 2>&1 | tee wasm-build.log; then
+            DRV=$(grep -oE '/nix/store/[a-z0-9]+-[^ ]*\.drv' wasm-build.log | tail -1)
+            echo "::error title=nix-build-failed::drv=$DRV"
+            if [ -n "$DRV" ]; then
+              nix log "$DRV" 2>&1 | tail -70 | tr '\n' '~' | head -c 3400 > wasm-log-tail.txt || true
+              echo "::error title=nix-log-tail::$(cat wasm-log-tail.txt)"
+            fi
+            exit 1
+          fi
 
       - name: Upload WASM build log on failure
         if: failure()
