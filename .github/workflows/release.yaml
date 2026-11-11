@@ -130,8 +130,8 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          nix build .#impli-web 2>&1 | tee build.log || {
-            msg=$(grep -B4 -A25 -m2 -E 'error:|Error' build.log | head -n 60)
+          nix build .#impli-web -L 2>&1 | tee build.log || {
+            msg=$(tail -n 45 build.log)
             msg="${msg//%/%25}"
             msg="${msg//$'\n'/%0A}"
             msg="${msg//$'\r'/%0D}"
