@@ -10,7 +10,9 @@ Portability : portable
 Session management layer over the pure kernel semantics.
 Holds the current session (environment, in-flight interpretation, trace and
 resource profile), delegates to the kernel, discharges effects through
-handlers supplied by frontends, and records history.
+handlers supplied by frontends, and records history. Structural
+interpretation can additionally run under a step budget (fuel), letting
+interactive frontends yield to their event loop between chunks.
 
 The engine itself performs no IO: frontends drive it through 'runEngine' with
 their own base monad and 'Handlers'.
@@ -30,7 +32,10 @@ module IMP.Engine (
     snapshot,
     drive,
     begin,
+    beginFueled,
     proceed,
+    proceedFueled,
+    advance,
     resetAspect,
     renderAspect,
     renderStep,
@@ -175,7 +180,16 @@ drive semantics stm = case semantics of
 
 -- | Begin structural interpretation of statement, stepping until the first pause point.
 begin :: (Monad m) => Stm -> Engine m Configuration
-begin stm = do
+begin = beginWith Nothing
+
+-- | Begin structural interpretation with fuel, pausing mid-flight when exhausted.
+-- The first transition is pre-paid: no more than @fuel@ additional steps are taken.
+beginFueled :: (Monad m) => Int -> Stm -> Engine m Configuration
+beginFueled fuel = beginWith (Just fuel)
+
+-- | Begin structural interpretation of statement with the given fuel level.
+beginWith :: (Monad m) => Maybe Int -> Stm -> Engine m Configuration
+beginWith fuel stm = do
     session <- get
     case flight session of
         Just _ -> throwError BusyFlight
@@ -188,11 +202,19 @@ begin stm = do
             , stepHistory = []
             , profile = emptyProfile
             }
-    pause conf
+    pause fuel conf
 
 -- | Resolve the current suspension and continue to the next pause point.
 proceed :: (Monad m) => Resolution -> Engine m Configuration
-proceed resolution = do
+proceed = proceedWith Nothing
+
+-- | Resolve the current suspension with fuel, pausing mid-flight when exhausted.
+proceedFueled :: (Monad m) => Resolution -> Int -> Engine m Configuration
+proceedFueled resolution fuel = proceedWith (Just fuel) resolution
+
+-- | Resolve the current suspension and continue with the given fuel level.
+proceedWith :: (Monad m) => Maybe Int -> Resolution -> Engine m Configuration
+proceedWith fuel resolution = do
     session <- get
     case flight session of
         Nothing -> throwError NoFlight
@@ -201,8 +223,17 @@ proceed resolution = do
                 Blocked _ -> do
                     let conf = resume (focus fl) resolution
                     modify $ \flightsession -> flightsession {flight = Just fl {blocked = conf}}
-                    pause conf
+                    pause fuel conf
                 _ -> throwError (InvalidResolution (focus fl) resolution)
+
+-- | Continue the in-flight interpretation by at most the given fuel.
+-- Idempotent on blocked and reached configurations.
+advance :: (Monad m) => Int -> Engine m Configuration
+advance fuel = do
+    session <- get
+    case flight session of
+        Nothing -> throwError NoFlight
+        Just fl -> pause (Just fuel) (blocked fl)
 
 -- | Reset aspect of the session environment.
 resetAspect :: (Monad m) => Aspect -> Engine m ()
@@ -272,36 +303,35 @@ drain conf = case conf of
         drain conf'
     _ -> return conf
 
--- | Advance structural interpretation until the next pause point.
-spin :: (Monad m) => Engine m Configuration
-spin = loop
-    where
-        loop = do
-            session <- get
-            case flight session of
-                Nothing -> throwError NoFlight
-                Just fl ->
-                    case blocked fl of
-                        Stepped s' -> do
-                            handlers <- ask
-                            interrupted <- hoistEngine (pollInterrupt handlers)
-                            if interrupted
-                                then do
-                                    modify $ \s -> s {flight = Nothing}
-                                    throwError Interrupted
-                                else do
-                                    record s'
-                                    mapM_ (\(Output text) -> hoistEngine (onOutput handlers text)) (effects s')
-                                    let gamma = residual s'
-                                    let conf = step gamma
-                                    modify $ \s -> s {flight = Just fl {focus = gamma, blocked = conf}}
-                                    pause conf
-                        conf -> pause conf
+-- | Advance structural interpretation until the next pause point or until fuel is exhausted.
+spin :: (Monad m) => Maybe Int -> Engine m Configuration
+spin fuel = do
+    session <- get
+    case flight session of
+        Nothing -> throwError NoFlight
+        Just fl ->
+            case blocked fl of
+                Stepped s' | Just 0 <- fuel -> return (Stepped s')
+                Stepped s' -> do
+                    handlers <- ask
+                    interrupted <- hoistEngine (pollInterrupt handlers)
+                    if interrupted
+                        then do
+                            modify $ \s -> s {flight = Nothing}
+                            throwError Interrupted
+                        else do
+                            record s'
+                            mapM_ (\(Output text) -> hoistEngine (onOutput handlers text)) (effects s')
+                            let gamma = residual s'
+                            let conf = step gamma
+                            modify $ \s -> s {flight = Just fl {focus = gamma, blocked = conf}}
+                            pause (fmap pred fuel) conf
+                conf -> pause fuel conf
 
 -- | Handle reached pause point: advance on steps, commit on terminal, fail on stuck.
-pause :: (Monad m) => Configuration -> Engine m Configuration
-pause conf = case conf of
-    Stepped _ -> spin
+pause :: (Monad m) => Maybe Int -> Configuration -> Engine m Configuration
+pause fuel conf = case conf of
+    Stepped _ -> spin fuel
     Terminal state' -> do
         session <- get
         case flight session of

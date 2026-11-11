@@ -1,13 +1,20 @@
 /**
  * Protocol types for the JSON envelopes exchanged with the impli WASM binary.
  *
- * The shapes mirror the aeson encoders in `src/IMP/JSON.hs`; the frontend
- * sends plain strings and receives these JSON structures.
+ * The shapes mirror the aeson codecs in `src/IMP/JSON.hs`. The JavaScript
+ * side owns the session: every API call takes the session as JSON and every
+ * envelope carries the updated session back. Step histories arrive as
+ * per-call deltas in the envelope; their resource profile is derived locally
+ * by {@link deriveProfile}.
  */
 
 export interface Envelope {
   events: string[];
   status: Status;
+  /** Steps taken during the call that produced this envelope. */
+  steps: StepJson[];
+  /** Session state after the call, owned by this side of the boundary. */
+  session: SessionJson;
 }
 
 export type Status =
@@ -27,8 +34,14 @@ export type Status =
       stm?: StmNode;
     }
   | { tag: "await-choice"; retry: boolean; focus?: string; stm?: StmNode }
+  | { tag: "running" }
   | { tag: "error"; fault: Fault };
 
+/**
+ * Machine state. Note the `vars` map is raw: variables whose names start
+ * with an underscore are internal bookkeeping of the kernel and are expected
+ * to be filtered for display by {@link visibleState}.
+ */
 export interface StateJson {
   vars: { [name: string]: number };
   procs: { [name: string]: ProcJson };
@@ -39,6 +52,35 @@ export interface ProcJson {
   params: string[];
   returns: string[];
   body: StmNode;
+}
+
+export type SuspensionJson =
+  | { tag: "await-input"; variable: string }
+  | { tag: "await-havoc"; variable: string }
+  | { tag: "await-choice" };
+
+export type ConfigurationJson =
+  | { tag: "terminal"; state: StateJson }
+  | { tag: "stepped"; step: StepJson }
+  | { tag: "blocked"; suspension: SuspensionJson }
+  | { tag: "stuck"; exception: ExceptionJson };
+
+export interface FocusJson {
+  statement: StmNode;
+  state: StateJson;
+}
+
+export interface FlightJson {
+  statement: StmNode;
+  focus: FocusJson;
+  blocked: ConfigurationJson;
+}
+
+/** Serializable session owned by the JavaScript side between API calls. */
+export interface SessionJson {
+  environment: StateJson;
+  flight: FlightJson | null;
+  trace: StmNode[];
 }
 
 export interface Profile {
@@ -54,15 +96,54 @@ export interface StepJson {
   effects: string[];
 }
 
+/** Accumulated steps and derived profile of an interpretation, for the UI. */
 export interface StepsJson {
   steps: StepJson[];
   profile: Profile;
 }
 
+/** Trace row of the UI: newest statement first, one-based index. */
 export interface TraceEntryJson {
   index: number;
   source: string;
   ast: StmNode;
+}
+
+/** Machine state with internal ('_'-prefixed) bookkeeping variables removed. */
+export function visibleState(state: StateJson): StateJson {
+  return {
+    vars: Object.fromEntries(
+      Object.entries(state.vars).filter(([name]) => !name.startsWith("_")),
+    ),
+    procs: state.procs,
+    break: state.break,
+  };
+}
+
+/** Derive the resource profile of an interpretation from its step stream. */
+export function deriveProfile(steps: StepJson[]): Profile {
+  const histogram = new Map<string, number>();
+  let outputs = 0;
+  for (const step of steps) {
+    histogram.set(step.rule, (histogram.get(step.rule) ?? 0) + 1);
+    outputs += step.effects.length;
+  }
+  return {
+    steps: steps.length,
+    outputs,
+    rules: [...histogram.entries()]
+      .map(([rule, count]) => ({ rule, count }))
+      .sort((a, b) => a.rule.localeCompare(b.rule)),
+  };
+}
+
+/** Build the trace view of a session: newest statement first, one-based. */
+export function traceViewOf(trace: StmNode[]): TraceEntryJson[] {
+  return trace.map((ast, index) => ({
+    index: index + 1,
+    source: stmToSource(ast),
+    ast,
+  }));
 }
 
 export type Fault =

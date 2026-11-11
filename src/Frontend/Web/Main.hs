@@ -10,10 +10,15 @@ Maintainer  : bfeitknecht@ethz.ch
 Stability   : stable
 Portability : WASM
 
-Exposes an export-only WASM interface over 'IMP.Engine': no foreign imports.
-The JavaScript frontend drives prompt, input and metacommands, calls
-@evaluate@ with lines of IMP source and continues suspended interpretation
-through the @resolve@ exports. All results are JSON protocol envelopes.
+Exposes an export-only WASM interface over 'IMP.Engine': no foreign imports
+and no shared interpreter state. The JavaScript frontend owns the session as
+plain JSON, hands it to every API call and adopts the updated session carried
+in every envelope, which makes sessions persistable and resumable outside the
+interpreter. Statements are interpreted under a step budget (fuel): when a
+call pauses mid-flight with status @running@, the frontend yields to its
+event loop and calls @advance@ to continue, which keeps Ctrl-C interruption
+responsive at any point during interpretation, not only at read prompts. To
+cancel an idle suspended interpretation the frontend calls @cancel@.
 
 The @start@ export runs a naive stdio REPL usable in wasmtime and friends,
 handling only plain statements and a minimal set of metacommands.
@@ -25,7 +30,6 @@ import Data.IORef
 import Data.Version (showVersion)
 import GHC.Wasm.Prim
 import System.IO
-import System.IO.Unsafe (unsafePerformIO)
 import System.Random (randomIO)
 import Text.Parsec (ParseError)
 import Text.Read (readMaybe)
@@ -43,32 +47,17 @@ import IMP.Syntax
 
 import qualified Paths_impli as Paths
 
--- | Session state shared across API calls.
-{-# NOINLINE sessionRef #-}
-sessionRef :: IORef Session
-sessionRef = unsafePerformIO (newIORef boot)
-
--- | Output lines buffered during the current API call.
-{-# NOINLINE outputsRef #-}
-outputsRef :: IORef [String]
-outputsRef = unsafePerformIO (newIORef [])
-
--- | Interrupt flag polled between kernel steps.
-{-# NOINLINE interruptRef #-}
-interruptRef :: IORef Bool
-interruptRef = unsafePerformIO (newIORef False)
-
--- | Handlers over IO for explicit browser driving.
+-- | Handlers over IO for explicit browser driving with call-scoped output buffering.
 -- Suspensions are never discharged here: interpretation pauses at blocked
 -- configurations and the frontend continues via the resolution exports.
-webHandlers :: Handlers IO
-webHandlers =
+webHandlers :: IORef [String] -> Handlers IO
+webHandlers outputs =
     Handlers
         { onInput = \_ -> error "browser discharges input suspensions via resolveInput"
-        , onOutput = \text -> modifyIORef outputsRef (text :)
+        , onOutput = \text -> modifyIORef outputs (text :)
         , onChoice = error "browser discharges choice suspensions via resolveChoice"
         , onRandom = error "browser discharges havoc suspensions via resolveHavoc"
-        , pollInterrupt = readIORef interruptRef
+        , pollInterrupt = return False
         }
 
 -- | Handlers over standard IO for the naive stdio REPL.
@@ -106,9 +95,30 @@ webHelp =
             , ":ast (INPUT | #n)       Parse and display AST of input or n-th statement in trace"
             ]
 
+-- | Default step budget per call: large enough to feel direct, small enough to
+-- keep the event loop of the JavaScript host responsive for interruption.
+defaultFuel :: Int
+defaultFuel = 16384
+
+-- | Parse a fuel argument, defaulting on junk.
+parseFuel :: String -> Int
+parseFuel text = maybe defaultFuel id (readMaybe text)
+
 -- | Encode value as JSON across the FFI boundary.
 jsonOut :: (ToJSON a) => a -> IO JSString
 jsonOut = return . toJSString . ByteString.unpack . encode
+
+-- | Decode the session handed down by the JavaScript frontend.
+decodeSession :: JSString -> Either String Session
+decodeSession raw = eitherDecode (ByteString.pack (fromJSString raw))
+
+-- | Run action with the decoded session, failing closed on invalid session JSON.
+withSession :: JSString -> (Session -> IO JSString) -> IO JSString
+withSession raw action = case decodeSession raw of
+    Left msg ->
+        jsonOut $
+            Envelope [] (Failed (RuntimeFault (Error ("invalid session: " ++ msg)))) [] boot
+    Right session -> action session
 
 -- | Parse aspect name for 'resetSessionAPI'.
 parseAspect :: String -> Maybe Aspect
@@ -121,60 +131,51 @@ parseAspect name = case name of
     "trace" -> Just Trace
     _ -> Nothing
 
--- | Shared response rendering: buffered events plus status from configuration.
-respond :: Configuration -> Session -> IO JSString
-respond conf session = do
-    events <- reverse <$> readIORef outputsRef
-    let stat = case (conf, flight session) of
-            (Terminal state', _) -> Done state' (profile session)
-            (Blocked suspension, Just fl) -> Awaiting suspension (focusOf fl) False
-            (Blocked suspension, Nothing) -> Awaiting suspension Nothing False
-            _ -> Failed (RuntimeFault (Error "unreachable engine state"))
-    jsonOut (Envelope events stat)
-    where
-        focusOf = Just . focusDetail
-
 -- | Focus statement and its pretty-printed source for choice screens.
 focusDetail :: Flight -> (Stm, String)
 focusDetail fl = (fst (focus fl), prettify (fst (focus fl)))
 
--- | Fault response rendering: buffered events plus failed status.
-failWith :: Fault -> IO JSString
-failWith fault = do
-    events <- reverse <$> readIORef outputsRef
-    jsonOut (Envelope events (Failed fault))
+-- | Response rendering: buffered events, step delta, status and updated session.
+respond :: IORef [String] -> Configuration -> Session -> IO JSString
+respond outputs conf session = do
+    events <- reverse <$> readIORef outputs
+    let stat = case (conf, flight session) of
+            (Terminal state', _) -> Done state' (profile session)
+            (Blocked suspension, Just fl) -> Awaiting suspension (Just (focusDetail fl)) False
+            (Blocked suspension, Nothing) -> Awaiting suspension Nothing False
+            (Stepped _, Just _) -> Running
+            _ -> Failed (RuntimeFault (Error "unreachable engine state"))
+    jsonOut (Envelope events stat (reverse (stepHistory session)) session)
 
--- | Begin structural interpretation of statement in session.
-runStatement :: Session -> Stm -> IO JSString
-runStatement session stm = do
-    outcome <- runEngine webHandlers session (begin stm)
+-- | Fault response rendering: buffered events plus failed status and session.
+-- Terminal faults drop the in-flight interpretation; the engine does not
+-- return state changes of faulted computations, so the web side
+-- re-establishes that invariant on the session handed back to the frontend.
+failWith :: IORef [String] -> Fault -> Session -> IO JSString
+failWith outputs fault session = do
+    events <- reverse <$> readIORef outputs
+    jsonOut (Envelope events (Failed fault) [] (flightless fault session))
+
+-- | Session echo after a fault, dropping flights on terminal faults.
+flightless :: Fault -> Session -> Session
+flightless fault session = case fault of
+    RuntimeFault _ -> session {flight = Nothing}
+    Interrupted -> session {flight = Nothing}
+    _ -> session
+
+-- | Run one engine action with call-scoped output buffering and fresh step history.
+perform :: Session -> Engine IO Configuration -> IO JSString
+perform session action = do
+    outputs <- newIORef []
+    let zeroed = session {stepHistory = [], profile = emptyProfile}
+    outcome <- runEngine (webHandlers outputs) zeroed action
     case outcome of
-        Left fault -> failWith fault
-        Right (conf, session') -> do
-            writeIORef sessionRef session'
-            respond conf session'
+        Right (conf, session') -> respond outputs conf session'
+        Left fault -> failWith outputs fault zeroed
 
--- | Resolve current suspension and continue interpretation.
-continueWith :: Resolution -> IO JSString
-continueWith resolution = do
-    writeIORef outputsRef []
-    session <- readIORef sessionRef
-    outcome <- runEngine webHandlers session (proceed resolution)
-    case outcome of
-        Left fault -> failWith fault
-        Right (conf, session') -> do
-            writeIORef sessionRef session'
-            respond conf session'
-
--- | Repeat the current suspension with retry flag set, for invalid resolutions.
-retrySuspension :: IO JSString
-retrySuspension = do
-    session <- readIORef sessionRef
-    case flight session of
-        Just fl
-            | Blocked suspension <- blocked fl ->
-                jsonOut (Envelope [] (Awaiting suspension (Just (focusDetail fl)) True))
-        _ -> jsonOut (Envelope [] (Failed NoFlight))
+-- | Immediate response without running the engine.
+respondNow :: Session -> Status -> [String] -> IO JSString
+respondNow session stat events = jsonOut (Envelope events stat [] session)
 
 -- | Unused entrypoint: the JavaScript host or wasmtime drives the exported API.
 main :: IO ()
@@ -229,64 +230,88 @@ startAPI = do
                                 >> return (Just session)
                         Whitespace -> return (Just session)
 
--- | Export line evaluation API.
-foreign export javascript "evaluate" evaluateAPI :: JSString -> IO JSString
+-- | Export initial session API.
+foreign export javascript "bootSession" bootSessionAPI :: IO JSString
 
--- | Evaluate one line of IMP source in the current session, return protocol envelope.
--- After 'start', the JavaScript host re-enters this export indefinitely: escape is impossible.
-evaluateAPI :: JSString -> IO JSString
-evaluateAPI input = do
-    let line = fromJSString input
-    writeIORef interruptRef False
-    writeIORef outputsRef []
-    session <- readIORef sessionRef
+-- | Initial empty session as JSON.
+bootSessionAPI :: IO JSString
+bootSessionAPI = jsonOut boot
+
+-- | Export line evaluation API.
+foreign export javascript "evaluate" evaluateAPI :: JSString -> JSString -> JSString -> IO JSString
+
+-- | Evaluate one line of IMP source in the given session with the given step
+-- budget, returning a protocol envelope with the updated session.
+evaluateAPI :: JSString -> JSString -> JSString -> IO JSString
+evaluateAPI rawSession rawLine rawFuel = withSession rawSession $ \session -> do
+    let line = fromJSString rawLine
+    let fuel = parseFuel rawFuel
     case parser "web" line of
-        Left e -> jsonOut (Envelope [] (Failed (RuntimeFault (ParseFail (unlines [line, show e])))))
+        Left e ->
+            respondNow session (Failed (RuntimeFault (ParseFail (unlines [line, show e])))) []
         Right construct -> case construct of
-            Statement stm -> runStatement session stm
+            Statement stm -> perform session (beginFueled fuel stm)
             Arithmetic aexp ->
                 let value = show (evaluate aexp (environment session))
-                in jsonOut (Envelope [value] (Done (environment session) emptyProfile))
+                in respondNow session (Done (environment session) emptyProfile) [value]
             Boolean bexp ->
                 let value = if evaluate bexp (environment session) then "true" else "false"
-                in jsonOut (Envelope [value] (Done (environment session) emptyProfile))
-            Whitespace -> jsonOut (Envelope [] (Done (environment session) emptyProfile))
+                in respondNow session (Done (environment session) emptyProfile) [value]
+            Whitespace -> respondNow session (Done (environment session) emptyProfile) []
+
+-- | Export continuation API.
+foreign export javascript "advance" advanceAPI :: JSString -> JSString -> IO JSString
+
+-- | Continue the in-flight interpretation of the given session by the given fuel.
+advanceAPI :: JSString -> JSString -> IO JSString
+advanceAPI rawSession rawFuel = withSession rawSession $ \session ->
+    perform session (advance (parseFuel rawFuel))
 
 -- | Export input resolution API.
-foreign export javascript "resolveInput" resolveInputAPI :: JSString -> IO JSString
+foreign export javascript "resolveInput" resolveInputAPI :: JSString -> JSString -> JSString -> IO JSString
 
 -- | Resolve the current @read@ suspension with the given integer text, retrying on junk.
-resolveInputAPI :: JSString -> IO JSString
-resolveInputAPI input =
-    case readMaybe (fromJSString input) of
-        Just value -> continueWith (ResolveInput value)
-        Nothing -> retrySuspension
+resolveInputAPI :: JSString -> JSString -> JSString -> IO JSString
+resolveInputAPI rawSession rawInput rawFuel = withSession rawSession $ \session ->
+    case readMaybe (fromJSString rawInput) of
+        Just value ->
+            perform session (proceedFueled (ResolveInput value) (parseFuel rawFuel))
+        Nothing -> retryWith session
 
 -- | Export choice resolution API.
-foreign export javascript "resolveChoice" resolveChoiceAPI :: JSString -> IO JSString
+foreign export javascript "resolveChoice" resolveChoiceAPI :: JSString -> JSString -> JSString -> IO JSString
 
--- | Resolve the current choice suspension with the given side @\"true\"@ for left.
-resolveChoiceAPI :: JSString -> IO JSString
-resolveChoiceAPI = continueWith . ResolveChoice . (== "true") . fromJSString
+-- | Resolve the current choice suspension with the given side @"true"@ for left.
+resolveChoiceAPI :: JSString -> JSString -> JSString -> IO JSString
+resolveChoiceAPI rawSession rawSide rawFuel = withSession rawSession $ \session ->
+    perform session (proceedFueled (ResolveChoice (fromJSString rawSide == "true")) (parseFuel rawFuel))
 
 -- | Export havoc resolution API.
-foreign export javascript "resolveHavoc" resolveHavocAPI :: JSString -> IO JSString
+foreign export javascript "resolveHavoc" resolveHavocAPI :: JSString -> JSString -> JSString -> IO JSString
 
 -- | Resolve the current @havoc@ suspension with the given integer text.
-resolveHavocAPI :: JSString -> IO JSString
-resolveHavocAPI input =
-    case readMaybe (fromJSString input) of
-        Just value -> continueWith (ResolveHavoc value)
-        Nothing -> retrySuspension
+resolveHavocAPI :: JSString -> JSString -> JSString -> IO JSString
+resolveHavocAPI rawSession rawValue rawFuel = withSession rawSession $ \session ->
+    case readMaybe (fromJSString rawValue) of
+        Just value ->
+            perform session (proceedFueled (ResolveHavoc value) (parseFuel rawFuel))
+        Nothing -> retryWith session
 
--- | Export interrupt API.
-foreign export javascript "interrupt" interruptAPI :: IO ()
+-- | Repeat the current suspension with retry flag set, for invalid resolutions.
+retryWith :: Session -> IO JSString
+retryWith session = case flight session of
+    Just fl
+        | Blocked suspension <- blocked fl ->
+            respondNow session (Awaiting suspension (Just (focusDetail fl))) []
+    _ -> respondNow session (Failed NoFlight) []
 
--- | Interrupt running interpretation and cancel any suspended interpretation.
-interruptAPI :: IO ()
-interruptAPI = do
-    writeIORef interruptRef True
-    modifyIORef sessionRef $ \session -> session {flight = Nothing}
+-- | Export cancellation API.
+foreign export javascript "cancel" cancelAPI :: JSString -> IO JSString
+
+-- | Cancel the suspended interpretation of the given session.
+cancelAPI :: JSString -> IO JSString
+cancelAPI rawSession = withSession rawSession $ \session ->
+    jsonOut (session {flight = Nothing})
 
 -- | Export prompt query API.
 foreign export javascript "getPrompt" getPromptAPI :: IO JSString
@@ -309,31 +334,6 @@ foreign export javascript "versionText" versionTextAPI :: IO JSString
 versionTextAPI :: IO JSString
 versionTextAPI = return (toJSString versionText)
 
--- | Export state inspection API.
-foreign export javascript "showState" showStateAPI :: IO JSString
-
--- | Current session environment as JSON.
-showStateAPI :: IO JSString
-showStateAPI = readIORef sessionRef >>= jsonOut . environment
-
--- | Export trace inspection API.
-foreign export javascript "showTrace" showTraceAPI :: IO JSString
-
--- | Current session trace as JSON, newest statement first with one-based index.
-showTraceAPI :: IO JSString
-showTraceAPI = do
-    session <- readIORef sessionRef
-    jsonOut [TraceEntry n (prettify stm) stm | (n, stm) <- zip [1 ..] (trace session)]
-
--- | Export step history inspection API.
-foreign export javascript "showSteps" showStepsAPI :: IO JSString
-
--- | Steps of the latest interpretation in chronological order with resource profile.
-showStepsAPI :: IO JSString
-showStepsAPI = do
-    session <- readIORef sessionRef
-    jsonOut (Steps (reverse (stepHistory session)) (profile session))
-
 -- | Export AST inspection API.
 foreign export javascript "parseAst" parseAstAPI :: JSString -> IO JSString
 
@@ -346,23 +346,22 @@ parseAstAPI input = do
         Right construct -> jsonOut (object ["tag" .= ("ok" :: String), "construct" .= construct])
 
 -- | Export session reset API.
-foreign export javascript "resetSession" resetSessionAPI :: JSString -> IO JSString
+foreign export javascript "resetSession" resetSessionAPI :: JSString -> JSString -> IO JSString
 
--- | Reset the named aspect (or all on empty string) of the session environment.
-resetSessionAPI :: JSString -> IO JSString
-resetSessionAPI input = do
-    session <- readIORef sessionRef
-    case parseAspect (fromJSString input) of
+-- | Reset the named aspect (or all on empty string) of the given session.
+resetSessionAPI :: JSString -> JSString -> IO JSString
+resetSessionAPI rawSession rawAspect = withSession rawSession $ \session ->
+    case parseAspect (fromJSString rawAspect) of
         Nothing ->
             jsonOut $
                 object
                     [ "tag" .= ("error" :: String)
-                    , "message" .= ("unknown aspect: " ++ fromJSString input)
+                    , "message" .= ("unknown aspect: " ++ fromJSString rawAspect)
                     ]
         Just aspect -> do
-            outcome <- runEngine webHandlers session (resetAspect aspect)
+            outputs <- newIORef []
+            outcome <- runEngine (webHandlers outputs) session (resetAspect aspect)
             case outcome of
-                Left fault -> failWith fault
-                Right (_, session') -> do
-                    writeIORef sessionRef session'
-                    jsonOut (object ["tag" .= ("ok" :: String)])
+                Left fault -> failWith outputs fault session
+                Right (_, session') ->
+                    jsonOut (object ["tag" .= ("ok" :: String), "session" .= session'])

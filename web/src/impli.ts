@@ -6,13 +6,17 @@ import { examples } from "examples";
 import stub from "stub";
 import { dedent, log } from "@/util.ts";
 import {
+  deriveProfile,
   Envelope,
+  SessionJson,
   showFault,
   StateJson,
-  StepsJson,
+  StepJson,
+  TraceEntryJson,
+  traceViewOf,
+  visibleState,
   StmNode,
   stmToSource,
-  TraceEntryJson,
 } from "@/protocol.ts";
 
 const logo = dedent`\x1b[1m
@@ -29,29 +33,38 @@ const banner = dedent`\0\
   Made with <3 by Basil Feitknecht.
   `;
 
+/**
+ * Step budget per interpretation chunk: each WASM call performs at most
+ * this many structural steps before yielding back to the event loop,
+ * mirroring `defaultFuel` of `src/Frontend/Web/Main.hs`.
+ */
+const FUEL = "16384";
+
+/** localStorage key under which the session persists across page loads. */
+const SESSION_KEY = "impli:session";
+
 /** Version of the WASM exports record, as declared in `impli.cabal`. */
 export interface ImpliExports {
   start: () => void;
-  evaluate: (line: string) => string;
-  resolveInput: (value: string) => string;
-  resolveChoice: (side: string) => string;
-  resolveHavoc: (value: string) => string;
-  interrupt: () => void;
+  bootSession: () => string;
+  evaluate: (session: string, line: string, fuel: string) => string;
+  advance: (session: string, fuel: string) => string;
+  resolveInput: (session: string, value: string, fuel: string) => string;
+  resolveChoice: (session: string, side: string, fuel: string) => string;
+  resolveHavoc: (session: string, value: string, fuel: string) => string;
+  cancel: (session: string) => string;
   getPrompt: () => string;
   helpText: () => string;
   versionText: () => string;
-  showState: () => string;
-  showTrace: () => string;
-  showSteps: () => string;
   parseAst: (source: string) => string;
-  resetSession: (aspect: string) => string;
+  resetSession: (session: string, aspect: string) => string;
 }
 
 /** Current interpreter state, refreshed after each completed drive. */
 export interface SessionView {
   state: StateJson;
   trace: TraceEntryJson[];
-  steps: StepsJson;
+  steps: { steps: StepJson[]; profile: ReturnType<typeof deriveProfile> };
 }
 
 /** Initialize the libghostty WASM backend; must resolve before constructing `Terminal`. */
@@ -72,6 +85,11 @@ function getTheme() {
   };
 }
 
+/** Yield one event-loop turn so key events can fire between WASM chunks. */
+function yieldEventLoop(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, 0));
+}
+
 export class Impli {
   public terminal: Terminal;
   private fitter: FitAddon;
@@ -82,6 +100,15 @@ export class Impli {
   private resolving: boolean;
   /** Whether the last aborted read was aborted by Ctrl-D. */
   private eofSeen: boolean;
+  /**
+   * The interpreter session, owned here as plain JSON: every WASM API call
+   * takes it as an argument and every envelope carries the update back.
+   */
+  private session: SessionJson | null;
+  /** Steps accumulated across the chunks of the current interpretation. */
+  private steps: StepJson[];
+  /** Set by Ctrl-C between chunk boundaries; stops the interpretation loop. */
+  private ctrlCRequested: boolean;
   public onSession: ((view: SessionView) => void) | null = null;
   public onAst: ((node: StmNode) => void) | null = null;
 
@@ -101,6 +128,9 @@ export class Impli {
     this.running = false;
     this.resolving = false;
     this.eofSeen = false;
+    this.session = null;
+    this.steps = [];
+    this.ctrlCRequested = false;
     this.echo.onEof(() => {
       this.eofSeen = true;
     });
@@ -143,14 +173,20 @@ export class Impli {
     // INFO: ghostty-web detects OSC-8 hyperlinks and URLs natively and opens
     // them on Ctrl/Cmd+click, no link handler is required.
 
-    // Ctrl-C cancels a pending suspension resolution; otherwise the
-    // local-echo addon clears the input line, shell behaviour.
+    // Ctrl-C aborts a pending suspension resolution read through the
+    // local-echo addon; otherwise it only requests interruption, which the
+    // interpretation loop honors after the current chunk returns to the
+    // event loop — at most one step budget of latency. At an idle prompt the
+    // addon clears the input line, shell behaviour.
     // ghostty-web swallows the event on `true`, the inverse of xterm.js.
     this.terminal.attachCustomKeyEventHandler((event: KeyboardEvent) => {
       const keyC = event.key.toLowerCase() === "c";
-      if (event.type === "keydown" && event.ctrlKey && keyC && this.resolving) {
-        this.handleInterrupt();
-        return true;
+      if (event.type === "keydown" && event.ctrlKey && keyC) {
+        if (this.resolving) {
+          this.echo.abortRead("^C");
+          return true;
+        }
+        this.ctrlCRequested = true;
       }
       return false;
     });
@@ -217,10 +253,30 @@ export class Impli {
     this.write(message);
   }
 
-  private handleInterrupt() {
-    if (!this.exports) return;
-    this.exports.interrupt();
-    this.echo.abortRead("^C");
+  /** Adopt the session and step delta carried by an envelope. */
+  private adopt(envelope: Envelope) {
+    this.session = envelope.session;
+    this.steps.push(...envelope.steps);
+  }
+
+  /** Persist the current session for resumption across page loads. */
+  private persist() {
+    if (!this.session) return;
+    try {
+      localStorage.setItem(SESSION_KEY, JSON.stringify(this.session));
+    } catch (_) {
+      // Non-fatal: private-mode browsers may refuse.
+    }
+  }
+
+  /** Restore the persisted session, if any. */
+  private restore(): SessionJson | null {
+    try {
+      const raw = localStorage.getItem(SESSION_KEY);
+      return raw ? (JSON.parse(raw) as SessionJson) : null;
+    } catch (_) {
+      return null;
+    }
   }
 
   /** Read one line with the given prompt, null on Ctrl-C or Ctrl-D abort. */
@@ -235,14 +291,15 @@ export class Impli {
     }
   }
 
-  /** Query the WASM side for the current session view and notify listeners. */
+  /** Build the current session view and notify listeners. */
   public refreshSession() {
-    if (!this.exports || !this.onSession) return;
+    if (!this.session || !this.onSession) return;
     try {
-      const state = JSON.parse(this.exports.showState()) as StateJson;
-      const trace = JSON.parse(this.exports.showTrace()) as TraceEntryJson[];
-      const steps = JSON.parse(this.exports.showSteps()) as StepsJson;
-      this.onSession({ state, trace, steps });
+      this.onSession({
+        state: visibleState(this.session.environment),
+        trace: traceViewOf(this.session.trace),
+        steps: { steps: this.steps, profile: deriveProfile(this.steps) },
+      });
     } catch (error) {
       log("Impli", "Failed to refresh session view:", error);
     }
@@ -251,6 +308,18 @@ export class Impli {
   /** Open the traced statement of the n-th newest statement in the AST tab. */
   public openAst(node: StmNode) {
     if (this.onAst) this.onAst(node);
+  }
+
+  /** Cancel the suspended or running interpretation after a Ctrl-C request. */
+  private cancelSession() {
+    if (!this.session) return;
+    this.session = JSON.parse(
+      this.exports.cancel(JSON.stringify(this.session)),
+    ) as SessionJson;
+    this.terminal.writeln("*** ERROR: interrupted");
+    this.refreshSession();
+    this.persist();
+    this.ctrlCRequested = false;
   }
 
   public async start() {
@@ -290,8 +359,12 @@ export class Impli {
         ghc_wasm_jsffi: stub(exports),
       } as never);
 
-      log("Impli", "WASM module loaded and started");
+      // Session resumes from localStorage or boots fresh
+      this.session = this.restore() ?? JSON.parse(this.exports.bootSession());
+      this.persist();
       this.refreshSession();
+
+      log("Impli", "WASM module loaded and started");
       this.running = true;
       // escape is only possible via :quit or Ctrl-D
       while (this.running) {
@@ -312,27 +385,50 @@ export class Impli {
   public async drive(line: string) {
     const trimmed = line.trim();
     if (trimmed === ":)") {
-      this.terminal.writeln("You look good today!"); // it's true
+      this.terminal.writeln("You look good today!");
       return;
     }
     if (trimmed.startsWith(":")) {
       await this.metacommand(trimmed.slice(1));
       return;
     }
-    if (trimmed === "") return;
-    let envelope = JSON.parse(this.exports.evaluate(line)) as Envelope;
+    if (trimmed === "" || !this.session) return;
+
+    this.steps = [];
+    this.ctrlCRequested = false;
+    let envelope = JSON.parse(
+      this.exports.evaluate(JSON.stringify(this.session), line, FUEL),
+    ) as Envelope;
+
     while (true) {
+      this.adopt(envelope);
       for (const event of envelope.events) this.terminal.writeln(event);
       const status = envelope.status;
       switch (status.tag) {
         case "done":
           this.refreshSession();
+          this.persist();
           return;
         case "error":
           for (const line of showFault(status.fault).split("\n")) {
             this.terminal.writeln(line);
           }
+          this.refreshSession();
+          this.persist();
           return;
+        case "running": {
+          // Mid-flight pause on fuel exhaustion: yield to the event loop
+          // so Ctrl-C can land, then continue with the next chunk.
+          await yieldEventLoop();
+          if (this.ctrlCRequested) {
+            this.cancelSession();
+            return;
+          }
+          envelope = JSON.parse(
+            this.exports.advance(JSON.stringify(this.session), FUEL),
+          ) as Envelope;
+          continue;
+        }
         case "await-input":
         case "await-havoc": {
           const text = await this.resolveInteractiveInput(
@@ -340,18 +436,22 @@ export class Impli {
             status.variable,
             status.retry,
           );
-          if (text === null) return; // aborted by Ctrl-C or Ctrl-D
+          if (text === null) return; // cancelled by Ctrl-C or Ctrl-D
+          this.ctrlCRequested = false;
           envelope = JSON.parse(
             status.tag === "await-input"
-              ? this.exports.resolveInput(text)
-              : this.exports.resolveHavoc(text),
+              ? this.exports.resolveInput(JSON.stringify(this.session), text, FUEL)
+              : this.exports.resolveHavoc(JSON.stringify(this.session), text, FUEL),
           ) as Envelope;
           continue;
         }
         case "await-choice": {
           const side = await this.resolveInteractiveChoice(status);
-          if (side === null) return; // aborted by Ctrl-C or Ctrl-D
-          envelope = JSON.parse(this.exports.resolveChoice(side)) as Envelope;
+          if (side === null) return; // cancelled by Ctrl-C or Ctrl-D
+          this.ctrlCRequested = false;
+          envelope = JSON.parse(
+            this.exports.resolveChoice(JSON.stringify(this.session), side, FUEL),
+          ) as Envelope;
           continue;
         }
       }
@@ -368,8 +468,7 @@ export class Impli {
     const text = await this.readLine(this.promptFor(tag, variable, retry));
     this.resolving = false;
     if (text === null) {
-      this.exports.interrupt();
-      this.terminal.writeln("*** ERROR: interrupted");
+      this.cancelSession();
       return null;
     }
     return text.trim() === ""
@@ -404,8 +503,7 @@ export class Impli {
     const text = await this.readLine("choose 1 or 2: ");
     this.resolving = false;
     if (text === null) {
-      this.exports.interrupt();
-      this.terminal.writeln("*** ERROR: interrupted");
+      this.cancelSession();
       return null;
     }
     return text.trim() === "1" ? "true" : "false";
@@ -455,17 +553,23 @@ export class Impli {
   }
 
   private metaReset(aspect: string) {
-    const result = JSON.parse(this.exports.resetSession(aspect.trim()));
+    if (!this.session) return;
+    const result = JSON.parse(
+      this.exports.resetSession(JSON.stringify(this.session), aspect.trim()),
+    );
     if (result.tag === "ok") {
+      this.session = result.session as SessionJson;
       this.terminal.writeln(`+++ INFO: ${aspect.trim() || "environment"} reset`);
       this.refreshSession();
+      this.persist();
     } else {
       this.terminal.writeln(`*** ERROR: ${result.message}`);
     }
   }
 
   private metaShow(aspect: string) {
-    const view: StateJson = JSON.parse(this.exports.showState());
+    if (!this.session) return;
+    const view = visibleState(this.session.environment);
     const which = aspect.trim() || "all";
     const printVars = () => {
       const entries = Object.entries(view.vars);
@@ -502,7 +606,7 @@ export class Impli {
         this.terminal.writeln(`break: ${view.break}`);
         return;
       case "trace": {
-        const trace = JSON.parse(this.exports.showTrace()) as TraceEntryJson[];
+        const trace = traceViewOf(this.session.trace);
         if (trace.length === 0) this.terminal.writeln("(empty)");
         for (const entry of trace) {
           this.terminal.writeln(`${entry.index}: ${entry.source}`);
@@ -527,12 +631,12 @@ export class Impli {
   }
 
   private metaWrite(path: string) {
+    if (!this.session) return;
     const name = path.trim() || "trace.imp";
-    const trace = JSON.parse(this.exports.showTrace()) as TraceEntryJson[];
-    const source = trace
+    const source = this.session.trace
       .slice()
-      .sort((a, b) => b.index - a.index)
-      .map((entry) => entry.source)
+      .reverse()
+      .map((stm) => stmToSource(stm))
       .join("\n");
     const blob = new Blob([source], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
@@ -552,7 +656,7 @@ export class Impli {
   private metaAst(input: string) {
     if (input.trim().startsWith("#")) {
       const n = parseInt(input.trim().slice(1), 10);
-      const trace = JSON.parse(this.exports.showTrace()) as TraceEntryJson[];
+      const trace = traceViewOf(this.session?.trace ?? []);
       const entry = trace.find((e) => e.index === n);
       if (!entry) {
         this.terminal.writeln(`*** ERROR: index out of bounds: #${n}`);
@@ -589,7 +693,15 @@ export class Impli {
 
   /** Clear the session, say goodbye and disable the terminal. */
   private async quit() {
-    this.exports.resetSession("");
+    if (this.session) {
+      const result = JSON.parse(
+        this.exports.resetSession(JSON.stringify(this.session), ""),
+      );
+      if (result.tag === "ok") {
+        this.session = result.session as SessionJson;
+        this.persist();
+      }
+    }
     this.terminal.writeln("Goodbye!");
     this.running = false;
     this.terminal.options.disableStdin = true;
@@ -612,5 +724,3 @@ function abbreviation(name: string): string {
   };
   return metas[name] ?? name;
 }
-
-

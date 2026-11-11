@@ -37,13 +37,22 @@ The next (hopefully last) huge refactor (#80, also #79, #77, #31).
 - Web frontend rework
   - Terminal emulator switched from `xterm.js` to `ghostty-web`: Ghostty's
     WASM-compiled VT100 implementation behind an xterm.js-compatible API
-  - Export-only WASM API; no foreign imports, no side-channel globals
-  - JSON (aeson) protocol envelopes: buffered output events plus status
-    (`done`, `await-input`, `await-havoc`, `await-choice`, or `error`)
+  - Export-only WASM API; no foreign imports, no interpreter-side globals
+  - Session management on the JavaScript side: every API call takes the
+    session as JSON, every envelope carries the update back; sessions
+    persist to `localStorage` and resume across page loads
+  - Fueled structural interpretation: `IMP.Engine` runs under a step
+    budget, pauses mid-flight with status `running`, and the JavaScript
+    driver continues via `advance` after yielding to the event loop —
+    Ctrl-C lands between chunks, interrupting at any point; Ctrl-D exits;
+    `cancel` aborts an idle suspended interpretation
+  - JSON (aeson) protocol envelopes: buffered output events, step delta,
+    updated session and status (`done`, `running`, `await-input`,
+    `await-havoc`, `await-choice`, or `error`)
   - JavaScript drives prompt, input and all metacommands; suspended
     interpretation resolves interactively (input prompt, havoc, and a
     choice screen displaying both branches)
-  - Ctrl-C interrupts, Ctrl-D exits; multi-line input via local-echo
+  - Multi-line input via local-echo
   - App shell with tabs: Terminal, State, Trace (inference rules), AST,
     and EBNF railroad diagrams
 

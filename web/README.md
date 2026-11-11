@@ -27,10 +27,10 @@ input and all metacommands.
 ```
 
 - **`impli.wasm`**, Haskell interpreter compiled to `wasm32-wasi` via GHC
-  9.12's WASM backend; exports the session API (`evaluate`, `resolveInput`,
-  `resolveChoice`, `resolveHavoc`, `interrupt`, `getPrompt`, `showState`,
-  `showTrace`, `showSteps`, `parseAst`, `resetSession`, `helpText`,
-  `versionText`) plus `start`, a naive stdio REPL for wasmtime & friends
+  9.12's WASM backend; exports the session API (`bootSession`, `evaluate`,
+  `advance`, `resolveInput`, `resolveChoice`, `resolveHavoc`, `cancel`,
+  `getPrompt`, `parseAst`, `resetSession`, `helpText`, `versionText`) plus
+  `start`, a naive stdio REPL for wasmtime & friends
 - **`stub.js`**, auto-generated JSFFI bridge (from GHC's `post-link.mjs`)
   converting `JSString`s across the boundary
 - **`@runno/wasi`**, in-browser WASI runtime instantiating the module
@@ -42,12 +42,23 @@ input and all metacommands.
   the latest interpretation), AST (parse trees of arbitrary constructs) and
   EBNF (railroad diagrams of the grammar)
 
+Session management lives on the JavaScript side: the WASM module is
+stateless across calls. Every API call takes the session as JSON and every
+envelope carries the updated session back (`environment`, `flight`, `trace`),
+so sessions persist to `localStorage` and resume across page loads. Step
+histories stream as per-call deltas in the envelope, and the resource profile
+is derived from them client-side.
+
 Evaluation of IMP source returns JSON protocol envelopes: buffered output
-events plus a status (`done`, `await-input`, `await-havoc`, `await-choice` or
-`error`). Suspended interpretation is continued by the JavaScript driver via
-the `resolve*` exports — the payload of `await-choice` contains the focused
-statement, so the frontend presents a choice screen. Ctrl-C interrupts the
-program (or cancels a pending suspension resolution), Ctrl-D exits.
+events, the step delta, the updated session and a status (`done`, `running`,
+`await-input`, `await-havoc`, `await-choice` or `error`). Statements run
+under a step budget: each call performs at most 16384 small steps before
+pausing with `running`, so the driver yields to the event loop and continues
+via `advance` — Ctrl-C lands between chunks and interrupts the program at
+any point, at read prompts it cancels the pending resolution (via `cancel`),
+and Ctrl-D exits. Suspended interpretation is continued by the JavaScript
+driver via the `resolve*` exports — the payload of `await-choice` contains
+the focused statement, so the frontend presents a choice screen.
 
 ### Build
 
