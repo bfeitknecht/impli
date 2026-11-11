@@ -50,7 +50,7 @@ import Control.Monad.Trans.Class (lift)
 import qualified Data.Map as Map
 
 import IMP.Exception
-import IMP.Freer (runError, send)
+import IMP.Freer (runError, sendM)
 import IMP.Kernel
 import IMP.Pretty
 import IMP.State
@@ -357,11 +357,11 @@ interpret handlers gamma =
         . runError
         . Freer.interpret
             ( \command -> case command of
-                Pick -> send (onChoice handlers)
-                Fate -> send (onRandom handlers)
+                Pick -> sendM (onChoice handlers)
+                Fate -> sendM (onRandom handlers)
             )
-        . Freer.interpret (\(Emit text) -> send (onOutput handlers text))
-        . Freer.interpret (\(Input x) -> send (onInput handlers x))
+        . Freer.interpret (\(Emit text) -> sendM (onOutput handlers text))
+        . Freer.interpret (\(Input x) -> sendM (onInput handlers x))
         $ Natural.run gamma
 
 -- | Render heading with indented body lines.

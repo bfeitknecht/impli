@@ -2,6 +2,7 @@
 {-# LANGUAGE EmptyCase #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE RankNTypes #-}
@@ -27,7 +28,9 @@ implemented: 'Eff' with 'Member' constraints over an open 'Union', 'send',
 module IMP.Freer (
     Eff,
     Member,
+    LastMember,
     send,
+    sendM,
     interpret,
     run,
     runM,
@@ -60,6 +63,13 @@ instance {-# OVERLAPPABLE #-} (Member eff effs) => Member eff (eff' ': effs) whe
     prj (Here _) = Nothing
     prj (There union) = prj union
 
+-- | Membership in the final position of the effect row, disambiguated by list shape.
+class (Member m effs) => LastMember m effs | effs -> m
+
+instance {-# OVERLAPPABLE #-} (LastMember m effs) => LastMember m (eff ': effs)
+
+instance LastMember m (m ': '[])
+
 -- | Effectful computation over the effect row @effs@, a freer monad.
 data Eff effs a
     = Pure a
@@ -81,6 +91,10 @@ instance Monad (Eff effs) where
 -- | Send an effect request to the surrounding effectful computation.
 send :: (Member eff effs) => eff a -> Eff effs a
 send request = Impure (inj request) Pure
+
+-- | Send an action of the final monadic effect, aiding instance resolution.
+sendM :: (Monad m, LastMember m effs) => m a -> Eff effs a
+sendM = send
 
 -- | Handle the topmost effect by translating its requests into the rest of the row.
 interpret :: (forall x. eff x -> Eff effs x) -> Eff (eff ': effs) a -> Eff effs a
