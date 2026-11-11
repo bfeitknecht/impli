@@ -37,4 +37,14 @@ jobs:
           }
 
       - name: Run tests
-        run: cabal test impli-test
+        shell: bash
+        run: |
+          set -o pipefail
+          cabal test impli-test 2>&1 | tee test.log || {
+            msg=$(grep -B4 -A30 -m2 -E 'error:|Error|FAIL|Failed' test.log | head -n 80)
+            msg="${msg//%/%25}"
+            msg="${msg//$'\n'/%0A}"
+            msg="${msg//$'\r'/%0D}"
+            printf '::error::%s\n' "$msg"
+            exit 1
+          }
