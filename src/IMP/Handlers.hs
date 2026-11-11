@@ -1,3 +1,5 @@
+{-# LANGUAGE RankNTypes #-}
+
 {- |
 Module      : IMP.Handlers
 Description : Handlers record for discharging interpreter-world interaction
@@ -13,8 +15,6 @@ natural semantics discharges input, output, choice and havoc through them;
 the engine additionally polls for interrupts while stepping the structural
 semantics.
 -}
-{-# LANGUAGE RankNTypes #-}
-
 module IMP.Handlers (Handlers (..), hoistHandlers) where
 
 -- | Handlers supplied by frontends to discharge kernel suspensions and effects.
