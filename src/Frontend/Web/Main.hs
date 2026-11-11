@@ -355,7 +355,8 @@ foreign export javascript "deriveTree" deriveTreeAPI :: JSString -> JSString -> 
 -- interpretation recorded. The response carries the tree and its output.
 deriveTreeAPI :: JSString -> JSString -> IO JSString
 deriveTreeAPI rawSession rawIndex = withSession rawSession $ \session ->
-    case readMaybe (fromJSString rawIndex) of
+    let entries = trace session
+    in case readMaybe (fromJSString rawIndex) of
         Just index
             | index >= 1 && index <= length entries -> do
                 let
@@ -382,8 +383,6 @@ deriveTreeAPI rawSession rawIndex = withSession rawSession $ \session ->
                 jsonOut (object ["tag" .= ("error" :: String), "message" .= ("index out of bounds: " ++ fromJSString rawIndex)])
         Nothing ->
             jsonOut (object ["tag" .= ("error" :: String), "message" .= ("invalid trace index: " ++ fromJSString rawIndex)])
-    where
-        entries = trace session
 
 -- | Export session reset API.
 foreign export javascript "resetSession" resetSessionAPI :: JSString -> JSString -> IO JSString

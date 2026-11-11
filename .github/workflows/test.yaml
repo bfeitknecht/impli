@@ -29,4 +29,10 @@ jobs:
           cabal build impli-test
 
       - name: Run tests
-        run: cabal test impli-test
+        run: |
+          set -o pipefail
+          if ! cabal test impli-test 2>&1 | tee test.log; then
+            grep -B2 -A8 -E 'FAIL|Failed|expected' test.log | head -40 | tr '\n' '~' | head -c 3000 > test-excerpt.txt || true
+            echo "::error title=test-excerpt::$(cat test-excerpt.txt)"
+            exit 1
+          fi
