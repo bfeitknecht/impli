@@ -43,7 +43,17 @@ jobs:
           if-no-files-found: ignore
 
       - name: Copy paper to server
-        run: cp docs/paper/IMP.pdf web/public/
+        run: |
+          ls -la docs/paper/ web/public/ | tee paper-copy.log
+          cp -v docs/paper/IMP.pdf web/public/ 2>&1 | tee -a paper-copy.log
+
+      - name: Upload paper copy log on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: paper-copy-log
+          path: paper-copy.log
+          if-no-files-found: ignore
 
       - name: Upload artifact for GitHub Pages
         uses: actions/upload-pages-artifact@v5
