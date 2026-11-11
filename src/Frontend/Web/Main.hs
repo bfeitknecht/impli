@@ -348,26 +348,25 @@ parseAstAPI input = do
         Right construct -> jsonOut (object ["tag" .= ("ok" :: String), "construct" .= construct])
 
 -- | Export derivation tree API.
-foreign export javascript "deriveTree" deriveTreeAPI :: JSString -> JSString -> JSString -> IO JSString
+foreign export javascript "deriveTree" deriveTreeAPI :: JSString -> JSString -> IO JSString
 
--- | Derive the @natural semantics@ proof tree of the given statement against
--- the session environment, replaying the @stdin@ values supplied as a JSON
--- list. The response carries the tree plus everything printed along the way.
-deriveTreeAPI :: JSString -> JSString -> JSString -> IO JSString
-deriveTreeAPI rawSession rawLine rawStdin = withSession rawSession $ \session -> do
-    let line = fromJSString rawLine
-    let start stdin = Derive.Derivation {Derive.seed = 1442695040888963407, Derive.stdin = stdin, Derive.stdout = []}
-    case (parser "derive" line, decode (ByteString.pack (fromJSString rawStdin)) :: Maybe [Integer]) of
-        (Left e, _) -> jsonOut (object ["tag" .= ("error" :: String), "message" .= show e])
-        (_, Nothing) ->
-            jsonOut $
-                object
-                    [ "tag" .= ("error" :: String)
-                    , "message" .= ("invalid stdin replay: " ++ fromJSString rawStdin)
-                    ]
-        (Right construct, Just stdin) -> case construct of
-            Statement stm -> do
-                outcome <- runExceptT $ Derive.derive (start stdin) (stm, environment session)
+-- | Derive the natural-semantics proof tree of the trace entry addressed by
+-- its one-based index (newest first), exactly replaying the resolutions the
+-- interpretation recorded. The response carries the tree and its output.
+deriveTreeAPI :: JSString -> JSString -> IO JSString
+deriveTreeAPI rawSession rawIndex = withSession rawSession $ \session ->
+    case readMaybe (fromJSString rawIndex) of
+        Just index
+            | index >= 1 && index <= length entries -> do
+                let (stm, initial', recorded) = entries !! (index - 1)
+                    replay =
+                        Derive.Derivation
+                            { Derive.reads = [value | ResolveInput value <- recorded]
+                            , Derive.havocs = [value | ResolveHavoc value <- recorded]
+                            , Derive.choices = [left | ResolveChoice left <- recorded]
+                            , Derive.stdout = []
+                            }
+                outcome <- runExceptT $ Derive.derive replay (stm, initial')
                 case outcome of
                     Left exception ->
                         jsonOut (object ["tag" .= ("error" :: String), "message" .= show exception])
@@ -378,7 +377,12 @@ deriveTreeAPI rawSession rawLine rawStdin = withSession rawSession $ \session ->
                                 , "tree" .= tree
                                 , "stdout" .= Derive.stdout derived
                                 ]
-            _ -> jsonOut (object ["tag" .= ("error" :: String), "message" .= ("expected a statement" :: String)])
+            | otherwise ->
+                jsonOut (object ["tag" .= ("error" :: String), "message" .= ("index out of bounds: " ++ fromJSString rawIndex)])
+        Nothing ->
+            jsonOut (object ["tag" .= ("error" :: String), "message" .= ("invalid trace index: " ++ fromJSString rawIndex)])
+    where
+        entries = trace session
 
 -- | Export session reset API.
 foreign export javascript "resetSession" resetSessionAPI :: JSString -> JSString -> IO JSString

@@ -43,7 +43,8 @@ input and all metacommands.
   trees of the natural semantics with the rule names of the paper), State
   (live variables, procedures, break flag), Trace (statement trace and
   rule-labelled steps of the latest interpretation), AST (parse trees of
-  arbitrary constructs) and EBNF (railroad diagrams of the grammar)
+  arbitrary constructs), Tree (derivation trees exactly replaying traced
+  interpretations) and EBNF (railroad diagrams of the grammar)
 
 Session management lives on the JavaScript side: the WASM module is
 stateless across calls. Every API call takes the session as JSON and every

@@ -74,13 +74,27 @@ export interface FlightJson {
   statement: StmNode;
   focus: FocusJson;
   blocked: ConfigurationJson;
+  resolutions: ResolutionJson[];
+}
+
+/** Resolution recorded by the engine, enabling exact replay for derivation trees. */
+export type ResolutionJson =
+  | { tag: "resolve-input"; value: number }
+  | { tag: "resolve-havoc"; value: number }
+  | { tag: "resolve-choice"; left: boolean };
+
+/** Trace row: the statement, its starting state and the recorded resolutions. */
+export interface TraceRowJson {
+  statement: StmNode;
+  state: StateJson;
+  resolutions: ResolutionJson[];
 }
 
 /** Serializable session owned by the JavaScript side between API calls. */
 export interface SessionJson {
   environment: StateJson;
   flight: FlightJson | null;
-  trace: StmNode[];
+  trace: TraceRowJson[];
 }
 
 export interface Profile {
@@ -153,11 +167,11 @@ export function deriveProfile(steps: StepJson[]): Profile {
 }
 
 /** Build the trace view of a session: newest statement first, one-based. */
-export function traceViewOf(trace: StmNode[]): TraceEntryJson[] {
-  return trace.map((ast, index) => ({
+export function traceViewOf(trace: TraceRowJson[]): TraceEntryJson[] {
+  return trace.map((row, index) => ({
     index: index + 1,
-    source: stmToSource(ast),
-    ast,
+    source: stmToSource(row.statement),
+    ast: row.statement,
   }));
 }
 

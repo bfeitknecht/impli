@@ -40,6 +40,7 @@ module IMP.Engine (
     renderAspect,
     renderStep,
     renderProfile,
+    traceStatement,
     traceSource,
 ) where
 
@@ -119,6 +120,8 @@ data Flight = Flight
     -- ^ Current configuration focus.
     , blocked :: Configuration
     -- ^ Latest configuration of the focus.
+    , resolutions :: [Resolution]
+    -- ^ Resolutions applied so far, in chronological order.
     }
     deriving (Eq, Show)
 
@@ -128,8 +131,9 @@ data Session = Session
     -- ^ Committed interpreter environment.
     , flight :: Maybe Flight
     -- ^ In-flight interpretation, if any.
-    , trace :: [Stm]
-    -- ^ Executed statements, newest first.
+    , trace :: [(Stm, State, [Resolution])]
+    -- ^ Executed statements with their starting state and the resolutions that
+    -- discharged their suspensions, newest first; enables exact replay.
     , stepHistory :: [Step]
     -- ^ Steps taken by the latest interpretation, newest first.
     , profile :: Profile
@@ -174,7 +178,9 @@ drive semantics stm = case semantics of
         case result of
             Left e -> throwError (RuntimeFault e)
             Right state' -> do
-                modify $ \session -> session {environment = state', trace = stm : trace session}
+                -- INFO: Natural runs discharge suspensions through the handlers
+                -- without resolutions, so their trace entries cannot replay.
+                modify $ \session -> session {environment = state', trace = (stm, st, []) : trace session}
                 return (Terminal state')
     Structural -> begin stm >>= drain
 
@@ -198,7 +204,7 @@ beginWith fuel stm = do
     let conf = step gamma
     put
         session
-            { flight = Just Flight {statement = stm, focus = gamma, blocked = conf}
+            { flight = Just Flight {statement = stm, focus = gamma, blocked = conf, resolutions = []}
             , stepHistory = []
             , profile = emptyProfile
             }
@@ -222,7 +228,10 @@ proceedWith fuel resolution = do
             case blocked fl of
                 Blocked _ -> do
                     let conf = resume (focus fl) resolution
-                    modify $ \flightsession -> flightsession {flight = Just fl {blocked = conf}}
+                    modify $ \flightsession ->
+                        flightsession
+                            { flight = Just fl {blocked = conf, resolutions = resolutions fl ++ [resolution]}
+                            }
                     pause fuel conf
                 _ -> throwError (InvalidResolution (focus fl) resolution)
 
@@ -264,7 +273,7 @@ renderAspect session aspect = case aspect of
         explain
             "Trace:"
             [ init . unlines $ zipWith (++) (index : buffer) (lines s)
-            | (i, s) <- zip [1 :: Int ..] ((reverse . map prettify) (trace session))
+            | (i, s) <- zip [1 :: Int ..] ((reverse . map (prettify . traceStatement)) (trace session))
             , let
                 index = '#' : show i ++ space 2
                 buffer = repeat . space $ length (show i) + 3
@@ -286,9 +295,13 @@ renderProfile prof =
             ++ [show r ++ " x" ++ show n | (r, n) <- Map.toList (ruleCount prof)]
             ++ [show (outputCount prof), "outputs"]
 
+-- | Statement of a trace entry.
+traceStatement :: (Stm, State, [Resolution]) -> Stm
+traceStatement (stm, _, _) = stm
+
 -- | Source text of trace, oldest statement first.
 traceSource :: Session -> String
-traceSource = prettytrace . reverse . trace
+traceSource = prettytrace . reverse . map traceStatement . trace
 
 -- | Discharge suspension with handlers until interpretation completes.
 drain :: (Monad m) => Configuration -> Engine m Configuration
@@ -340,7 +353,7 @@ pause fuel conf = case conf of
                     session
                         { environment = state'
                         , flight = Nothing
-                        , trace = statement fl : trace session
+                        , trace = (statement fl, snd (focus fl), resolutions fl) : trace session
                         }
             Nothing -> return ()
         return conf

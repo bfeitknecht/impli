@@ -301,7 +301,7 @@ commandeer command l@(Loop options session) = case command of
                 let executed = trace session
                 if n <= 0 || n > length executed
                     then outputStrLn . show . Error $ "index out of bounds: " ++ show n
-                    else outputStrLn . show $ executed !! (length executed - n)
+                    else outputStrLn . show $ traceStatement (executed !! (length executed - n))
                 return (Just l)
     Verbose level -> inform ("verbosity: " ++ levelName level) >> return (Just l {options = options {optLevel = level}})
     where

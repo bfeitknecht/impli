@@ -57,6 +57,7 @@ library
     IMP.Parser
     IMP.Pretty
     IMP.Semantics.Natural
+    IMP.Semantics.Natural.Derive
     IMP.Semantics.Structural
     IMP.State
     IMP.Syntax
@@ -95,7 +96,6 @@ executable impli-web
   main-is: Frontend/Web/Main.hs
   other-modules:
     IMP.JSON
-    IMP.Semantics.Natural.Derive
     Paths_impli
   autogen-modules:
     Paths_impli

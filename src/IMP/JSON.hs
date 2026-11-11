@@ -36,6 +36,8 @@ import IMP.Kernel
 import IMP.State
 import IMP.Syntax
 
+import qualified IMP.Semantics.Natural.Derive as Derive
+
 -- | Events, streamed steps, status and updated session envelope exchanged with the frontend.
 data Envelope = Envelope
     { envelopeEvents :: [String]
@@ -373,6 +375,14 @@ instance ToJSON Resolution where
         ResolveHavoc value -> tag "resolve-havoc" ["value" .= value]
         ResolveChoice left -> tag "resolve-choice" ["left" .= left]
 
+instance FromJSON Resolution where
+    parseJSON = withObject "Resolution" $ \object ->
+        tagOf object >>= \case
+            "resolve-input" -> ResolveInput <$> object .: "value"
+            "resolve-havoc" -> ResolveHavoc <$> object .: "value"
+            "resolve-choice" -> ResolveChoice <$> object .: "left"
+            other -> fail $ "unknown resolution: " ++ show other
+
 instance FromJSON Suspension where
     parseJSON = withObject "Suspension" $ \object ->
         tagOf object >>= \case
@@ -427,27 +437,54 @@ instance ToJSON Flight where
             [ "statement" .= statement fl
             , "focus" .= focus fl
             , "blocked" .= blocked fl
+            , "resolutions" .= resolutions fl
             ]
 
 instance FromJSON Flight where
     parseJSON = withObject "Flight" $ \object ->
-        Flight <$> object .: "statement" <*> object .: "focus" <*> object .: "blocked"
+        Flight
+            <$> object .: "statement"
+            <*> object .: "focus"
+            <*> object .: "blocked"
+            <*> object .: "resolutions"
+
+instance ToJSON Derive.Rule where
+    toJSON node =
+        object
+            [ "name" .= Derive.name node
+            , "conclusion" .= Derive.conclusion node
+            , "premise" .= Derive.premise node
+            ]
 
 -- INFO: Step history and resource profile are per-call deltas streamed in the
 -- envelope; only environment, in-flight interpretation and trace round-trip.
+-- | Encode a trace entry: statement with starting state and resolutions.
+encodeTraceEntry :: (Stm, State, [Resolution]) -> Value
+encodeTraceEntry (stm, state, resolutions) =
+    object ["statement" .= stm, "state" .= state, "resolutions" .= resolutions]
+
+-- | Decode a trace entry; legacy statements without replay data are kept.
+decodeTraceEntry :: Value -> Parser (Stm, State, [Resolution])
+decodeTraceEntry value = case value of
+    Object object ->
+        (,,) <$> object .: "statement" <*> object .: "state" <*> object .: "resolutions"
+    _ -> do
+        stm <- parseJSON value
+        pure (stm, initial, [])
+
 instance ToJSON Session where
     toJSON session =
         object
             [ "environment" .= environment session
             , "flight" .= flight session
-            , "trace" .= trace session
+            , "trace" .= map encodeTraceEntry (trace session)
             ]
 
 instance FromJSON Session where
     parseJSON = withObject "Session" $ \object -> do
         env <- object .: "environment"
         fl <- object .: "flight"
-        tr <- object .: "trace"
+        tr <- object .: "trace" >>= mapM decodeTraceEntry
         pure
             Session
                 { environment = env

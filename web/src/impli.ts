@@ -44,7 +44,7 @@ const banner = dedent`\0\
 const FUEL = "16384";
 
 /** localStorage key under which the session persists across page loads. */
-const SESSION_KEY = "impli:session";
+const SESSION_KEY = "impli:session:v2";
 
 /** Version of the WASM exports record, as declared in `impli.cabal`. */
 export interface ImpliExports {
@@ -60,7 +60,7 @@ export interface ImpliExports {
   helpText: () => string;
   versionText: () => string;
   parseAst: (source: string) => string;
-  deriveTree: (session: string, line: string, stdin: string) => string;
+  deriveTree: (session: string, index: string) => string;
   resetSession: (session: string, aspect: string) => string;
 }
 
@@ -409,17 +409,13 @@ export class Impli {
   }
 
   /**
-   * Derive the natural-semantics proof tree of a statement against the
-   * committed environment, replaying `stdin` at read statements.
+   * Derive the natural-semantics proof tree of a trace entry, exactly
+   * replaying the recorded run that produced it.
    */
-  public deriveStatement(line: string, stdin: number[]): DerivationJson | null {
+  public deriveTree(index: number): DerivationJson | null {
     if (!this.session) return null;
     return JSON.parse(
-      this.exports.deriveTree(
-        JSON.stringify(this.session),
-        line,
-        JSON.stringify(stdin),
-      ),
+      this.exports.deriveTree(JSON.stringify(this.session), String(index)),
     ) as DerivationJson;
   }
 
@@ -734,7 +730,7 @@ export class Impli {
     const source = this.session.trace
       .slice()
       .reverse()
-      .map((stm) => stmToSource(stm))
+      .map((row) => stmToSource(row.statement))
       .join("\n");
     const blob = new Blob([source], { type: "text/plain" });
     const url = URL.createObjectURL(blob);

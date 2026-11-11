@@ -63,8 +63,10 @@ The next (hopefully last) huge refactor (#80, also #79, #77, #31).
     configuration; the State tab shows the in-flight focus state
   - Tree tab: derivation trees of the natural semantics via the new
     `IMP.Semantics.Natural.Derive` module (plain `Natural.run` untouched),
-    rendered as nested inference rules with the rule names of the paper;
-    read statements replay the stdin values given in the tab
+    rendered as nested inference rules with the rule names of the paper.
+    The engine records the resolutions of every interpretation alongside
+    its starting state in the session trace, so a tree replays its run
+    exactly: identical reads, havoc values and nondeterministic choices
 
 ---
 

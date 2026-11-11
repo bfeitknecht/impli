@@ -41,7 +41,7 @@ interface AppState {
   tab: Tab;
   menuOpen: boolean;
   session: SessionView | null;
-  tree: DerivationJson | null;
+  tree: { index: number; result: DerivationJson } | null;
   ast: StmNode | null;
   astSource: string;
 }
@@ -448,72 +448,60 @@ function RuleNode({ rule }: { rule: RuleJson }) {
 }
 
 function TreeTab({
+  session,
   impli,
   tree,
   onTree,
 }: {
+  session: SessionView | null;
   impli: Impli | null;
-  tree: DerivationJson | null;
-  onTree: (tree: DerivationJson | null) => void;
+  tree: { index: number; result: DerivationJson } | null;
+  onTree: (tree: { index: number; result: DerivationJson } | null) => void;
 }) {
-  const [source, setSource] = useState("");
-  const [stdin, setStdin] = useState("");
-  if (!impli) return html`<p class="panel-note">awaiting interpreter…</p>`;
-
-  const derive = () => {
-    if (source.trim() === "") return;
-    const replay = stdin
-      .split(/[,\s]+/)
-      .map((part) => part.trim())
-      .filter((part) => part !== "")
-      .map(Number)
-      .filter((value) => Number.isInteger(value));
-    onTree(impli.deriveStatement(source, replay));
+  if (!session || !impli) {
+    return html`<p class="panel-note">awaiting interpreter…</p>`;
+  }
+  const rows = session.trace;
+  const derive = (index: number) => {
+    const result = impli.deriveTree(index);
+    if (result) onTree({ index, result });
   };
-
   return html`
     <div class="panel">
-      <h3>Derivation tree</h3>
+      <h3>Derivation trees</h3>
       <p class="panel-note">
-        Natural semantics proof tree following the rules of the paper. Read
-        statements replay the given stdin values in order (zeros when the
-        replay runs out); havocs and nondeterministic choices follow a seeded
-        default.
+        Natural-semantics proof trees of the statements in the trace,
+        replaying exactly the values entered and choices made during their
+        execution. Statements run in the natural semantics do not record
+        resolutions, so trees of reads, havocs and nondeterministic choices
+        require the interactive stepper.
       </p>
-      <div class="ast-input-row">
-        <input
-          class="ast-input"
-          placeholder="derive a statement…"
-          value=${source}
-          onInput=${(event: Event) =>
-            setSource((event.target as HTMLInputElement).value)}
-          onKeyDown=${(event: KeyboardEvent) => {
-            if (event.key === "Enter") derive();
-          }}
-        />
-        <input
-          class="ast-input tree-stdin"
-          placeholder="stdin replay, e.g. 3, 7"
-          value=${stdin}
-          onInput=${(event: Event) =>
-            setStdin((event.target as HTMLInputElement).value)}
-          onKeyDown=${(event: KeyboardEvent) => {
-            if (event.key === "Enter") derive();
-          }}
-        />
-        <button onClick=${derive}>Derive</button>
-      </div>
+      ${rows.length === 0
+        ? html`<p class="panel-note">trace is empty</p>`
+        : rows.map(
+            (row) => html`
+              <div class="trace-entry">
+                <button class="link" onClick=${() => derive(row.index)}>
+                  #${row.index}
+                </button>
+                <code>${row.source}</code>
+              </div>
+            `,
+          )}
       ${tree &&
-      (tree.tag === "error"
-        ? html`<p class="panel-note">${tree.message}</p>`
-        : html`
-          ${tree.stdout.length > 0 &&
-          html`<p class="panel-note">prints:
-            <code>${tree.stdout.join(", ")}</code></p>`}
-          <div class="tree-scroll">
-            <${RuleNode} rule=${tree.tree} />
-          </div>
-        `)}
+      html`
+        <h3>Tree of #${tree.index}</h3>
+        ${tree.result.tag === "error"
+          ? html`<p class="panel-note">${tree.result.message}</p>`
+          : html`
+            ${tree.result.stdout.length > 0 &&
+            html`<p class="panel-note">prints:
+              <code>${tree.result.stdout.join(", ")}</code></p>`}
+            <div class="tree-scroll">
+              <${RuleNode} rule=${tree.result.tree} />
+            </div>
+          `}
+      `}
     </div>
   `;
 }
@@ -640,9 +628,10 @@ export class App extends Component<{}, AppState> {
           ${tab === "tree" &&
           html`<div class="tabpanel active">
             <${TreeTab}
+              session=${session}
               impli=${this.impli}
               tree=${tree}
-              onTree=${(next: DerivationJson | null) =>
+              onTree=${(next: { index: number; result: DerivationJson } | null) =>
                 this.setState({ tree: next })}
             />
           </div>`}

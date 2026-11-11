@@ -234,7 +234,7 @@ testEngine =
                 Left fault -> assertFailure $ "drive failed: " ++ show fault
                 Right (_, session) -> do
                     getVar (environment session) "x" @?= 1
-                    trace session @?= [stm]
+                    trace session @?= [(stm, initial, [])]
         , testCase "drive natural soaks up read via handler" $ do
             outcome <- runEngine scriptHandlers boot (drive Natural (Read "x"))
             case outcome of
@@ -249,7 +249,7 @@ testEngine =
                         Terminal state' -> getVar state' "x" @?= 42
                         other -> assertFailure $ "expected terminal, got: " ++ show other
                     getVar (environment session) "x" @?= 42
-                    trace session @?= [Read "x"]
+                    trace session @?= [(Read "x", initial, [ResolveInput 42])]
         , testCase "begin blocks and proceed resolves" $ do
             outcome <- runEngine scriptHandlers boot $ do
                 conf <- begin (Read "x")

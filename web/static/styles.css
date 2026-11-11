@@ -389,10 +389,6 @@ details.ast-node {
   padding: 1rem 0;
 }
 
-.tree-stdin {
-  max-width: 14rem;
-}
-
 .tree-node {
   display: inline-flex;
   flex-direction: column;
