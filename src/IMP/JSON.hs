@@ -391,14 +391,19 @@ instance FromJSON Suspension where
             "await-choice" -> pure AwaitChoice
             other -> fail $ "unknown suspension: " ++ show other
 
+-- INFO: Step states carry only the variable store: steps are streamed per
+-- chunk in the web envelope, and repeating procedure declarations in every
+-- step state would make the payload grow quadratically for long programs.
 instance ToJSON Step where
     toJSON s' =
         object
             [ "rule" .= rule s'
             , "statement" .= fst (residual s')
-            , "state" .= snd (residual s')
+            , "state" .= object ["vars" .= vars]
             , "effects" .= effects s'
             ]
+        where
+            (vars, _, _) = snd (residual s')
 
 instance FromJSON Step where
     parseJSON = withObject "Step" $ \object -> do

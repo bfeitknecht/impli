@@ -137,6 +137,11 @@ parseAspect name = case name of
 focusDetail :: Flight -> (Stm, String)
 focusDetail fl = (fst (focus fl), prettify (fst (focus fl)))
 
+-- | Maximum number of steps streamed per envelope; longer histories would
+-- make every chunk response grow linearly in the interpretation length.
+stepCap :: Int
+stepCap = 1024
+
 -- | Response rendering: buffered events, step delta, status and updated session.
 respond :: IORef [String] -> Configuration -> Session -> IO JSString
 respond outputs conf session = do
@@ -147,7 +152,7 @@ respond outputs conf session = do
             (Blocked suspension, Nothing) -> Awaiting suspension Nothing False
             (Stepped _, Just _) -> Running
             _ -> Failed (RuntimeFault (Error "unreachable engine state"))
-    jsonOut (Envelope events stat (reverse (stepHistory session)) session)
+    jsonOut (Envelope events stat (reverse (take stepCap (stepHistory session))) session)
 
 -- | Fault response rendering: buffered events plus failed status and session.
 -- Terminal faults drop the in-flight interpretation; the engine does not

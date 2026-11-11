@@ -107,7 +107,8 @@ export interface Profile {
 export interface StepJson {
   rule: string;
   statement: StmNode;
-  state: StateJson;
+  /** Only the variable store; procedure declarations are not repeated per step. */
+  state: { vars: { [name: string]: number } };
   effects: string[];
 }
 
