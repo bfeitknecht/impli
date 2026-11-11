@@ -33,6 +33,7 @@ module IMP.Semantics.Natural.Derive (
 
 import Control.Monad.Except (MonadError, catchError, throwError)
 import Data.List (isPrefixOf)
+
 import qualified Data.Map as Map
 
 import IMP.Exception
@@ -43,7 +44,7 @@ import IMP.Syntax
 
 -- | Replay context and accumulated effects of a derivation in progress.
 data Derivation = Derivation
-    { reads :: [Integer]
+    { stdin :: [Integer]
     -- ^ Values entered for @read@ during the recorded run, in order.
     , havocs :: [Integer]
     -- ^ Values produced by @havoc@ during the recorded run, in order.
@@ -70,11 +71,11 @@ data Node = Node {rule :: Rule, result :: State}
 
 -- | Empty replay context.
 emptyDerivation :: Derivation
-emptyDerivation = Derivation {reads = [], havocs = [], choices = [], stdout = []}
+emptyDerivation = Derivation {stdin = [], havocs = [], choices = [], stdout = []}
 
 -- | Replay context from the recorded resolutions of an execution.
 derivation :: [Integer] -> [Integer] -> [Bool] -> Derivation
-derivation reads' havocs' choices' = emptyDerivation {reads = reads', havocs = havocs', choices = choices'}
+derivation stdin' havocs' choices' = emptyDerivation {stdin = stdin', havocs = havocs', choices = choices'}
 
 -- | Pretty-print the statement of a configuration.
 source :: Stm -> String
@@ -103,9 +104,9 @@ leaf derivation' label conf state' = with derivation' label conf [] state'
 
 -- | Next value to give a @read@ statement: replay input, error when exhausted.
 nextRead :: (MonadError Exception m) => Derivation -> String -> m (Integer, Derivation)
-nextRead derivation' x = case reads derivation' of
+nextRead derivation' x = case stdin derivation' of
     [] -> throwError . Error $ "derivation replay exhausted: no recorded input for read " ++ x
-    (v : rest) -> return (v, derivation' {reads = rest})
+    (v : rest) -> return (v, derivation' {stdin = rest})
 
 -- | Next value to give a @havoc@ statement: replay value, error when exhausted.
 nextHavoc :: (MonadError Exception m) => Derivation -> String -> m (Integer, Derivation)
@@ -119,10 +120,9 @@ nextChoice derivation' = case choices derivation' of
     [] -> throwError . Error $ "derivation replay exhausted: no recorded nondeterministic choice"
     (left : rest) -> return (left, derivation' {choices = rest})
 
-{- | Execute a statement like "IMP.Semantics.Natural" but return its
-derivation tree alongside the final state; see the module documentation for
-how @read@, @havoc@ and nondeterministic choice behave here.
--}
+-- | Execute a statement like "IMP.Semantics.Natural" but return its
+-- derivation tree alongside the final state; see the module documentation for
+-- how @read@, @havoc@ and nondeterministic choice behave here.
 deriveWith :: (MonadError Exception m) => Derivation -> Gamma -> m (Derivation, Node)
 deriveWith derivation' (stm, state) = case stm of
     Skip ->

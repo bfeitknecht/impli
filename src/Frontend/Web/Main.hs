@@ -358,10 +358,11 @@ deriveTreeAPI rawSession rawIndex = withSession rawSession $ \session ->
     case readMaybe (fromJSString rawIndex) of
         Just index
             | index >= 1 && index <= length entries -> do
-                let (stm, initial', recorded) = entries !! (index - 1)
+                let
+                    (stm, initial', recorded) = entries !! (index - 1)
                     replay =
                         Derive.Derivation
-                            { Derive.reads = [value | ResolveInput value <- recorded]
+                            { Derive.stdin = [value | ResolveInput value <- recorded]
                             , Derive.havocs = [value | ResolveHavoc value <- recorded]
                             , Derive.choices = [left | ResolveChoice left <- recorded]
                             , Derive.stdout = []

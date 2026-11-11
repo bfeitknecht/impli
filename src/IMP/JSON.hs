@@ -458,6 +458,7 @@ instance ToJSON Derive.Rule where
 
 -- INFO: Step history and resource profile are per-call deltas streamed in the
 -- envelope; only environment, in-flight interpretation and trace round-trip.
+
 -- | Encode a trace entry: statement with starting state and resolutions.
 encodeTraceEntry :: (Stm, State, [Resolution]) -> Value
 encodeTraceEntry (stm, state, resolutions) =
