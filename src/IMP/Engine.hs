@@ -46,6 +46,7 @@ import Control.Carrier.Lift (runM)
 import Control.Monad.Except
 import Control.Monad.Reader
 import Control.Monad.State hiding (State)
+import Control.Monad.Trans.Class (lift)
 
 import qualified Data.Map as Map
 
@@ -354,15 +355,16 @@ record s' = modify $ \session ->
 interpret :: (Monad m) => Handlers m -> Gamma -> m (Either Exception State)
 interpret handlers gamma =
     runM
-        $ runError
         $ runInterpret
-            ( \_ command context ->
-                (<$ context) <$> case command of
-                    Pick -> onChoice handlers
-                    Fate -> onRandom handlers
+            ( \_ effect context -> case effect of
+                L (Input x) -> (<$ context) <$> lift (onInput handlers x)
+                R (L (Emit text)) -> (<$ context) <$> lift (onOutput handlers text)
+                R (R command) ->
+                    (<$ context) <$> case command of
+                        Pick -> lift (onChoice handlers)
+                        Fate -> lift (onRandom handlers)
             )
-        $ runInterpret (\(Emit text) context -> (<$ context) <$> onOutput handlers text)
-        $ runInterpret (\(Input x) context -> (<$ context) <$> onInput handlers x)
+        $ runError
         $ Natural.run gamma
 
 -- | Render heading with indented body lines.
