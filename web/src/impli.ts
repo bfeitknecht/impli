@@ -100,16 +100,34 @@ export async function initTerminal(): Promise<void> {
   await initGhostty();
 }
 
-function getTheme() {
+function getTheme(): ITheme {
   if (typeof globalThis === "undefined") return {};
   const getVar = (name: string) =>
     getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 
+  // The palette comes from styles.css and is the same scheme the page
+  // chrome uses, so the interpreter's colors match the surrounding UI.
   return {
     background: getVar("--terminal-bg"),
     foreground: getVar("--terminal-fg"),
     cursor: getVar("--terminal-cursor"),
     selectionBackground: getVar("--terminal-selection"),
+    black: getVar("--ansi-black"),
+    red: getVar("--ansi-red"),
+    green: getVar("--ansi-green"),
+    yellow: getVar("--ansi-yellow"),
+    blue: getVar("--ansi-blue"),
+    magenta: getVar("--ansi-magenta"),
+    cyan: getVar("--ansi-cyan"),
+    white: getVar("--ansi-white"),
+    brightBlack: getVar("--ansi-bright-black"),
+    brightRed: getVar("--ansi-bright-red"),
+    brightGreen: getVar("--ansi-bright-green"),
+    brightYellow: getVar("--ansi-bright-yellow"),
+    brightBlue: getVar("--ansi-bright-blue"),
+    brightMagenta: getVar("--ansi-bright-magenta"),
+    brightCyan: getVar("--ansi-bright-cyan"),
+    brightWhite: getVar("--ansi-bright-white"),
   };
 }
 
