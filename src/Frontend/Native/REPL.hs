@@ -25,13 +25,13 @@ module Frontend.Native.REPL (
     interpret,
 ) where
 
-import Control.Exception (UserInterrupt (..))
+import Control.Exception (AsyncException (UserInterrupt))
 import Control.Monad (when)
+import Control.Monad.Catch (try)
 import Control.Monad.IO.Class (liftIO)
 import Data.Version (showVersion)
 import System.CPUTime (getCPUTime)
 import System.Console.Haskeline hiding (display)
-import System.Console.Haskeline.MonadException (try)
 import System.Exit (exitFailure, exitSuccess)
 import System.IO (hFlush, stdout)
 import System.IO.Error (isEOFError)

@@ -28,9 +28,11 @@ jobs:
           cabal update
           set -o pipefail
           cabal build impli-test 2>&1 | tee build.log || {
-            tail -n 80 build.log | while read -r line; do
-              echo "::error::$line"
-            done
+            msg=$(grep -B4 -A30 -m2 -E 'error:|Error|rejecting|conflict' build.log | head -n 80)
+            msg="${msg//%%/%%25}"
+            msg="${msg//$'\n'/%%0A}"
+            msg="${msg//$'\r'/%%0D}"
+            printf '::error::%%s\n' "$msg"
             exit 1
           }
 
