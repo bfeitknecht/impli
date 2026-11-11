@@ -158,7 +158,7 @@ instance ToJSON Construct where
         Boolean b -> tag "boolean" ["expr" .= b]
         Whitespace -> tag "whitespace" []
 
-instance ToJSON State where
+instance {-# OVERLAPPING #-} ToJSON State where
     toJSON (vars, procs, flag) =
         object
             [ "vars" .= Map.filterWithKey (\k _ -> notHidden k) vars
