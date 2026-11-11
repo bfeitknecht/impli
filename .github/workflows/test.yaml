@@ -32,7 +32,7 @@ jobs:
             msg="${msg//%%/%%25}"
             msg="${msg//$'\n'/%%0A}"
             msg="${msg//$'\r'/%%0D}"
-            printf '::error::%%s\n' "$msg"
+            printf '::error::%s\n' "$msg"
             exit 1
           }
 
