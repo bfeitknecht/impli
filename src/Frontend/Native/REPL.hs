@@ -43,7 +43,7 @@ import qualified Control.Exception as Exception
 import qualified System.Console.ANSI as ANSI
 
 import Frontend.Native.Meta
-import IMP.Engine
+import IMP.Engine hiding (Profile)
 import IMP.Exception (Exception (..))
 import IMP.Expression
 import IMP.Parser
