@@ -1,7 +1,7 @@
 import { Component, createRef, h, render } from "preact";
 import htm from "htm";
 import { Unsupported } from "@/Unsupported.ts";
-import { Impli, SessionView } from "@/impli.ts";
+import { Impli, SessionView, initTerminal } from "@/impli.ts";
 import { StmNode, stmToSource } from "@/protocol.ts";
 import { AstTree } from "@/ast.ts";
 import { renderEbnf } from "@/ebnf.ts";
@@ -245,6 +245,7 @@ export class App extends Component<{}, AppState> {
       }
 
       await document.fonts.ready;
+      await initTerminal();
 
       this.impli = new Impli(this.containerRef.current);
       this.impli.onSession = (session) => this.setState({ session });

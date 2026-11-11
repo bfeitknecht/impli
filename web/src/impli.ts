@@ -1,5 +1,5 @@
-import { Terminal } from "@xterm/xterm";
-import { FitAddon } from "@xterm/addon-fit";
+import { FitAddon, Terminal, init as initGhostty } from "ghostty-web";
+import type { ITheme } from "ghostty-web";
 import { LocalEchoAddon } from "@gytx/xterm-local-echo";
 import { WASI } from "@runno/wasi";
 import { examples } from "examples";
@@ -52,6 +52,11 @@ export interface SessionView {
   state: StateJson;
   trace: TraceEntryJson[];
   steps: StepsJson;
+}
+
+/** Initialize the libghostty WASM backend; must resolve before constructing `Terminal`. */
+export async function initTerminal(): Promise<void> {
+  await initGhostty();
 }
 
 function getTheme() {
@@ -135,28 +140,19 @@ export class Impli {
       return [];
     });
 
-    const activateLink = (_: MouseEvent, uri: string) => {
-      globalThis.open(uri, "_blank", "noopener,noreferrer");
-    };
-
-    const linkHandler = {
-      activate: activateLink,
-      hover: () => {},
-      leave: () => {},
-      allowNonHttpProtocols: false,
-    };
-
-    this.terminal.options.linkHandler = linkHandler;
+    // INFO: ghostty-web detects OSC-8 hyperlinks and URLs natively and opens
+    // them on Ctrl/Cmd+click, no link handler is required.
 
     // Ctrl-C cancels a pending suspension resolution; otherwise the
     // local-echo addon clears the input line, shell behaviour.
+    // ghostty-web swallows the event on `true`, the inverse of xterm.js.
     this.terminal.attachCustomKeyEventHandler((event: KeyboardEvent) => {
       const keyC = event.key.toLowerCase() === "c";
       if (event.type === "keydown" && event.ctrlKey && keyC && this.resolving) {
         this.handleInterrupt();
-        return false;
+        return true;
       }
-      return true;
+      return false;
     });
 
     this.terminal.open(container);
@@ -172,6 +168,12 @@ export class Impli {
     const applyTheme = () => {
       const theme = getTheme();
       this.terminal.options.theme = theme;
+      // INFO: runtime theme changes are not yet applied by ghostty-web
+      // itself, so poke the internal canvas renderer as well.
+      const internals = this.terminal as unknown as {
+        renderer?: { setTheme?: (theme: ITheme) => void };
+      };
+      internals.renderer?.setTheme?.(theme);
     };
 
     const mql = globalThis.matchMedia("(prefers-color-scheme: dark)");

@@ -35,6 +35,8 @@ The next (hopefully last) huge refactor (#80, also #79, #77, #31).
   - Multi-line input: lines leaving parentheses or blocks unbalanced
     continue on subsequent lines
 - Web frontend rework
+  - Terminal emulator switched from `xterm.js` to `ghostty-web`: Ghostty's
+    WASM-compiled VT100 implementation behind an xterm.js-compatible API
   - Export-only WASM API; no foreign imports, no side-channel globals
   - JSON (aeson) protocol envelopes: buffered output events plus status
     (`done`, `await-input`, `await-havoc`, `await-choice`, or `error`)

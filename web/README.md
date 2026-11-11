@@ -21,7 +21,7 @@ input and all metacommands.
        │                                                   │
        ▼                                                   ▼
 ┌──────────────┐                                   ┌────────────────┐
-│  @runno/wasi │                                   │   xterm.js     │
+│  @runno/wasi │                                   │  ghostty-web   │
 │  (WASI shim) │                                   │   (terminal)   │
 └──────────────┘                                   └────────────────┘
 ```
@@ -34,8 +34,9 @@ input and all metacommands.
 - **`stub.js`**, auto-generated JSFFI bridge (from GHC's `post-link.mjs`)
   converting `JSString`s across the boundary
 - **`@runno/wasi`**, in-browser WASI runtime instantiating the module
-- **`xterm.js`**, terminal emulator with fit and local-echo addons for line
-  editing, multi-line input, history, and tab-completion
+- **`ghostty-web`**, terminal emulator built on Ghostty's WASM-compiled
+  VT100 implementation with an xterm.js-compatible API, plus a local-echo
+  addon for line editing, multi-line input, history, and tab-completion
 - **Preact + HTM**, app shell with tabs: Terminal, State (live variables,
   procedures, break flag), Trace (statement trace and rule-labelled steps of
   the latest interpretation), AST (parse trees of arbitrary constructs) and
