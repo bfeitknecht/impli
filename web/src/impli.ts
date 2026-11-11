@@ -48,20 +48,42 @@ const SESSION_KEY = "impli:session:v2";
 
 /** Version of the WASM exports record, as declared in `impli.cabal`. */
 export interface ImpliExports {
-  start: () => void;
-  bootSession: () => string;
-  evaluate: (session: string, line: string, fuel: string) => string;
-  advance: (session: string, fuel: string) => string;
-  resolveInput: (session: string, value: string, fuel: string) => string;
-  resolveChoice: (session: string, side: string, fuel: string) => string;
-  resolveHavoc: (session: string, value: string, fuel: string) => string;
-  cancel: (session: string) => string;
-  getPrompt: () => string;
-  helpText: () => string;
-  versionText: () => string;
-  parseAst: (source: string) => string;
-  deriveTree: (session: string, index: string) => string;
-  resetSession: (session: string, aspect: string) => string;
+  start: () => void | Promise<void>;
+  bootSession: () => string | Promise<string>;
+  evaluate: (
+    session: string,
+    line: string,
+    fuel: string,
+  ) => string | Promise<string>;
+  advance: (session: string, fuel: string) => string | Promise<string>;
+  resolveInput: (
+    session: string,
+    value: string,
+    fuel: string,
+  ) => string | Promise<string>;
+  resolveChoice: (
+    session: string,
+    side: string,
+    fuel: string,
+  ) => string | Promise<string>;
+  resolveHavoc: (
+    session: string,
+    value: string,
+    fuel: string,
+  ) => string | Promise<string>;
+  cancel: (session: string) => string | Promise<string>;
+  getPrompt: () => string | Promise<string>;
+  helpText: () => string | Promise<string>;
+  versionText: () => string | Promise<string>;
+  parseAst: (source: string) => string | Promise<string>;
+  deriveTree: (
+    session: string,
+    index: string,
+  ) => string | Promise<string>;
+  resetSession: (
+    session: string,
+    aspect: string,
+  ) => string | Promise<string>;
 }
 
 /** Current interpreter state, refreshed after each completed drive or step. */
@@ -308,10 +330,10 @@ export class Impli {
   }
 
   /** Cancel the suspended or running interpretation after a Ctrl-C request. */
-  private cancelSession() {
+  private async cancelSession() {
     if (!this.session) return;
     this.session = JSON.parse(
-      this.exports.cancel(JSON.stringify(this.session)),
+      await this.exports.cancel(JSON.stringify(this.session)),
     ) as SessionJson;
     this.terminal.writeln("*** ERROR: interrupted");
     this.refreshSession();
@@ -329,43 +351,50 @@ export class Impli {
   }
 
   /** Begin stepping through the given source, without taking any step yet. */
-  public stepBegin(source: string): Status | null {
+  public async stepBegin(source: string): Promise<Status | null> {
     if (!this.session) return null;
     this.steps = [];
     this.ctrlCRequested = false;
     return this.finishStepping(
       JSON.parse(
-        this.exports.evaluate(JSON.stringify(this.session), source, "0"),
+        await this.exports.evaluate(
+          JSON.stringify(this.session),
+          source,
+          "0",
+        ),
       ) as Envelope,
     );
   }
 
   /** Advance the in-flight interpretation by exactly one small step. */
-  public stepOnce(): Status | null {
+  public async stepOnce(): Promise<Status | null> {
     if (!this.session) return null;
     return this.finishStepping(
       JSON.parse(
-        this.exports.advance(JSON.stringify(this.session), "1"),
+        await this.exports.advance(JSON.stringify(this.session), "1"),
       ) as Envelope,
     );
   }
 
   /** Resolve a pending input or havoc suspension from the stepping tab. */
-  public stepResolveInput(text: string, havoc: boolean): Status | null {
+  public async stepResolveInput(
+    text: string,
+    havoc: boolean,
+  ): Promise<Status | null> {
     if (!this.session) return null;
     const raw = JSON.stringify(this.session);
     const response = havoc
-      ? this.exports.resolveHavoc(raw, text, FUEL)
-      : this.exports.resolveInput(raw, text, FUEL);
+      ? await this.exports.resolveHavoc(raw, text, FUEL)
+      : await this.exports.resolveInput(raw, text, FUEL);
     return this.finishStepping(JSON.parse(response) as Envelope);
   }
 
   /** Resolve a pending choice suspension from the stepping tab. */
-  public stepResolveChoice(left: boolean): Status | null {
+  public async stepResolveChoice(left: boolean): Promise<Status | null> {
     if (!this.session) return null;
     return this.finishStepping(
       JSON.parse(
-        this.exports.resolveChoice(
+        await this.exports.resolveChoice(
           JSON.stringify(this.session),
           left ? "true" : "false",
           FUEL,
@@ -385,13 +414,13 @@ export class Impli {
     while (status.tag === "running") {
       await yieldEventLoop();
       if (this.ctrlCRequested || this.stepStopRequested) {
-        this.cancelSession();
+        await this.cancelSession();
         this.stepStopRequested = false;
         return { tag: "error", fault: { tag: "interrupted" } };
       }
       status = this.finishStepping(
         JSON.parse(
-          this.exports.advance(JSON.stringify(this.session), FUEL),
+          await this.exports.advance(JSON.stringify(this.session), FUEL),
         ) as Envelope,
       );
     }
@@ -404,18 +433,18 @@ export class Impli {
   }
 
   /** Cancel the flight shown in the stepping tab. */
-  public stepCancel() {
-    this.cancelSession();
+  public async stepCancel() {
+    await this.cancelSession();
   }
 
   /**
    * Derive the natural-semantics proof tree of a trace entry, exactly
    * replaying the recorded run that produced it.
    */
-  public deriveTree(index: number): DerivationJson | null {
+  public async deriveTree(index: number): Promise<DerivationJson | null> {
     if (!this.session) return null;
     return JSON.parse(
-      this.exports.deriveTree(JSON.stringify(this.session), String(index)),
+      await this.exports.deriveTree(JSON.stringify(this.session), String(index)),
     ) as DerivationJson;
   }
 
@@ -457,7 +486,8 @@ export class Impli {
       } as never);
 
       // Session resumes from localStorage or boots fresh
-      this.session = this.restore() ?? JSON.parse(this.exports.bootSession());
+      this.session = this.restore() ??
+        JSON.parse(await this.exports.bootSession());
       this.persist();
       this.refreshSession();
 
@@ -465,7 +495,7 @@ export class Impli {
       this.running = true;
       // escape is only possible via :quit or Ctrl-D
       while (this.running) {
-        const result = await this.readLine(this.exports.getPrompt());
+        const result = await this.readLine(await this.exports.getPrompt());
         if (result.tag === "eof") {
           await this.quit(); // Ctrl-D at the prompt, exit cleanly
           break;
@@ -495,7 +525,7 @@ export class Impli {
     this.steps = [];
     this.ctrlCRequested = false;
     let envelope = JSON.parse(
-      this.exports.evaluate(JSON.stringify(this.session), line, FUEL),
+      await this.exports.evaluate(JSON.stringify(this.session), line, FUEL),
     ) as Envelope;
 
     while (true) {
@@ -519,11 +549,11 @@ export class Impli {
           // so Ctrl-C can land, then continue with the next chunk.
           await yieldEventLoop();
           if (this.ctrlCRequested) {
-            this.cancelSession();
+            await this.cancelSession();
             return;
           }
           envelope = JSON.parse(
-            this.exports.advance(JSON.stringify(this.session), FUEL),
+            await this.exports.advance(JSON.stringify(this.session), FUEL),
           ) as Envelope;
           continue;
         }
@@ -538,8 +568,8 @@ export class Impli {
           this.ctrlCRequested = false;
           envelope = JSON.parse(
             status.tag === "await-input"
-              ? this.exports.resolveInput(JSON.stringify(this.session), text, FUEL)
-              : this.exports.resolveHavoc(JSON.stringify(this.session), text, FUEL),
+              ? await this.exports.resolveInput(JSON.stringify(this.session), text, FUEL)
+              : await this.exports.resolveHavoc(JSON.stringify(this.session), text, FUEL),
           ) as Envelope;
           continue;
         }
@@ -548,7 +578,7 @@ export class Impli {
           if (side === null) return; // cancelled by Ctrl-C or Ctrl-D
           this.ctrlCRequested = false;
           envelope = JSON.parse(
-            this.exports.resolveChoice(JSON.stringify(this.session), side, FUEL),
+            await this.exports.resolveChoice(JSON.stringify(this.session), side, FUEL),
           ) as Envelope;
           continue;
         }
@@ -564,7 +594,7 @@ export class Impli {
   ): Promise<string | null> {
     const result = await this.readLine(this.promptFor(tag, variable, retry));
     if (result.tag !== "line") {
-      this.cancelSession();
+      await this.cancelSession();
       return null;
     }
     return result.line.trim() === ""
@@ -597,7 +627,7 @@ export class Impli {
     this.terminal.writeln(`  2) ${right}`);
     const result = await this.readLine("choose 1 or 2: ");
     if (result.tag !== "line") {
-      this.cancelSession();
+      await this.cancelSession();
       return null;
     }
     return result.line.trim() === "1" ? "true" : "false";
@@ -609,7 +639,7 @@ export class Impli {
     const args = rest.join(" ");
     switch (abbreviation(name)) {
       case "help":
-        this.terminal.writeln(this.exports.helpText().trimEnd());
+        this.terminal.writeln((await this.exports.helpText()).trimEnd());
         break;
       case "tips":
         this.writeTips();
@@ -621,10 +651,10 @@ export class Impli {
         this.terminal.clear();
         break;
       case "version":
-        this.terminal.writeln(this.exports.versionText());
+        this.terminal.writeln(await this.exports.versionText());
         break;
       case "reset":
-        this.metaReset(args);
+        await this.metaReset(args);
         break;
       case "show":
         this.metaShow(args);
@@ -646,10 +676,10 @@ export class Impli {
     }
   }
 
-  private metaReset(aspect: string) {
+  private async metaReset(aspect: string) {
     if (!this.session) return;
     const result = JSON.parse(
-      this.exports.resetSession(JSON.stringify(this.session), aspect.trim()),
+      await this.exports.resetSession(JSON.stringify(this.session), aspect.trim()),
     );
     if (result.tag === "ok") {
       this.session = result.session as SessionJson;
@@ -743,11 +773,11 @@ export class Impli {
   }
 
   /** Parse IMP source (or `#n` for the n-th traced statement) into the AST tab. */
-  public parseAstInput(input: string) {
-    this.metaAst(input);
+  public async parseAstInput(input: string) {
+    await this.metaAst(input);
   }
 
-  private metaAst(input: string) {
+  private async metaAst(input: string) {
     if (input.trim().startsWith("#")) {
       const n = parseInt(input.trim().slice(1), 10);
       const trace = traceViewOf(this.session?.trace ?? []);
@@ -759,7 +789,7 @@ export class Impli {
       this.openAst(entry.ast);
       return;
     }
-    const result = JSON.parse(this.exports.parseAst(input));
+    const result = JSON.parse(await this.exports.parseAst(input));
     if (result.tag === "ok") {
       const construct = result.construct;
       let node: StmNode;
@@ -789,7 +819,7 @@ export class Impli {
   private async quit() {
     if (this.session) {
       const result = JSON.parse(
-        this.exports.resetSession(JSON.stringify(this.session), ""),
+        await this.exports.resetSession(JSON.stringify(this.session), ""),
       );
       if (result.tag === "ok") {
         this.session = result.session as SessionJson;

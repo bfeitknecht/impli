@@ -194,9 +194,9 @@ function AstTab({
   impli: Impli | null;
 }) {
   let input: HTMLInputElement | null = null;
-  const parse = () => {
+  const parse = async () => {
     if (!impli || !input || input.value.trim() === "") return;
-    impli.parseAstInput(input.value);
+    await impli.parseAstInput(input.value);
     input.value = "";
   };
   return html`
@@ -248,14 +248,14 @@ function StepTab({
   const awaiting =
     blocked?.tag === "blocked" ? blocked.suspension : null;
 
-  const start = () => {
+  const start = async () => {
     if (source.trim() === "") return;
-    const result = impli.stepBegin(source);
+    const result = await impli.stepBegin(source);
     if (result) setStatus(result);
   };
 
-  const step = () => {
-    const result = impli.stepOnce();
+  const step = async () => {
+    const result = await impli.stepOnce();
     if (result) setStatus(result);
   };
 
@@ -272,22 +272,22 @@ function StepTab({
     impli.requestStopStepping();
   };
 
-  const cancel = () => {
-    impli.stepCancel();
+  const cancel = async () => {
+    await impli.stepCancel();
     setStatus(null);
   };
 
-  const submitResolution = (havoc: boolean) => {
+  const submitResolution = async (havoc: boolean) => {
     const value = resolution.trim() === ""
       ? String(Math.floor(Math.random() * 2147483647) - 1073741823)
       : resolution.trim();
     setResolution("");
-    const result = impli.stepResolveInput(value, havoc);
+    const result = await impli.stepResolveInput(value, havoc);
     if (result) setStatus(result);
   };
 
-  const choose = (left: boolean) => {
-    const result = impli.stepResolveChoice(left);
+  const choose = async (left: boolean) => {
+    const result = await impli.stepResolveChoice(left);
     if (result) setStatus(result);
   };
 
@@ -462,8 +462,8 @@ function TreeTab({
     return html`<p class="panel-note">awaiting interpreter…</p>`;
   }
   const rows = session.trace;
-  const derive = (index: number) => {
-    const result = impli.deriveTree(index);
+  const derive = async (index: number) => {
+    const result = await impli.deriveTree(index);
     if (result) onTree({ index, result });
   };
   return html`
