@@ -360,7 +360,12 @@ deriveTreeAPI rawSession rawLine rawStdin = withSession rawSession $ \session ->
     let start stdin = Derive.Derivation {Derive.seed = 1442695040888963407, Derive.stdin = stdin, Derive.stdout = []}
     case (parser "derive" line, decode (ByteString.pack (fromJSString rawStdin)) :: Maybe [Integer]) of
         (Left e, _) -> jsonOut (object ["tag" .= ("error" :: String), "message" .= show e])
-        (_, Nothing) -> jsonOut (object ["tag" .= ("error" :: String), "message" .= ("invalid stdin replay: " ++ fromJSString rawStdin)])
+        (_, Nothing) ->
+            jsonOut $
+                object
+                    [ "tag" .= ("error" :: String)
+                    , "message" .= ("invalid stdin replay: " ++ fromJSString rawStdin)
+                    ]
         (Right construct, Just stdin) -> case construct of
             Statement stm -> do
                 outcome <- runExceptT $ Derive.derive (start stdin) (stm, environment session)

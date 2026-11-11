@@ -235,10 +235,12 @@ deriveWith derivation (stm, state) = case stm of
         if getFlip state i
             then do
                 (derivation', node) <- deriveWith derivation (s1, state)
-                return (derivation', Node (Rule "Flip" (to (stm, state) (setFlop (result node) i)) [rule node]) (setFlop (result node) i))
+                let state' = setFlop (result node) i
+                return (derivation', Node (Rule "Flip" (to (stm, state) state') [rule node]) state')
             else do
                 (derivation', node) <- deriveWith derivation (s2, state)
-                return (derivation', Node (Rule "Flop" (to (stm, state) (setFlip (result node) i)) [rule node]) (setFlip (result node) i))
+                let state' = setFlip (result node) i
+                return (derivation', Node (Rule "Flop" (to (stm, state) state') [rule node]) state')
     Raise a -> throwError . Raised $ evaluate a state
     TryCatch s1 x s2 -> catchError (deriveWith derivation (s1, state)) $ \e -> case e of
         Raised v -> do
