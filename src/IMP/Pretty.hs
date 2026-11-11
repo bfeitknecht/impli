@@ -138,7 +138,9 @@ instance Pretty Stm where
                 , indent 4 $ pretty "alternate"
                 , pretty s2
                 ]
-        _ -> undefined
+        Restore _ -> pretty "(restore)"
+        Return _ rets returns ->
+            pretty "(return" <+> pretty (unwords rets) <+> pretty "to" <+> pretty (unwords returns) <> pretty ")"
 
 -- | Convert to pretty string with layout.
 prettify :: (Pretty a) => a -> String

@@ -4,6 +4,72 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [6.0.0] - 2026-11-10
+
+The next (hopefully last) huge refactor (#80, also #79, #77, #31).
+
+- Restructure interpreter into a pure kernel, an engine, and thin frontends
+  - `IMP.Semantics.Structural`: pure, serialisable small-step semantics
+    on configurations with explicit suspension/resolution for `read`,
+    `havoc` and non-deterministic or parallel choice; complete coverage
+    of all statements of the language
+  - `IMP.Semantics.Natural`: big-step semantics as a `MonadError`
+    computation over frontend-supplied `Handlers` (`IMP.Handlers`),
+    interpreted by the engine
+  - Stack-free machine: procedure invocation and local scope rewrite to
+    `Return`/`Restore` sequences carrying state snapshots, the machine
+    configuration stays a plain `(Stm, State)`
+  - `IMP.Engine`: session layer discharging effects through frontend
+    handlers, managing environment, statement trace, step history and
+    resource profile
+- Remove `IMP.Config` and `IMP.Statement` and the old REPL architecture
+  (`REPL.*`, `IMP.Execute.*`); language extensions are now always enabled
+- Native frontend improvements
+  - Drop VIM input mode and customizable welcome/prompt/separator/goodbye
+  - Verbosity levels `normal`/`profile`/`debug` via `--verbose` CLI flag
+    and `:set verbose LEVEL` REPL command; level switches prompt
+    separator (`>`, `+`, `*`); `profile` reports elapsed time and steps
+    taken, `debug` additionally prints the parsed AST and intermediate
+    small-step configurations
+  - `--structural` CLI flag to interpret with the small-step semantics
+  - Multi-line input: lines leaving parentheses or blocks unbalanced
+    continue on subsequent lines
+- Web frontend rework
+  - Terminal emulator switched from `xterm.js` to `ghostty-web`: Ghostty's
+    WASM-compiled VT100 implementation behind an xterm.js-compatible API
+  - Export-only WASM API; no foreign imports, no interpreter-side globals
+  - Session management on the JavaScript side: every API call takes the
+    session as JSON, every envelope carries the update back; sessions
+    persist to `localStorage` and resume across page loads
+  - Fueled structural interpretation: `IMP.Engine` runs under a step
+    budget, pauses mid-flight with status `running`, and the JavaScript
+    driver continues via `advance` after yielding to the event loop —
+    Ctrl-C lands between chunks, interrupting at any point; Ctrl-D exits;
+    `cancel` aborts an idle suspended interpretation
+  - JSON (aeson) protocol envelopes: buffered output events, step delta,
+    updated session and status (`done`, `running`, `await-input`,
+    `await-havoc`, `await-choice`, or `error`)
+  - JavaScript drives prompt, input and all metacommands; suspended
+    interpretation resolves interactively (input prompt, havoc, and a
+    choice screen displaying both branches)
+  - `web/readline.ts`: bespoke line reader replacing the xterm-local-echo
+    addon — line editing, history, tab-completion hooks, bracket-aware
+    multi-line continuation, explicit Ctrl-C/Ctrl-D result protocol
+  - App shell with tabs: Terminal, State, Trace (inference rules), AST,
+    and EBNF railroad diagrams
+  - Stepping tab: begin a statement with zero steps and advance one small
+    step at a time (`advance 1`), run in chunks with stop, resolve input,
+    havoc and choice suspensions inline, and inspect the live focus
+    configuration; the State tab shows the in-flight focus state
+  - Tree tab: derivation trees of the natural semantics via the new
+    `IMP.Semantics.Natural.Derive` module (plain `Natural.run` untouched),
+    rendered as nested inference rules with the rule names of the paper.
+    The engine records the resolutions of every interpretation alongside
+    its starting state in the session trace, so a tree replays its run
+    exactly: identical reads, havoc values and nondeterministic choices
+
+---
+
 ## [5.0.0] - 2026-02-25
 
 - Complete web support with WASM build and `xterm.js` integration

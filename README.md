@@ -10,7 +10,7 @@ This is an interpreter for the imperative toy language IMP from the course _Form
 
 ## Usage
 
-To start the REPL, just run `impli` with no arguments. Pass the path of an IMP source file as argument to interpret it. Directly execute a statement with the `--command` option or print its AST with `--ast`. In the initial state all variables are uninitialized with zero and no procedure is defined. Find some sample programs in `docs/examples/`.
+To start the REPL, just run `impli` with no arguments. Pass the path of an IMP source file as argument to interpret it. Directly execute a statement with the `--command` option or print its AST with `--ast`. Select the structural small-step semantics with `--structural` and set the verbosity level of the REPL with `--verbose LEVEL` (or interactively with `:set verbose LEVEL`). In the initial state all variables are uninitialized with zero and no procedure is defined. Find some sample programs in `docs/examples/`.
 
 ## Installation
 
@@ -33,17 +33,19 @@ The most apparent deviations from the specifications are that parentheses are no
 
 The table below depicts the correspondence between semantics functions defined in the lectures and according functions in this project for $\sigma$ equivalent to `state`. For an overview of all natural semantics inference rules, check out the [paper](docs/paper/IMP.pdf).
 
-| FMFP                                          | `impli`                                       |
-| --------------------------------------------- | --------------------------------------------- |
-| $\sigma_{\text{zero}}$                        | `IMP.State.initial`                           |
-| $\sigma(x)$                                   | `IMP.State.getVar state x`                    |
-| $\sigma[x \mapsto n]$                         | `IMP.State.setVar state x n`                  |
-| $\langle s, \sigma \rangle \to \cdot$         | `IMP.Semantics.Natural.run (s, state)`        |
-| $\langle s, \sigma \rangle \to_{1} \cdot$     | `IMP.Semantics.Structural.step (s, [state])`  |
-| $\langle s, \sigma \rangle \to_{1}^{*} \cdot$ | `IMP.Semantics.Structural.steps (s, [state])` |
-| $\mathcal{N}[[n]]$                            | `n`                                           |
-| $\mathcal{A}[[a]]\sigma$                      | `IMP.Expression.evaluate a state`             |
-| $\mathcal{B}[[b]]\sigma$                      | `IMP.Expression.evaluate b state`             |
+| FMFP                                          | `impli`                                                              |
+| --------------------------------------------- | -------------------------------------------------------------------- |
+| $\sigma_{\text{zero}}$                        | `IMP.State.initial`                                                  |
+| $\sigma(x)$                                   | `IMP.State.getVar state x`                                           |
+| $\sigma[x \mapsto n]$                         | `IMP.State.setVar state x n`                                         |
+| $\langle s, \sigma \rangle \to \cdot$         | `IMP.Kernel.run (s, state)` (discharged by the engine through handlers)|
+| $\langle s, \sigma \rangle \to_{1} \cdot$     | `IMP.Semantics.Structural.step (s, state)`                           |
+| $\langle s, \sigma \rangle \to_{1}^{*} \cdot$ | `IMP.Engine.drive IMP.Engine.Structural s`                           |
+| $\mathcal{N}[[n]]$                            | `n`                                                                  |
+| $\mathcal{A}[[a]]\sigma$                      | `IMP.Expression.evaluate a state`                                    |
+| $\mathcal{B}[[b]]\sigma$                      | `IMP.Expression.evaluate b state`                                    |
+
+Blocked small-step configurations are unblocked with `IMP.Semantics.Structural.resume (s, state) resolution`.
 
 ## Star History
 

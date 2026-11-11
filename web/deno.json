@@ -9,15 +9,12 @@
   },
   "imports": {
     "@/": "./src/",
-    "@xterm/xterm": "npm:xterm@^5.3.0",
-    "@xterm/addon-fit": "npm:xterm-addon-fit@^0.8.0",
+    "ghostty-web": "npm:ghostty-web@^0.4.0",
     "@runno/wasi": "npm:@runno/wasi@^0.10.0",
-    "@gytx/xterm-local-echo": "npm:@gytx/xterm-local-echo@^0.1.8",
     "preact": "npm:preact@^10.29.1",
     "htm": "npm:htm@^3.1.1",
+    "railroad-diagrams": "npm:railroad-diagrams@^1.0.0",
     "stub": "./public/stub.js",
-    "examples": "./public/examples.js",
-    "fresh": "jsr:@fresh/core@^2.3.3",
-    "@preact/signals": "npm:@preact/signals@^2.9.0"
+    "examples": "./public/examples.js"
   }
 }

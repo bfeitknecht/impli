@@ -1,5 +1,7 @@
 packages: .
 
+tests: true
+
 package *
     optimization: 2
     ghc-options:

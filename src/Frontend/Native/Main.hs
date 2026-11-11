@@ -11,7 +11,7 @@ Defines the main function which serves as entrypoint for the IMP language interp
 -}
 module Main where
 
-import CLI
+import Frontend.Native.CLI
 
 -- | Entrypoint for the IMP language interpreter.
 main :: IO ()

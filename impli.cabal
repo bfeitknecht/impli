@@ -1,6 +1,6 @@
 cabal-version: 3.12
 name: impli
-version: 5.0.0.0
+version: 6.0.0.0
 build-type: Simple
 license: MIT
 license-file: LICENSE.md
@@ -35,7 +35,6 @@ common dependencies
     -Wextra
 
   build-depends:
-    async >=2.2 && <2.3,
     base >=4.14 && <5,
     containers >=0.6 && <0.9,
     mtl >=2.2 && <3,
@@ -44,86 +43,80 @@ common dependencies
     random >=1.1 && <1.3,
     transformers >=0.5 && <0.7,
 
-common shared
-  -- cabal-gild: discover src --include=src/IMP/**
-  other-modules:
-    IMP.Config
+library
+  import: dependencies
+  hs-source-dirs: src
+  -- cabal-gild: discover src --include=src/IMP/** --exclude=src/IMP/JSON.hs
+  exposed-modules:
+    IMP.Engine
     IMP.Exception
     IMP.Expression
+    IMP.Handlers
+    IMP.Kernel
     IMP.Lexer
     IMP.Parser
     IMP.Pretty
     IMP.Semantics.Natural
+    IMP.Semantics.Natural.Derive
     IMP.Semantics.Structural
     IMP.State
-    IMP.Statement
     IMP.Syntax
 
 common native
   build-depends:
     ansi-terminal >=0.11 && <1.1,
+    exceptions >=0.10 && <0.11,
     haskeline >=0.8 && <0.9,
     impli,
     optparse-applicative >=0.15 && <0.19,
 
-  -- cabal-gild: discover src --include=src/REPL/** --include=src/CLI.hs --exclude=src/REPL/Execute/Browser.hs
-  other-modules:
-    CLI
-    REPL.Execute.Native
-    REPL.Meta
-    REPL.Preset
-    REPL.State
+common browser
+  build-depends:
+    aeson >=2.2 && <2.3,
+    bytestring >=0.10 && <0.13,
+    ghc-experimental,
+    impli,
+    text >=1.2 && <2.2,
 
+executable impli
+  import: dependencies, native
+  hs-source-dirs: src
+  main-is: Frontend/Native/Main.hs
+  other-modules:
+    Frontend.Native.CLI
+    Frontend.Native.Meta
+    Frontend.Native.REPL
+    Paths_impli
   autogen-modules:
     Paths_impli
 
-common browser
-  build-depends:
-    ghc-experimental,
-    impli,
-
-  -- cabal-gild: discover src --include=src/REPL/** --exclude=src/REPL/Execute/Native.hs
-  other-modules:
-    REPL.Execute.Browser
-    REPL.Meta
-    REPL.Preset
-    REPL.State
-
-library
-  import: dependencies
-  hs-source-dirs: src
-  -- cabal-gild: discover src/ --include=src/IMP/**
-  exposed-modules:
-    IMP.Config
-    IMP.Exception
-    IMP.Expression
-    IMP.Lexer
-    IMP.Parser
-    IMP.Pretty
-    IMP.Semantics.Natural
-    IMP.Semantics.Structural
-    IMP.State
-    IMP.Statement
-    IMP.Syntax
-
-executable impli
-  import: dependencies, native, shared
-  hs-source-dirs: src
-  main-is: Main.hs
-  other-modules:
-    Paths_impli
-
 executable impli-web
-  import: dependencies, browser, shared
+  import: dependencies, browser
   hs-source-dirs: src
-  main-is: Web.hs
+  main-is: Frontend/Web/Main.hs
   other-modules:
+    IMP.JSON
+    Paths_impli
+  autogen-modules:
     Paths_impli
 
   ghc-options:
     -no-hs-main
     -optl-mexec-model=reactor
     "-optl-Wl,--export=start"
+    "-optl-Wl,--export=bootSession"
+    "-optl-Wl,--export=evaluate"
+    "-optl-Wl,--export=advance"
+    "-optl-Wl,--export=resolveInput"
+    "-optl-Wl,--export=resolveChoice"
+    "-optl-Wl,--export=resolveHavoc"
+    "-optl-Wl,--export=cancel"
+    "-optl-Wl,--export=getPrompt"
+    "-optl-Wl,--export=helpText"
+    "-optl-Wl,--export=versionText"
+    "-optl-Wl,--export=parseAst"
+    "-optl-Wl,--export=deriveTree"
+    "-optl-Wl,--export=resetSession"
 
 test-suite impli-test
   import: dependencies
@@ -131,21 +124,20 @@ test-suite impli-test
   hs-source-dirs: test src
   main-is: Spec.hs
   other-modules:
-    Paths_impli
-    REPL.Meta
-    REPL.Preset
-    REPL.State
-    IMP.Config
+    Frontend.Native.Meta
+    IMP.Engine
     IMP.Exception
     IMP.Expression
+    IMP.Handlers
+    IMP.Kernel
     IMP.Lexer
     IMP.Parser
     IMP.Pretty
     IMP.Semantics.Natural
     IMP.Semantics.Structural
     IMP.State
-    IMP.Statement
     IMP.Syntax
+    Paths_impli
   autogen-modules:
     Paths_impli
   build-depends:

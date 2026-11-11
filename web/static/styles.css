@@ -44,327 +44,384 @@ body {
   width: 100%;
   height: 100%;
   overflow: hidden;
+  /* anchor for ghostty-web's hidden input textarea */
+  position: relative;
 }
 
-.xterm {
-  height: 100%;
+/* Application layout */
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
 }
 
-/* Ensure xterm cursor and selection align with CSS variables where possible */
-.xterm .xterm-helpers .xterm-helper-textarea {
+.topbar {
+  display: flex;
+  align-items: stretch;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  border-bottom: 1px solid
+    color-mix(in srgb, var(--terminal-fg) 25%, transparent);
+  flex: 0 0 auto;
+}
+
+.topbar button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.35rem 0.75rem;
+  border-radius: 4px;
+}
+
+.brand {
+  font-weight: bold;
+  font-size: 1.05em;
+}
+
+.burger {
+  display: none;
+  margin-left: auto;
+}
+
+.tabs {
+  display: flex;
+  align-items: stretch;
+  margin-left: 0.5rem;
+}
+
+.tabs .tab:hover,
+.brand:hover {
+  background: color-mix(in srgb, var(--terminal-fg) 10%, transparent);
+}
+
+.tabs .tab.active {
+  font-weight: bold;
+  box-shadow: inset 0 -2px 0 var(--terminal-fg);
+}
+
+@media (max-width: 700px) {
+  .burger {
+    display: block;
+  }
+
+  .tabs {
+    display: none;
+    position: absolute;
+    top: 2.6rem;
+    right: 0.5rem;
+    flex-direction: column;
+    background: var(--terminal-bg);
+    border: 1px solid
+      color-mix(in srgb, var(--terminal-fg) 25%, transparent);
+    border-radius: 4px;
+    padding: 0.25rem;
+    z-index: 10;
+  }
+
+  .tabs.open {
+    display: flex;
+  }
+
+  .tabs .tab {
+    text-align: left;
+  }
+
+  .tabs .tab.active {
+    box-shadow: inset 2px 0 0 var(--terminal-fg);
+  }
+}
+
+.content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.tabpanel {
+  display: none;
+  flex: 1;
+  min-height: 0;
+}
+
+.tabpanel.active {
+  display: flex;
+  flex-direction: column;
+}
+
+.panel {
+  flex: 1;
+  overflow: auto;
+  padding: 0.75rem 1rem 2rem;
+  line-height: 1.45;
+}
+
+.panel h3 {
+  margin: 1rem 0 0.35rem;
+}
+
+.panel h3:first-child {
+  margin-top: 0;
+}
+
+.panel-note {
+  opacity: 0.7;
+}
+
+.kv {
+  border-collapse: collapse;
+}
+
+.kv-key {
+  padding-right: 0.5rem;
+}
+
+.proc summary {
+  cursor: pointer;
+}
+
+pre.source,
+code.source {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.steps {
+  border-collapse: collapse;
+}
+
+.steps th,
+.steps td {
+  text-align: left;
+  padding: 0.15rem 0.75rem 0.15rem 0;
+  vertical-align: top;
+}
+
+.step .effect {
+  background: color-mix(in srgb, var(--terminal-fg) 12%, transparent);
+  border-radius: 3px;
+  padding: 0 0.35em;
+}
+
+.trace-entry {
+  display: flex;
+  gap: 0.5rem;
+  align-items: baseline;
+  padding: 0.1rem 0;
+}
+
+button.link {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+}
+
+.ast-input-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.ast-input {
+  flex: 1;
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 1px solid
+    color-mix(in srgb, var(--terminal-fg) 35%, transparent);
+  border-radius: 4px;
+  padding: 0.35rem 0.5rem;
+}
+
+.ast-input-row button,
+.step-controls button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 1px solid
+    color-mix(in srgb, var(--terminal-fg) 35%, transparent);
+  border-radius: 4px;
+  padding: 0.35rem 0.75rem;
+  cursor: pointer;
+}
+
+.step-controls {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+}
+
+details.ast-node {
+  margin-left: 1rem;
+}
+
+.ast-leaf {
+  margin-left: 1.35rem;
+}
+
+.ast-tag {
+  font-weight: bold;
+}
+
+.ast-scalar {
+  opacity: 0.75;
+  margin-left: 0.5em;
+}
+
+.ast-children {
+  margin-left: 0.5rem;
+  border-left: 1px dotted
+    color-mix(in srgb, var(--terminal-fg) 35%, transparent);
+  padding-left: 0.75rem;
+}
+
+.ast-field {
+  display: flex;
+  gap: 0.5rem;
+  align-items: baseline;
+}
+
+.ast-field-name {
+  opacity: 0.6;
+  font-size: 0.9em;
+  min-width: 5.5em;
+  text-align: right;
+  flex: 0 0 auto;
+}
+
+.ast-field-child {
+  display: inline;
+}
+
+/* Railroad diagrams, adapted from railroad-diagrams (CC0) */
+
+.railroad svg.railroad-diagram {
+  max-width: 100%;
+  height: auto;
+}
+
+.railroad .railroad-diagram path {
+  stroke-width: 3;
+  stroke: var(--terminal-fg);
+  fill: none;
+}
+
+.railroad .railroad-diagram text {
+  font: bold 13px "CommitMono", monospace;
+  text-anchor: middle;
+  fill: var(--terminal-fg);
+}
+
+.railroad .railroad-diagram text.diagram-text {
+  font-size: 12px;
+}
+
+.railroad .railroad-diagram text.diagram-arrow {
+  font-size: 16px;
+}
+
+.railroad .railroad-diagram text.label {
+  text-anchor: start;
+}
+
+.railroad .railroad-diagram text.comment {
+  font: italic 12px "CommitMono", monospace;
+}
+
+.railroad .railroad-diagram g.non-terminal text {
+  font-style: italic;
+}
+
+.railroad .railroad-diagram rect {
+  stroke-width: 3;
+  stroke: var(--terminal-fg);
+  fill: color-mix(in srgb, var(--terminal-fg) 12%, transparent);
+}
+
+.railroad .railroad-diagram g.non-terminal rect {
+  fill: none;
+}
+
+.railroad .railroad-diagram rect.group-box {
+  stroke: color-mix(in srgb, var(--terminal-fg) 50%, transparent);
+  stroke-dasharray: 3 3;
+  fill: none;
+}
+
+.railroad .railroad-diagram path.diagram-text {
+  stroke-width: 3;
+  stroke: var(--terminal-fg);
+  fill: var(--terminal-fg);
+  cursor: help;
+}
+
+.railroad .railroad-diagram g.diagram-text:hover path.diagram-text {
+  fill: #eee;
+}
+
+.ebnf .railroad {
+  overflow-x: auto;
+}
+
+/*
+ * ghostty-web renders to a canvas mounted directly in #terminal; colors are
+ * driven by the terminal theme (see impli.ts), set from the CSS variables.
+ */
+
+#terminal {
   caret-color: var(--terminal-cursor);
 }
 
-.xterm ::selection {
+#terminal ::selection {
   background: var(--terminal-selection);
 }
 
-/**
- * INFO: obtained from https://cdn.jsdelivr.net/npm/@xterm/xterm@6.0.0/css/xterm.css
- */
+.tree-scroll {
+  overflow-x: auto;
+  padding: 1rem 0;
+}
 
-/**
- * Copyright (c) 2014 The xterm.js authors. All rights reserved.
- * Copyright (c) 2012-2013, Christopher Jeffrey (MIT License)
- * https://github.com/chjj/term.js
- * @license MIT
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- *
- * Originally forked from (with the author's permission):
- *   Fabrice Bellard's javascript vt100 for jslinux:
- *   http://bellard.org/jslinux/
- *   Copyright (c) 2011 Fabrice Bellard
- *   The original design remains. The terminal itself
- *   has been extended to include xterm CSI codes, among
- *   other features.
- */
+.tree-node {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: stretch;
+  margin: 0 0.6rem;
+}
 
-/**
- *  Default styles for xterm.js
- */
+.tree-premises {
+  display: flex;
+  gap: 1.2rem;
+  align-items: flex-end;
+  justify-content: center;
+}
 
-.xterm {
-  cursor: text;
+.tree-bar {
   position: relative;
-  user-select: none;
-  -ms-user-select: none;
-  -webkit-user-select: none;
+  border-top: 1.5px solid
+    color-mix(in srgb, var(--terminal-fg) 60%, transparent);
+  margin-top: 0.5rem;
 }
 
-.xterm.focus,
-.xterm:focus {
-  outline: none;
-}
-
-.xterm .xterm-helpers {
+.tree-label {
   position: absolute;
-  top: 0;
-  /**
-   * The z-index of the helpers must be higher than the canvases in order for
-   * IMEs to appear on top.
-   */
-  z-index: 5;
+  right: -0.5rem;
+  top: -1.35rem;
+  padding-left: 0.4rem;
+  font-size: 0.85em;
+  font-weight: 600;
+  background: var(--terminal-bg);
 }
 
-.xterm .xterm-helper-textarea {
-  padding: 0;
-  border: 0;
-  margin: 0;
-  /* Move textarea out of the screen to the far left, so that the cursor is not visible */
-  position: absolute;
-  opacity: 0;
-  left: -9999em;
-  top: 0;
-  width: 0;
-  height: 0;
-  z-index: -5;
-  /** Prevent wrapping so the IME appears against the textarea at the correct position */
+.tree-conclusion {
+  padding: 0.4rem 0 0;
   white-space: nowrap;
-  overflow: hidden;
-  resize: none;
-}
-
-.xterm .composition-view {
-  /* TODO: Composition position got messed up somewhere */
-  background: #000;
-  color: #fff;
-  display: none;
-  position: absolute;
-  white-space: nowrap;
-  z-index: 1;
-}
-
-.xterm .composition-view.active {
-  display: block;
-}
-
-.xterm .xterm-viewport {
-  /* On OS X this is required in order for the scroll bar to appear fully opaque */
-  background-color: #000;
-  overflow-y: scroll;
-  cursor: default;
-  position: absolute;
-  right: 0;
-  left: 0;
-  top: 0;
-  bottom: 0;
-}
-
-.xterm .xterm-screen {
-  position: relative;
-}
-
-.xterm .xterm-screen canvas {
-  position: absolute;
-  left: 0;
-  top: 0;
-}
-
-.xterm-char-measure-element {
-  display: inline-block;
-  visibility: hidden;
-  position: absolute;
-  top: 0;
-  left: -9999em;
-  line-height: normal;
-}
-
-.xterm.enable-mouse-events {
-  /* When mouse events are enabled (eg. tmux), revert to the standard pointer cursor */
-  cursor: default;
-}
-
-.xterm.xterm-cursor-pointer,
-.xterm .xterm-cursor-pointer {
-  cursor: pointer;
-}
-
-.xterm.column-select.focus {
-  /* Column selection mode */
-  cursor: crosshair;
-}
-
-.xterm .xterm-accessibility:not(.debug),
-.xterm .xterm-message {
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  right: 0;
-  z-index: 10;
-  color: transparent;
-  pointer-events: none;
-}
-
-.xterm .xterm-accessibility-tree:not(.debug) *::selection {
-  color: transparent;
-}
-
-.xterm .xterm-accessibility-tree {
-  font-family: monospace;
-  user-select: text;
-  white-space: pre;
-}
-
-.xterm .xterm-accessibility-tree > div {
-  transform-origin: left;
-  width: fit-content;
-}
-
-.xterm .live-region {
-  position: absolute;
-  left: -9999px;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-}
-
-.xterm-dim {
-  /* Dim should not apply to background, so the opacity of the foreground color is applied
-   * explicitly in the generated class and reset to 1 here */
-  opacity: 1 !important;
-}
-
-.xterm-underline-1 {
-  text-decoration: underline;
-}
-.xterm-underline-2 {
-  text-decoration: double underline;
-}
-.xterm-underline-3 {
-  text-decoration: wavy underline;
-}
-.xterm-underline-4 {
-  text-decoration: dotted underline;
-}
-.xterm-underline-5 {
-  text-decoration: dashed underline;
-}
-
-.xterm-overline {
-  text-decoration: overline;
-}
-
-.xterm-overline.xterm-underline-1 {
-  text-decoration: overline underline;
-}
-.xterm-overline.xterm-underline-2 {
-  text-decoration: overline double underline;
-}
-.xterm-overline.xterm-underline-3 {
-  text-decoration: overline wavy underline;
-}
-.xterm-overline.xterm-underline-4 {
-  text-decoration: overline dotted underline;
-}
-.xterm-overline.xterm-underline-5 {
-  text-decoration: overline dashed underline;
-}
-
-.xterm-strikethrough {
-  text-decoration: line-through;
-}
-
-.xterm-screen .xterm-decoration-container .xterm-decoration {
-  z-index: 6;
-  position: absolute;
-}
-
-.xterm-screen
-  .xterm-decoration-container
-  .xterm-decoration.xterm-decoration-top-layer {
-  z-index: 7;
-}
-
-.xterm-decoration-overview-ruler {
-  z-index: 8;
-  position: absolute;
-  top: 0;
-  right: 0;
-  pointer-events: none;
-}
-
-.xterm-decoration-top {
-  z-index: 2;
-  position: relative;
-}
-
-/* Derived from vs/base/browser/ui/scrollbar/media/scrollbar.css */
-
-/* xterm.js customization: Override xterm's cursor style */
-.xterm .xterm-scrollable-element > .scrollbar {
-  cursor: default;
-}
-
-/* Arrows */
-.xterm .xterm-scrollable-element > .scrollbar > .scra {
-  cursor: pointer;
-  font-size: 11px !important;
-}
-
-.xterm .xterm-scrollable-element > .visible {
-  opacity: 1;
-
-  /* Background rule added for IE9 - to allow clicks on dom node */
-  background: rgba(0, 0, 0, 0);
-
-  transition: opacity 100ms linear;
-  /* In front of peek view */
-  z-index: 11;
-}
-.xterm .xterm-scrollable-element > .invisible {
-  opacity: 0;
-  pointer-events: none;
-}
-.xterm .xterm-scrollable-element > .invisible.fade {
-  transition: opacity 800ms linear;
-}
-
-/* Scrollable Content Inset Shadow */
-.xterm .xterm-scrollable-element > .shadow {
-  position: absolute;
-  display: none;
-}
-.xterm .xterm-scrollable-element > .shadow.top {
-  display: block;
-  top: 0;
-  left: 3px;
-  height: 3px;
-  width: 100%;
-  box-shadow: var(--vscode-scrollbar-shadow, #000) 0 6px 6px -6px inset;
-}
-.xterm .xterm-scrollable-element > .shadow.left {
-  display: block;
-  top: 3px;
-  left: 0;
-  height: 100%;
-  width: 3px;
-  box-shadow: var(--vscode-scrollbar-shadow, #000) 6px 0 6px -6px inset;
-}
-.xterm .xterm-scrollable-element > .shadow.top-left-corner {
-  display: block;
-  top: 0;
-  left: 0;
-  height: 3px;
-  width: 3px;
-}
-.xterm .xterm-scrollable-element > .shadow.top.left {
-  box-shadow: var(--vscode-scrollbar-shadow, #000) 6px 0 6px -6px inset;
+  text-align: center;
 }

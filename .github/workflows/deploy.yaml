@@ -24,21 +24,48 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install Nix
-        uses: cachix/install-nix-action@v24
+        uses: cachix/install-nix-action@v31
         with:
           nix_path: nixpkgs=channel:nixos-unstable
 
       - name: Build impli web REPL (WASM binary and JS artifacts)
-        run: nix run .#build
+        run: |
+          set -o pipefail
+          if ! nix run .#build 2>&1 | tee web-build.log; then
+            DRV=$(grep -oE '/nix/store/[a-z0-9]+-impli-wasm32-wasi-[^ ]*\.drv' web-build.log | tail -1)
+            echo "::error title=nix-run-failed::drv=$DRV"
+            if [ -n "$DRV" ]; then
+              nix log "$DRV" 2>&1 | sed -e 's/\x1b\[[0-9;]*m//g' -e 's/\x1b\[[0-9;]*[A-Za-z]//g' > nix-full.log || true
+              LINE=$(grep -n ': error' nix-full.log | head -1 | cut -d: -f1)
+              if [ -n "$LINE" ]; then
+                START=$((LINE > 12 ? LINE - 12 : 1))
+                sed -n "${START},$((LINE + 40))p" nix-full.log > nix-log-tail.txt
+              else
+                tail -70 nix-full.log > nix-log-tail.txt
+              fi
+              echo "::notice title=nix-log-probe::lines=$(wc -l < nix-log-tail.txt)"
+              tr '\n' '~' < nix-log-tail.txt | sed 's/::/;/g' | head -c 3000 > nix-log-tail-clean.txt || true
+              echo "::error title=nix-log-tail::$(cat nix-log-tail-clean.txt)"
+            fi
+            exit 1
+          fi
+
+      - name: Upload web build log on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: impli-web-build-log
+          path: web-build.log
+          if-no-files-found: ignore
 
       - name: Copy paper to server
         run: cp docs/paper/IMP.pdf web/public/
 
       - name: Upload artifact for GitHub Pages
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: "web/public"
 
@@ -54,4 +81,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5

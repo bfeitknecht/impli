@@ -4,36 +4,61 @@ This directory contains the two semantic models for the IMP language.
 
 ### Modules
 
-| Module                        | Description                                                                                                 |
-| ----------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| [`Natural`](Natural.hs)       | Big-step (natural) semantics — executes a statement in one step to the final state                          |
-| [`Structural`](Structural.hs) | Small-step (structural) semantics — executes a statement step by step, exposing intermediate configurations |
+| Module                        | Description                                                                                              |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------- |
+| [`Structural`](Structural.hs) | Small-step (structural) semantics — one pure transition at a time over configurations, with suspensions  |
+| [`Natural`](Natural.hs)       | Big-step (natural) semantics — `MonadError` computation discharged by `Handlers`                             |
 
 ### Overview
 
 Both modules implement the semantics defined in the FMFP course at ETH Zürich and documented in [`docs/paper/IMP.pdf`](../../../docs/paper/IMP.pdf).
 
-#### Natural Semantics (`Natural.hs`)
-
-Implements the big-step judgment $\langle s, \sigma \rangle \to \sigma'$, mapping a statement and initial state directly to the final state.
-
-```
-run :: (Stm, State) -> IMP State
-```
-
-This is the default execution model (`Config.structural = False`). It uses less memory since it does not maintain a state stack.
-
 #### Structural Semantics (`Structural.hs`)
 
-Implements the small-step judgment $\langle s, \sigma \rangle \underset{1}{\to} \gamma$, reducing one step at a time and returning the next configuration.
+Implements the small-step judgment $\langle s, \sigma \rangle \underset{1}{\to} \gamma$ as a pair of pure functions on configurations `Gamma = (Stm, State)`.
 
 ```
-step  :: (Stm, [State]) -> IMP Conf   -- single reduction step
-steps :: (Stm, [State]) -> IMP State  -- repeated application until completion
+step   :: Gamma -> Configuration                  -- single reduction step
+resume :: Gamma -> Resolution -> Configuration    -- unblock a suspension
 ```
 
-The state stack enables step-by-step debugging and exposure of intermediate configurations. It is enabled by setting `Config.structural = True`.
+Configurations are `Stepped Step`, `Blocked Suspension`, `Stuck Exception` or
+`Terminal State`. Statements that interact with the outside world (`read`,
+`havoc`) and non-deterministic or parallel choice block as a `Suspension`
+which the frontend resolves externally. Applied inference rules are named in
+`Rule`, emitted outputs in `Effect`, so every `Step` is a self-contained
+record of the transition.
 
-#### Unsupported Statements
+The machine is stack-free: procedure invocation and local scopes rewrite to
+`Return`/`Restore` sequences carrying state snapshots in the program itself,
+so suspension and resumption only need the plain configuration.
 
-Some statements (e.g., `Timeout`, `Alternate`) are only supported by one of the two models. Invoking an unsupported statement raises an error via `errata`.
+#### Natural Semantics (`Natural.hs`)
+
+Implements the big-step judgment $\langle s, \sigma \rangle \to \sigma'$ as a `MonadError` computation: external reads, writes, nondeterministic choices and havoc values come from the `Handlers` record of the driving frontend (`IMP.Handlers`), failures are `Exception`s.
+
+```
+run    :: Gamma -> Eff Effects State             -- program, interpreted by an engine
+input  :: String -> Eff effs Integer
+output :: String -> Eff effs ()
+choose :: Eff effs Bool
+fate   :: Eff effs Integer
+```
+
+This is the default execution model for the native frontend. Non-deterministic
+and parallel choice, `havoc` and `read` send effects which `IMP.Engine`
+discharges through the frontend's `Handlers`; the `IMP.Kernel` module
+specialises the same program to the fixed effect row `Effects`.
+
+#### Coverage
+
+The structural semantics supports **all** statements of the language,
+including `Timeout`, `Alternate` and `FlipFlop`. The natural semantics
+supports everything except `Timeout` and `Alternate`: bounded and interleaved
+execution are inherently small-step notions for which the big-step judgment
+has no rules — they raise an error in big-step interpretation, consistent
+with previous releases.
+
+Divergence from the legacy implementations: at a suspended `par`, the engine
+sequentialises the branches in the chosen order instead of interleaving
+small-steps.

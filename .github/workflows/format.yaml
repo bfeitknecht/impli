@@ -15,19 +15,37 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Check Haskell formatting
-        uses: haskell-actions/run-fourmolu@v11
+        id: format
+        uses: haskell-actions/run-fourmolu@v13
         with:
           version: "0.19.0.1"
 
       - name: Install Nix
-        uses: cachix/install-nix-action@v24
+        uses: cachix/install-nix-action@v31
         with:
           nix_path: nixpkgs=channel:nixos-unstable
           extra_nix_config: |
             experimental-features = nix-command flakes
+
+      - name: Annotate fourmolu diff on fourmolu failure
+        if: always() && steps.format.outcome == 'failure'
+        run: |
+          curl -sSL -o fourmolu https://github.com/fourmolu/fourmolu/releases/download/v0.19.0.1/fourmolu-0.19.0.1-linux-x86_64
+          chmod +x fourmolu
+          echo "::notice title=fourmolu-version::$(./fourmolu --version | head -2 | tr '\n' '~')"
+          FILES=$(git ls-files '*.hs')
+          echo "::notice title=fourmolu-files::$(echo $FILES | tr '\n' ' ' | tr ' ' '~')"
+          ./fourmolu --mode check $FILES 2>&1 | tr '\n' '~' | head -c 1400 > fourmolu-check.txt || true
+          echo "::error title=fourmolu-check::$(cat fourmolu-check.txt)"
+          ./fourmolu --mode diff $FILES | grep -E '^(--- |\+\+\+ |@@|[-+])' | tr '\n' '~' | head -c 3000 > fourmolu-diff.txt || true
+          if [ -s fourmolu-diff.txt ]; then
+            echo "::error title=fourmolu-diff::$(cat fourmolu-diff.txt)"
+          else
+            echo "::error title=fourmolu-diff::(empty diff)"
+          fi
 
       - name: Check Nix formatting
         run: |

@@ -1,9 +1,9 @@
-.TH IMPLI 1 "January 2026" "impli 4.0" "User Commands"
+.TH IMPLI 1 "February 2026" "impli 6.0" "User Commands"
 .SH NAME
 impli \- Interpreter and REPL for the imperative toy language IMP
 .SH SYNOPSIS
 .B impli
-[\fB--history\fR \fIFILE\fR] [\fB--config\fR \fIFILE\fR]
+[\fB--history\fR \fIFILE\fR] [\fB--structural\fR] [\fB-v\fR|\fB--verbose\fR \fILEVEL\fR]
 .br
 .B impli
 [\fIFILE\fR]
@@ -24,7 +24,7 @@ impli \- Interpreter and REPL for the imperative toy language IMP
 [\fB-h\fR|\fB--help\fR]
 .SH DESCRIPTION
 .B impli
-is an interpreter and interactive REPL for the imperative toy language IMP. It supports evaluating IMP source files, executing commands, printing abstract syntax trees, and more.
+is an interpreter and interactive REPL for the imperative toy language IMP. It supports evaluating IMP source files, executing commands, printing abstract syntax trees, and more. Input that leaves parentheses or blocks unbalanced continues on further lines.
 .SH MODES OF OPERATION
 .TP
 .B No arguments
@@ -33,8 +33,18 @@ Start the interactive REPL.
 .BR --history " " FILE
 Save REPL history to the specified file.
 .TP
-.BR --config " " FILE
-Read Haskeline configuration from the specified file.
+.B --structural
+Interpret with the structural small-step semantics instead of the natural big-step semantics.
+.TP
+.BR -v ", " --verbose " " LEVEL
+Set the REPL verbosity level to
+.IR normal ,
+.IR profile ,
+or
+.IR debug .
+The level changes the prompt separator (\fB>\fR, \fB+\fR, \fB*\fR respectively),
+\fIprofile\fR reports elapsed time and steps taken for each evaluation and
+\fIdebug\fR additionally prints the parsed AST and intermediate small-step configurations.
 .TP
 .B FILE
 Interpret the specified IMP source file.
@@ -81,18 +91,12 @@ Write the current trace to a file.
 .B :ast (INPUT | #n)
 Parse and display the AST of the given input or the n-th statement in the trace.
 .TP
-.B :set OPTION VALUE
-Set a REPL option. Supported options are
-.IR welcome ,
-.IR prompt ,
-.IR separator
-(must be one of: :?!\-+\*#%&$=>),
-.IR goodbye ,
-and
-.IR verbose .
-.TP
-.B :unset OPTION
-Reset a REPL option to its default value.
+.B :set verbose LEVEL
+Set the verbosity level to
+.IR normal ,
+.IR profile ,
+or
+.IR debug .
 
 .SH EXIT STATUS
 Returns 0 on success, non-zero on error.

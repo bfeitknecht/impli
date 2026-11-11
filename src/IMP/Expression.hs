@@ -87,7 +87,7 @@ instance Evaluate Stm Integer where
             Just (_, _, body) -> evaluate body state + (toInteger . length) args
             Nothing -> 0
         Restore _ -> error $ "illegal statement for evaluate: " ++ show stm
-        Return _ _ -> error $ "illegal statement for evaluate: " ++ show stm
+        Return {} -> error $ "illegal statement for evaluate: " ++ show stm
         Break -> 0
         Revert s _ -> evaluate s state
         Match a ms d -> do
