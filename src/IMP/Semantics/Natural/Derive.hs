@@ -162,10 +162,8 @@ deriveWith derivation (stm, state) = case stm of
             , Node (Rule "Print" (to (stm, state) state) []) state
             )
     Read x ->
-        let
-            (v, derivation') = next derivation
-        in
-            return $ leaf derivation' "Read" (stm, state) (setVar state x v)
+        let (v, derivation') = next derivation
+        in return $ leaf derivation' "Read" (stm, state) (setVar state x v)
     Local x a s -> do
         let
             old = getVar state x
@@ -222,10 +220,8 @@ deriveWith derivation (stm, state) = case stm of
                 (derivation', node) <- deriveWith derivation (d, state)
                 return $ with derivation' "Default" (stm, state) [rule node] (result node)
     Havoc x ->
-        let
-            (v, derivation') = draw derivation
-        in
-            return $ leaf derivation' "Havoc" (stm, state) (setVar state x v)
+        let (v, derivation') = draw derivation
+        in return $ leaf derivation' "Havoc" (stm, state) (setVar state x v)
     Assert b ->
         if evaluate b state
             then return $ leaf derivation "Pass" (stm, state) state
