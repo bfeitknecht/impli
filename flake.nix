@@ -220,8 +220,7 @@
             cp "${impliWeb system}/web/stub.js" web/public/stub.js
             chmod +w web/public/impli.wasm web/public/stub.js
 
-            echo "Copying assets in web/static to web/public..."
-            cp -r static/* public
+            # deno task build mirrors web/static into web/public itself
 
             echo "Running deno task build..."
             cd web
