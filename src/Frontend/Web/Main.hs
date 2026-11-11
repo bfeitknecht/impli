@@ -233,6 +233,7 @@ startAPI = do
 foreign export javascript "evaluate" evaluateAPI :: JSString -> IO JSString
 
 -- | Evaluate one line of IMP source in the current session, return protocol envelope.
+-- After 'start', the JavaScript host re-enters this export indefinitely: escape is impossible.
 evaluateAPI :: JSString -> IO JSString
 evaluateAPI input = do
     let line = fromJSString input
