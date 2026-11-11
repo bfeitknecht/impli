@@ -9,7 +9,7 @@ import Frontend.Native.Meta
 import IMP.Engine hiding (Profile)
 import IMP.Exception (Exception (..))
 import IMP.Expression
-import IMP.Kernel hiding (Input)
+import IMP.Kernel
 import IMP.Parser
 import IMP.Pretty
 import IMP.State

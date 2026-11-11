@@ -1,5 +1,3 @@
-{-# LANGUAGE GADTs #-}
-
 {- |
 Module      : IMP.Engine
 Description : Runtime session engine over the pure kernel API
@@ -40,14 +38,9 @@ module IMP.Engine (
     traceSource,
 ) where
 
-import Control.Algebra ((:+:) (..))
-import Control.Carrier.Error.Either (runError)
-import Control.Carrier.Interpret (runInterpret)
-import Control.Carrier.Lift (runM)
 import Control.Monad.Except
 import Control.Monad.Reader
 import Control.Monad.State hiding (State)
-import Control.Monad.Trans.Class (lift)
 
 import qualified Data.Map as Map
 
@@ -88,20 +81,6 @@ data Profile = Profile
 -- | Empty resource profile.
 emptyProfile :: Profile
 emptyProfile = Profile {stepCount = 0, ruleCount = Map.empty, outputCount = 0}
-
--- | Handlers supplied by frontends to discharge kernel suspensions and effects.
-data Handlers m = Handlers
-    { onInput :: String -> m Integer
-    -- ^ Read value for variable.
-    , onOutput :: String -> m ()
-    -- ^ Emit output line.
-    , onChoice :: m Bool
-    -- ^ Decide nondeterministic or parallel branch.
-    , onRandom :: m Integer
-    -- ^ Produce arbitrary integer.
-    , pollInterrupt :: m Bool
-    -- ^ Whether an interrupt is pending.
-    }
 
 -- | Engine-level failure.
 data Fault
@@ -185,7 +164,7 @@ drive semantics stm = case semantics of
         handlers <- ask
         st <- gets environment
         modify $ \session -> session {stepHistory = [], profile = emptyProfile}
-        result <- hoistEngine $ interpret handlers (stm, st)
+        result <- hoistEngine $ runExceptT $ Natural.run handlers (stm, st)
         case result of
             Left e -> throwError (RuntimeFault e)
             Right state' -> do
@@ -351,22 +330,6 @@ record s' = modify $ \session ->
                 , outputCount = outputCount (profile session) + length (effects s')
                 }
         }
-
--- | Interpret the natural semantics' effect program by discharging effects with handlers.
-interpret :: (Monad m) => Handlers m -> Gamma -> m (Either Exception State)
-interpret handlers gamma =
-    runM
-        $ runInterpret
-            ( \_ effect context -> case effect of
-                L (Input x) -> (<$ context) <$> lift (onInput handlers x)
-                R (L (Emit text)) -> (<$ context) <$> lift (onOutput handlers text)
-                R (R command) ->
-                    (<$ context) <$> case command of
-                        Pick -> lift (onChoice handlers)
-                        Fate -> lift (onRandom handlers)
-            )
-        $ runError
-        $ Natural.run gamma
 
 -- | Render heading with indented body lines.
 explain :: String -> [String] -> String

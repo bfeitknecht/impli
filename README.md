@@ -38,7 +38,7 @@ The table below depicts the correspondence between semantics functions defined i
 | $\sigma_{\text{zero}}$                        | `IMP.State.initial`                                                  |
 | $\sigma(x)$                                   | `IMP.State.getVar state x`                                           |
 | $\sigma[x \mapsto n]$                         | `IMP.State.setVar state x n`                                         |
-| $\langle s, \sigma \rangle \to \cdot$         | `IMP.Kernel.run (s, state)` (effect program, discharged by the engine)|
+| $\langle s, \sigma \rangle \to \cdot$         | `IMP.Kernel.run (s, state)` (discharged by the engine through handlers)|
 | $\langle s, \sigma \rangle \to_{1} \cdot$     | `IMP.Semantics.Structural.step (s, state)`                           |
 | $\langle s, \sigma \rangle \to_{1}^{*} \cdot$ | `IMP.Engine.drive IMP.Engine.Structural s`                           |
 | $\mathcal{N}[[n]]$                            | `n`                                                                  |
