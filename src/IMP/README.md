@@ -11,7 +11,7 @@ This directory contains the core modules of the IMP language interpreter.
 | [`Parser`](Parser.hs)         | Recursive descent parser with operator precedence for all language constructs                      |
 | [`Expression`](Expression.hs) | Expression evaluation for arithmetic (`Aexp`) and boolean (`Bexp`) expressions                     |
 | [`State`](State.hs)           | State management and pure utility functions                                                        |
-| [`Kernel`](Kernel.hs)         | Pure kernel facade: structural `step`/`resume` and natural `run` as a freer monad program          |
+| [`Kernel`](Kernel.hs)         | Pure kernel facade: structural `step`/`resume` and natural `run` as an effect program          |
 | [`Engine`](Engine.hs)         | Session layer discharging kernel effects through frontend handlers, with trace and profile         |
 | [`Pretty`](Pretty.hs)         | Pretty-printing for all language constructs via the `prettyprinter` library                        |
 | [`Exception`](Exception.hs)   | Exception type encapsulating parse, assertion, IO, and runtime errors                              |
@@ -29,7 +29,7 @@ Source text
                               ┌───────────────┴───────────────┐
                               ▼                               ▼
                  [Semantics.Natural]              [Semantics.Structural]
-                 big-step, freer monad            small-step, pure step/resume
+                 big-step, effect program         small-step, pure step/resume
                  over effects                     on configurations
                               └───────────────┬───────────────┘
                                               ▼
@@ -44,8 +44,8 @@ performs a single transition over `Gamma = (Stm, State)` and may yield a
 `Blocked Suspension` for `read`, `havoc` and non-deterministic or parallel
 choice, which the frontend resolves and continues with
 `resume :: Gamma -> Resolution -> Configuration`. The natural semantics is
-reified as a freer monad program over `Input`, `Output` and `Choose` effects
-(`IMP.Freer`) plus `Error Exception`. All statements keep the machine
+written against an abstract effect signature over `Input`, `Output` and `Choose` effects
+(fused-effects) plus `Error Exception`. All statements keep the machine
 configuration a plain `Gamma`: procedure invocation and local scope rewrite
 to `Return`/`Restore` sequences carrying state snapshots, so no state stack
 is needed.

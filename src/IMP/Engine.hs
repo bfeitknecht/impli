@@ -1,5 +1,3 @@
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
 
 {- |
@@ -42,6 +40,9 @@ module IMP.Engine (
     traceSource,
 ) where
 
+import Control.Carrier.Error.Either (runError)
+import Control.Carrier.Interpret (runInterpret)
+import Control.Carrier.Lift (runM)
 import Control.Monad.Except
 import Control.Monad.Reader
 import Control.Monad.State hiding (State)
@@ -49,13 +50,11 @@ import Control.Monad.State hiding (State)
 import qualified Data.Map as Map
 
 import IMP.Exception
-import IMP.Freer (runError, sendM)
 import IMP.Kernel
 import IMP.Pretty
 import IMP.State
 import IMP.Syntax
 
-import qualified IMP.Freer as Freer
 import qualified IMP.Semantics.Natural as Natural
 
 -- | Aspect of the session environment to reset or render.
@@ -351,18 +350,19 @@ record s' = modify $ \session ->
                 }
         }
 
--- | Interpret freer program of the natural semantics by discharging effects with handlers.
+-- | Interpret the natural semantics' effect program by discharging effects with handlers.
 interpret :: (Monad m) => Handlers m -> Gamma -> m (Either Exception State)
 interpret handlers gamma =
-    Freer.runM
-        . runError
-        . Freer.interpret
-            ( \command -> case command of
-                Pick -> sendM (onChoice handlers)
-                Fate -> sendM (onRandom handlers)
+    runM
+        $ runError
+        $ runInterpret
+            ( \_ command context ->
+                (<$ context) <$> case command of
+                    Pick -> onChoice handlers
+                    Fate -> onRandom handlers
             )
-        . Freer.interpret (\(Emit text) -> sendM (onOutput handlers text))
-        . Freer.interpret (\(Input x) -> sendM (onInput handlers x))
+        $ runInterpret (\(Emit text) context -> (<$ context) <$> onOutput handlers text)
+        $ runInterpret (\(Input x) context -> (<$ context) <$> onInput handlers x)
         $ Natural.run gamma
 
 -- | Render heading with indented body lines.

@@ -7,7 +7,7 @@ This directory contains the two semantic models for the IMP language.
 | Module                        | Description                                                                                              |
 | ----------------------------- | -------------------------------------------------------------------------------------------------------- |
 | [`Structural`](Structural.hs) | Small-step (structural) semantics — one pure transition at a time over configurations, with suspensions  |
-| [`Natural`](Natural.hs)       | Big-step (natural) semantics — reified as a freer monad program over effects                             |
+| [`Natural`](Natural.hs)       | Big-step (natural) semantics — abstract effect program over `Input`/`Output`/`Choose`                             |
 
 ### Overview
 
@@ -35,7 +35,7 @@ so suspension and resumption only need the plain configuration.
 
 #### Natural Semantics (`Natural.hs`)
 
-Implements the big-step judgment $\langle s, \sigma \rangle \to \sigma'$ as a freer monad program (`IMP.Freer`) over the effects `Input`, `Output`, `Choose` and `Error Exception`.
+Implements the big-step judgment $\langle s, \sigma \rangle \to \sigma'$ as an algebraic effect program ([fused-effects](https://hackage.haskell.org/package/fused-effects)) over the effects `Input`, `Output`, `Choose` and `Error Exception`.
 
 ```
 run    :: Gamma -> Eff Effects State             -- program, interpreted by an engine

@@ -1,6 +1,6 @@
-{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE KindSignatures #-}
 
 {- |
 Module      : IMP.Semantics.Natural
@@ -12,15 +12,16 @@ Stability   : stable
 Portability : portable
 
 Implementation of natural (big-step) semantics for the IMP language.
-Execution is reified as a freer monad program over the 'Input', 'Output' and
-'Choose' effects so the semantics itself stays pure: an interpreter discharges
-the effects in whatever context the frontend supplies.
+Execution is written against an abstract
+<https://hackage.haskell.org/package/fused-effects fused-effects> signature
+over the 'Input', 'Output' and 'Choose' effects so the semantics itself stays
+pure: an interpreter discharges the effects in whatever context the frontend
+supplies.
 -}
 module IMP.Semantics.Natural (
     Input (..),
     Output (..),
     Choose (..),
-    Effects,
     input,
     output,
     choose,
@@ -28,56 +29,56 @@ module IMP.Semantics.Natural (
     run,
 ) where
 
+import Control.Algebra (Has, send)
+import Control.Effect.Error (Error, catchError, throwError)
+import Data.Kind (Type)
+
 import qualified Data.Map as Map
 
 import IMP.Exception
 import IMP.Expression
-import IMP.Freer (Eff, Error, Member, catchError, send, throwError)
 import IMP.Pretty
 import IMP.State
 import IMP.Syntax
 
 -- | Effect of reading an integer for a variable from the outside world.
-data Input a where
-    Input :: String -> Input Integer
+data Input (m :: Type -> Type) k where
+    Input :: String -> Input m Integer
 
 -- | Effect of writing evaluation output to the outside world.
-data Output a where
-    Emit :: String -> Output ()
+data Output (m :: Type -> Type) k where
+    Emit :: String -> Output m ()
 
 -- | Effect of an externally supplied arbitrary decision or value.
-data Choose a where
+data Choose (m :: Type -> Type) k where
     Pick ::
         -- | Pick a branch, 'True' for left.
-        Choose Bool
+        Choose m Bool
     Fate ::
         -- | Produce an arbitrary integer.
-        Choose Integer
-
--- | Canonical effect row for interpretation of 'run' programs.
-type Effects = '[Input, Output, Choose, Error Exception]
+        Choose m Integer
 
 -- | Read an integer for the named variable.
-input :: (Member Input effs) => String -> Eff effs Integer
+input :: (Has Input sig m) => String -> m Integer
 input x = send (Input x)
 
 -- | Emit evaluation output.
-output :: (Member Output effs) => String -> Eff effs ()
+output :: (Has Output sig m) => String -> m ()
 output text = send (Emit text)
 
 -- | Pick a branch, 'True' for left.
-choose :: (Member Choose effs) => Eff effs Bool
+choose :: (Has Choose sig m) => m Bool
 choose = send Pick
 
 -- | Obtain an arbitrary integer.
-fate :: (Member Choose effs) => Eff effs Integer
+fate :: (Has Choose sig m) => m Integer
 fate = send Fate
 
 -- | Execute statement in the state, return final state.
 run ::
-    (Member (Error Exception) effs, Member Choose effs, Member Input effs, Member Output effs) =>
+    (Has (Error Exception) sig m, Has Choose sig m, Has Input sig m, Has Output sig m) =>
     Gamma ->
-    Eff effs State
+    m State
 run (stm, state) = case stm of
     Skip -> return state
     VarDef x dop a ->

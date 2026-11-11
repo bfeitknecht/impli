@@ -13,9 +13,9 @@ The next (hopefully last) huge refactor (#80, also #79, #77, #31).
     on configurations with explicit suspension/resolution for `read`,
     `havoc` and non-deterministic or parallel choice; complete coverage
     of all statements of the language
-  - `IMP.Semantics.Natural`: big-step semantics reified as a freer monad
-    program (`IMP.Freer`) over `Input`/`Output`/`Choose` effects and
-    `Error`, interpreted by the engine
+  - `IMP.Semantics.Natural`: big-step semantics against an abstract
+    effect signature (fused-effects) over `Input`/`Output`/`Choose`
+    effects and `Error`, interpreted by the engine
   - Stack-free machine: procedure invocation and local scope rewrite to
     `Return`/`Restore` sequences carrying state snapshots, the machine
     configuration stays a plain `(Stm, State)`

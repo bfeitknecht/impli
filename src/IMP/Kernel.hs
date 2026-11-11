@@ -1,4 +1,4 @@
-{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 {- |
 Module      : IMP.Kernel
@@ -15,8 +15,9 @@ The structural (small-step) semantics of "IMP.Semantics.Structural" is a pair
 of serialisable functions on configurations matching the formal semantics:
 'step' performs one transition and 'resume' unblocks a suspended 'Gamma' with
 a 'Resolution'. The natural (big-step) semantics of "IMP.Semantics.Natural"
-is reified as a freer monad program over 'Input', 'Output' and 'Choose'
-effects plus 'Error' 'Exception', interpreted by an engine or frontend.
+is programmed against an abstract effect signature over 'Input', 'Output' and
+'Choose' effects plus 'Error' 'Exception', interpreted by an engine or
+frontend.
 -}
 module IMP.Kernel (
     Gamma,
@@ -31,7 +32,6 @@ module IMP.Kernel (
     Input (..),
     Output (..),
     Choose (..),
-    Effects,
     input,
     output,
     choose,
@@ -39,13 +39,16 @@ module IMP.Kernel (
     run,
 ) where
 
-import IMP.Freer (Eff)
-import IMP.Semantics.Natural (Choose (..), Effects, Input (..), Output (..), choose, fate, input, output)
+import Control.Algebra (Has)
+import Control.Effect.Error (Error)
+
+import IMP.Exception (Exception)
+import IMP.Semantics.Natural (Choose (..), Input (..), Output (..), choose, fate, input, output)
 import IMP.Semantics.Structural
 import IMP.State (Gamma, State)
 
 import qualified IMP.Semantics.Natural as Natural
 
--- | Natural semantics, freer monad program interpreted to completion.
-run :: Gamma -> Eff Effects State
+-- | Natural semantics, computed to completion over an abstract effect carrier.
+run :: (Has (Error Exception) sig m, Has Choose sig m, Has Input sig m, Has Output sig m) => Gamma -> m State
 run = Natural.run
