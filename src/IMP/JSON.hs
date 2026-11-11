@@ -391,19 +391,30 @@ instance FromJSON Suspension where
             "await-choice" -> pure AwaitChoice
             other -> fail $ "unknown suspension: " ++ show other
 
--- INFO: Step states carry only the variable store: steps are streamed per
--- chunk in the web envelope, and repeating procedure declarations in every
--- step state would make the payload grow quadratically for long programs.
 instance ToJSON Step where
     toJSON s' =
         object
             [ "rule" .= rule s'
             , "statement" .= fst (residual s')
-            , "state" .= object ["vars" .= vars]
+            , "state" .= snd (residual s')
             , "effects" .= effects s'
             ]
-        where
-            (vars, _, _) = snd (residual s')
+
+-- INFO: Envelope steps are display-only and never sent back to the engine,
+-- so their states carry only the variable store; repeating procedure
+-- declarations in every step would make the payload grow quadratically for
+-- long programs. The engine-internal encoding above stays complete because
+-- the flight's blocked configuration round-trips through the browser.
+encodeStepPreview :: Step -> Value
+encodeStepPreview s' =
+    object
+        [ "rule" .= rule s'
+        , "statement" .= fst (residual s')
+        , "state" .= object ["vars" .= vars]
+        , "effects" .= effects s'
+        ]
+    where
+        (vars, _, _) = snd (residual s')
 
 instance FromJSON Step where
     parseJSON = withObject "Step" $ \object -> do
@@ -536,6 +547,6 @@ instance ToJSON Envelope where
         object
             [ "events" .= envelopeEvents envelope
             , "status" .= envelopeStatus envelope
-            , "steps" .= envelopeSteps envelope
+            , "steps" .= map encodeStepPreview (envelopeSteps envelope)
             , "session" .= envelopeSession envelope
             ]

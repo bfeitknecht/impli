@@ -135,7 +135,8 @@ body {
   display: none;
 }
 
-.topbar button {
+.topbar button,
+.tabs .tab {
   font: inherit;
   color: inherit;
   background: none;
@@ -143,6 +144,8 @@ body {
   border-radius: 0;
   cursor: pointer;
   padding: 0 0.5rem;
+  appearance: none;
+  -webkit-appearance: none;
 }
 
 .brand {
@@ -641,52 +644,18 @@ details.ast-node {
   overflow-x: auto;
 }
 
-/* Derivation trees drawn like terminal inference rules. */
+/* Derivation trees are typeset by Typst (curryst) and embedded as SVG. */
 
-.tree-scroll {
-  overflow-x: auto;
-  padding: 1rem 0;
+.typst-tree {
+  overflow: auto;
+  padding: 0.75rem 0 1rem;
 }
 
-.tree-node {
-  display: inline-flex;
-  flex-direction: column;
-  align-items: stretch;
-  margin: 0 0.6rem;
-}
-
-.tree-premises {
-  display: flex;
-  gap: 1.2rem;
-  align-items: flex-end;
-  justify-content: center;
-}
-
-.tree-rule {
-  display: flex;
-  align-items: center;
-  gap: 0.6em;
-  margin-top: 0.45rem;
-}
-
-.tree-rule-line {
-  flex: 1;
-  min-width: 1.5rem;
-  border-top: 1.5px solid
-    color-mix(in srgb, var(--terminal-fg) 65%, transparent);
-}
-
-.tree-label {
-  font-size: 0.85em;
-  font-weight: 600;
-  color: var(--ansi-green);
-  white-space: nowrap;
-}
-
-.tree-conclusion {
-  padding: 0.4rem 0 0;
-  white-space: nowrap;
-  text-align: center;
+.typst-tree svg {
+  display: block;
+  height: auto;
+  /* trees may grow very wide; scroll instead of squashing */
+  max-width: none;
 }
 
 /*

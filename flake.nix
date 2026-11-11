@@ -220,13 +220,13 @@
             cp "${impliWeb system}/web/stub.js" web/public/stub.js
             chmod +w web/public/impli.wasm web/public/stub.js
 
+            echo "Copying assets in web/static to web/public..."
+            cp -r static/* public
+
             echo "Running deno task build..."
             cd web
             ${pkgs.deno}/bin/deno task build
             echo "Done!"
-
-            echo "Copying assets in web/static to web/public..."
-            cp -r static/* public
           '';
         in
         {
