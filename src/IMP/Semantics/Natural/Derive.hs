@@ -78,7 +78,7 @@ source = prettify
 
 -- | Visible bindings of a state, comma-separated.
 bindings :: State -> String
-bindings state = showBindings $ filter (not . ("_" `isPrefixOf`) . fst) $ getVars state
+bindings state = showBindings $ filter (not . ("_" `isPrefixOf`) . fst) $ Map.toList $ getVars state
     where
         showBindings [] = ""
         showBindings [(name, value)] = name ++ " := " ++ show value
