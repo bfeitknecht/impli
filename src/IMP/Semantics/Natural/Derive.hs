@@ -103,9 +103,9 @@ random value = value * 6364136223846793005 + 1442695040888963407
 
 -- | Draw the next non-negative pseudo-random value.
 draw :: Derivation -> (Integer, Derivation)
-draw derivation =
-    let value = random (seed derivation)
-    in (abs value `mod` 2147483647, derivation {seed = value})
+draw derivation = (abs next `mod` 2147483647, derivation {seed = next})
+    where
+        next = random (seed derivation)
 
 -- | Next value to give a @read@ statement: replay input, zero when exhausted.
 next :: Derivation -> (Integer, Derivation)
@@ -162,9 +162,11 @@ deriveWith derivation (stm, state) = case stm of
             ( derivation {stdout = stdout derivation ++ [show (evaluate e state)]}
             , Node (Rule "Print" (to (stm, state) state) []) state
             )
-    Read x -> do
-        let (v, derivation') = next derivation
-        return $ leaf derivation' "Read" (stm, state) (setVar state x v)
+    Read x ->
+        let
+            (v, derivation') = next derivation
+        in
+            return $ leaf derivation' "Read" (stm, state) (setVar state x v)
     Local x a s -> do
         let
             old = getVar state x
@@ -186,8 +188,8 @@ deriveWith derivation (stm, state) = case stm of
         let taken = if even v then s1 else s2
         (derivation'', node) <- deriveWith derivation' (taken, state)
         return $ with derivation'' "Nondeterminate" (stm, state) [rule node] (result node)
-    ProcDef name parameters returns body ->
-        return $ leaf derivation "Procedure" (stm, state) $ setProc state name (parameters, returns, body)
+    ProcDef name params rets body ->
+        return $ leaf derivation "Procedure" (stm, state) $ setProc state name (params, rets, body)
     ProcInvoc name arguments returns ->
         case getProc state name of
             Nothing -> throwError . Error $ "undefined procedure: " ++ name
@@ -220,9 +222,11 @@ deriveWith derivation (stm, state) = case stm of
             Nothing -> do
                 (derivation', node) <- deriveWith derivation (d, state)
                 return $ with derivation' "Default" (stm, state) [rule node] (result node)
-    Havoc x -> do
-        let (v, derivation') = draw derivation
-        return $ leaf derivation' "Havoc" (stm, state) (setVar state x v)
+    Havoc x ->
+        let
+            (v, derivation') = draw derivation
+        in
+            return $ leaf derivation' "Havoc" (stm, state) (setVar state x v)
     Assert b ->
         if evaluate b state
             then return $ leaf derivation "Pass" (stm, state) state
