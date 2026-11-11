@@ -45,7 +45,6 @@ module IMP.Engine (
 import Control.Monad.Except
 import Control.Monad.Reader
 import Control.Monad.State hiding (State)
-import Control.Monad.Trans.Class (lift)
 
 import qualified Data.Map as Map
 
@@ -183,9 +182,9 @@ drive :: (Monad m) => Semantics -> Stm -> Engine m Configuration
 drive semantics stm = case semantics of
     Natural -> do
         handlers <- ask
-        state <- gets environment
+        st <- gets environment
         modify $ \session -> session {stepHistory = [], profile = emptyProfile}
-        result <- hoistEngine $ interpret handlers (stm, state)
+        result <- hoistEngine $ interpret handlers (stm, st)
         case result of
             Left e -> throwError (RuntimeFault e)
             Right state' -> do
@@ -241,7 +240,7 @@ renderAspect session aspect = case aspect of
         explain
             "Variables:"
             -- INFO: Invariant of IMP.State.setVar guarantees no empty string key
-            [k ++ " = " ++ show v | (k, v) <- Map.toList vars, head k /= '_']
+            [k ++ " = " ++ show v | (k, v) <- Map.toList vars, visible k]
     Procs ->
         explain
             "Procedures:"
@@ -260,6 +259,8 @@ renderAspect session aspect = case aspect of
             ]
     where
         (vars, procs, flag) = environment session
+        visible ('_' : _) = False
+        visible _ = True
 
 -- | Render performed step for debug output.
 renderStep :: Step -> String

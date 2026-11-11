@@ -167,7 +167,8 @@ instance {-# OVERLAPPING #-} ToJSON State where
             ]
         where
             -- INFO: Invariant of IMP.State.setVar guarantees no empty string key
-            notHidden k = head k /= '_'
+            notHidden ('_' : _) = False
+            notHidden _ = True
 
 instance ToJSON Exception where
     toJSON e = case e of

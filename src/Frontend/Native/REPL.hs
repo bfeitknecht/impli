@@ -191,10 +191,10 @@ stdioHandlers =
 
 -- | Read-Evaluate-Print-Loop with haskeline for interactive use.
 repl :: Options -> IO ()
-repl options = do
+repl opts = do
     putStrLn welcome
-    let settings = defaultSettings {historyFile = optHistory options}
-    outcome <- runInputT settings $ withInterrupt $ try (loop (Loop options boot))
+    let settings = defaultSettings {historyFile = optHistory opts}
+    outcome <- runInputT settings $ withInterrupt $ try (loop (Loop opts boot))
     case outcome of
         Left Aborted -> putStrLn goodbye -- ctrl-d during read, flush line and exit cleanly
         Right () -> putStrLn goodbye -- ctrl-d or :quit, clean exit
@@ -205,6 +205,7 @@ loop l = handleInterrupt (loop l) $ do
     result <- try (iteration l)
     case result of
         Left UserInterrupt -> outputStrLn "\n*** ERROR: interrupted" >> loop l
+        Left e -> liftIO (Exception.throwIO e)
         Right Nothing -> return ()
         Right (Just l') -> loop l'
 
