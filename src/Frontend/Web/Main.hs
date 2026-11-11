@@ -176,6 +176,10 @@ retrySuspension = do
                 jsonOut (Envelope [] (Awaiting suspension (Just (focusDetail fl)) True))
         _ -> jsonOut (Envelope [] (Failed NoFlight))
 
+-- | Unused entrypoint: the JavaScript host or wasmtime drives the exported API.
+main :: IO ()
+main = return ()
+
 -- | Export startup API.
 foreign export javascript "start" startAPI :: IO ()
 
