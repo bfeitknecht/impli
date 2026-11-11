@@ -103,17 +103,16 @@ executable impli-web
     -no-hs-main
     -optl-mexec-model=reactor
     "-optl-Wl,--export=start"
+    "-optl-Wl,--export=bootSession"
     "-optl-Wl,--export=evaluate"
+    "-optl-Wl,--export=advance"
     "-optl-Wl,--export=resolveInput"
     "-optl-Wl,--export=resolveChoice"
     "-optl-Wl,--export=resolveHavoc"
-    "-optl-Wl,--export=interrupt"
+    "-optl-Wl,--export=cancel"
     "-optl-Wl,--export=getPrompt"
     "-optl-Wl,--export=helpText"
     "-optl-Wl,--export=versionText"
-    "-optl-Wl,--export=showState"
-    "-optl-Wl,--export=showTrace"
-    "-optl-Wl,--export=showSteps"
     "-optl-Wl,--export=parseAst"
     "-optl-Wl,--export=resetSession"
 
