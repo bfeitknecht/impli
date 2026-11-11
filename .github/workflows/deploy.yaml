@@ -55,6 +55,22 @@ jobs:
           path: paper-copy.log
           if-no-files-found: ignore
 
+      - name: Diagnose pages artifact archival
+        if: always()
+        run: |
+          tar --dereference --hard-dereference --directory "web/public" \
+            -cvf "$RUNNER_TEMP/manual.tar" --exclude=.git --exclude=.github --exclude=.[^/]* . \
+            > manual-tar.log 2>&1 || true
+          ls -la web/public >> manual-tar.log 2>&1 || true
+
+      - name: Upload diagnostic log
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: manual-tar-log
+          path: manual-tar.log
+          if-no-files-found: ignore
+
       - name: Upload artifact for GitHub Pages
         uses: actions/upload-pages-artifact@v5
         with:
