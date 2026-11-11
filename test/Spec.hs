@@ -74,7 +74,7 @@ testParseStm =
             (Par (VarDef "x" Def (Val 1)) (VarDef "y" Def (Val 2)))
         , assertParseStm
             "x := 1 [] y := 2"
-            (NonDet (VarDef "x" Def (Val 1)) (VarDef "x" Def (Val 2)))
+            (NonDet (VarDef "x" Def (Val 1)) (VarDef "y" Def (Val 2)))
         , assertParseStm
             "skip par skip; skip [] skip"
             (Seq (Par Skip Skip) (NonDet Skip Skip))
