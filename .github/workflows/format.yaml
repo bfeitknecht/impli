@@ -18,6 +18,7 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Check Haskell formatting
+        id: format
         uses: haskell-actions/run-fourmolu@v13
         with:
           version: "0.19.0.1"
@@ -29,8 +30,8 @@ jobs:
           extra_nix_config: |
             experimental-features = nix-command flakes
 
-      - name: Annotate fourmolu diff on failure
-        if: failure()
+      - name: Annotate fourmolu diff on fourmolu failure
+        if: always() && steps.format.outputs.outcome == 'failure'
         run: |
           curl -sSL -o fourmolu https://github.com/fourmolu/fourmolu/releases/download/v0.19.0.1/fourmolu-0.19.0.1-linux-x86_64
           chmod +x fourmolu
