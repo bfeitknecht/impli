@@ -155,6 +155,10 @@ data Session = Session
 -- | Engine monad stack over abstract base monad.
 type Engine m = ReaderT (Handlers m) (StateT Session (ExceptT Fault m))
 
+-- | Lift an action of the base monad into the engine monad.
+hoistEngine :: (Monad m) => m a -> Engine m a
+hoistEngine = lift . lift . lift
+
 -- | Run engine computation with handlers and session over base monad.
 runEngine :: Handlers m -> Session -> Engine m a -> m (Either Fault (a, Session))
 runEngine handlers session action = runExceptT $ runStateT (runReaderT action handlers) session
@@ -181,7 +185,7 @@ drive semantics stm = case semantics of
         handlers <- ask
         state <- gets environment
         modify $ \session -> session {stepHistory = [], profile = emptyProfile}
-        result <- lift $ interpret handlers (stm, state)
+        result <- hoistEngine $ interpret handlers (stm, state)
         case result of
             Left e -> throwError (RuntimeFault e)
             Right state' -> do
@@ -278,7 +282,7 @@ drain :: (Monad m) => Configuration -> Engine m Configuration
 drain conf = case conf of
     Blocked suspension -> do
         handlers <- ask
-        resolution <- lift $ case suspension of
+        resolution <- hoistEngine $ case suspension of
             AwaitInput x -> ResolveInput <$> onInput handlers x
             AwaitHavoc _ -> ResolveHavoc <$> onRandom handlers
             AwaitChoice -> ResolveChoice <$> onChoice handlers
@@ -298,14 +302,14 @@ spin = loop
                     case blocked fl of
                         Stepped s' -> do
                             handlers <- ask
-                            interrupted <- lift (pollInterrupt handlers)
+                            interrupted <- hoistEngine (pollInterrupt handlers)
                             if interrupted
                                 then do
                                     modify $ \s -> s {flight = Nothing}
                                     throwError Interrupted
                                 else do
                                     record s'
-                                    mapM_ (\(Output text) -> lift (onOutput handlers text)) (effects s')
+                                    mapM_ (\(Output text) -> hoistEngine (onOutput handlers text)) (effects s')
                                     let gamma = residual s'
                                     let conf = step gamma
                                     modify $ \s -> s {flight = Just fl {focus = gamma, blocked = conf}}
