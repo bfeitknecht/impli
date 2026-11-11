@@ -58,18 +58,14 @@ jobs:
       - name: Diagnose pages artifact archival
         if: always()
         run: |
-          tar --dereference --hard-dereference --directory "web/public" \
-            -cvf "$RUNNER_TEMP/manual.tar" --exclude=.git --exclude=.github --exclude=.[^/]* . \
-            > manual-tar.log 2>&1 || true
-          ls -la web/public >> manual-tar.log 2>&1 || true
-
-      - name: Upload diagnostic log
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: manual-tar-log
-          path: manual-tar.log
-          if-no-files-found: ignore
+          echo "::notice title=diag-ls::public: $(ls web/public 2>&1 | tr '\n' '|') temp=$(ls $RUNNER_TEMP 2>&1 | head -c 120 | tr '\n' '|')"
+          if tar --dereference --hard-dereference --directory "web/public" -cf "$RUNNER_TEMP/manual.tar" --exclude=.git --exclude=.github --exclude='.[^/]*' . 2>tar-err.log; then
+            echo "::notice title=diag-tar::manual tar ok, size $(stat -c%s $RUNNER_TEMP/manual.tar)"
+          else
+            echo "::error title=diag-tar::manual tar failed rc=$? err=$(head -c 400 tar-err.log | tr '\n' '~')"
+          fi
+          FREE=$(df -m "$RUNNER_TEMP" | tail -1 | awk '{print $4}')
+          echo "::notice title=diag-disk::temp free MB=$FREE"
 
       - name: Upload artifact for GitHub Pages
         uses: actions/upload-pages-artifact@v5
