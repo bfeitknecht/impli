@@ -438,6 +438,7 @@ instance ToJSON Flight where
             , "focus" .= focus fl
             , "blocked" .= blocked fl
             , "resolutions" .= resolutions fl
+            , "start" .= startState fl
             ]
 
 instance FromJSON Flight where
@@ -447,6 +448,7 @@ instance FromJSON Flight where
             <*> object .: "focus"
             <*> object .: "blocked"
             <*> object .: "resolutions"
+            <*> object .: "start"
 
 instance ToJSON Derive.Rule where
     toJSON node =

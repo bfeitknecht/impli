@@ -75,6 +75,7 @@ export interface FlightJson {
   focus: FocusJson;
   blocked: ConfigurationJson;
   resolutions: ResolutionJson[];
+  start: StateJson;
 }
 
 /** Resolution recorded by the engine, enabling exact replay for derivation trees. */

@@ -122,6 +122,8 @@ data Flight = Flight
     -- ^ Latest configuration of the focus.
     , resolutions :: [Resolution]
     -- ^ Resolutions applied so far, in chronological order.
+    , startState :: State
+    -- ^ State at the start of the interpretation; 'focus' tracks the live one.
     }
     deriving (Eq, Show)
 
@@ -200,11 +202,12 @@ beginWith fuel stm = do
     case flight session of
         Just _ -> throwError BusyFlight
         Nothing -> return ()
-    let gamma = (stm, environment session)
+    let env = environment session
+    let gamma = (stm, env)
     let conf = step gamma
     put
         session
-            { flight = Just Flight {statement = stm, focus = gamma, blocked = conf, resolutions = []}
+            { flight = Just Flight {statement = stm, focus = gamma, blocked = conf, resolutions = [], startState = env}
             , stepHistory = []
             , profile = emptyProfile
             }
@@ -353,7 +356,7 @@ pause fuel conf = case conf of
                     session
                         { environment = state'
                         , flight = Nothing
-                        , trace = (statement fl, snd (focus fl), resolutions fl) : trace session
+                        , trace = (statement fl, startState fl, resolutions fl) : trace session
                         }
             Nothing -> return ()
         return conf
