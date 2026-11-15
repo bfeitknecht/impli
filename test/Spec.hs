@@ -33,6 +33,7 @@ import IMP.Parser
 import IMP.Pretty
 import IMP.State
 import IMP.Syntax
+import REPL.Command
 import REPL.Core (program)
 import REPL.Input (incomplete)
 
@@ -175,6 +176,12 @@ regressions =
         , fails "procedure p(; ) begin break end" (Error "break outside loop")
         , testCase "pretty-print parenthesizes" $
             stringify (stm "x := (1 + 2) * 3") @?= "x := (1 + 2) * 3"
+        , testCase "abbreviated metacommands take arguments" $ do
+            parser @Command "test" "l prime.imp" @?= Right (Load "prime.imp")
+            parser @Command "test" "load prime.imp" @?= Right (Load "prime.imp")
+            parser @Command "test" "s vars" @?= Right (Show Vars)
+            parser @Command "test" "r" @?= Right (Reset All)
+            assertBool "longer word" (either (const True) (const False) (parser @Command "test" "loadx prime.imp"))
         ]
 
 properties :: TestTree

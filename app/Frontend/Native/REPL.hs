@@ -25,6 +25,7 @@ import Control.Monad.Except
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.Trans.Class (lift)
 import Data.List (isPrefixOf)
+import GHC.Clock (getMonotonicTimeNSec)
 import System.Console.Haskeline
 import System.Exit (exitFailure)
 import System.Random (randomIO)
@@ -79,6 +80,7 @@ instance MonadREPL Native where
         where
             readFile' p = readFile p >>= \s -> length s `seq` return s
     save path content = liftIO $ either (Left . show) Right <$> Exception.try @Exception.IOException (writeFile path content)
+    clock = liftIO (toInteger <$> getMonotonicTimeNSec)
 
 -- | Read-Evaluate-Print-Loop with haskeline for interactive use.
 repl :: Options -> IO ()
@@ -94,7 +96,7 @@ repl opts = do
 -- | Loop reading and submitting input until quit or end of input.
 loop :: Session -> InputT IO ()
 loop session = do
-    line <- handleInterrupt (return (Just "")) (readInput prompt "")
+    line <- handleInterrupt (return (Just "")) (readInput (prompt (verbosity session)) "")
     case line of
         Nothing -> return ()
         Just input' -> do

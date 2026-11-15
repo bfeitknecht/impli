@@ -34,12 +34,14 @@ data Session = Session
     -- ^ Executed statements, most recent first.
     , semantics :: Semantics
     -- ^ Semantics to interpret statements with.
+    , verbosity :: Level
+    -- ^ Verbosity level of reports.
     }
     deriving (Eq, Show)
 
--- | Fresh session with initial state, empty trace and natural semantics.
+-- | Fresh session with initial state, empty trace, semantics and normal verbosity.
 fresh :: Semantics -> Session
-fresh = Session initial []
+fresh sem = Session initial [] sem Normal
 
 -- | Record executed statement with resulting state.
 record :: Stm -> State -> Session -> Session
@@ -48,7 +50,7 @@ record stm state' session = session {state = state', trace = stm : trace session
 -- | Reset aspect of session.
 reset :: Aspect -> Session -> Session
 reset aspect session = case aspect of
-    All -> fresh (semantics session)
+    All -> (fresh (semantics session)) {verbosity = verbosity session}
     Vars -> session {state = resetVars (state session)}
     Procs -> session {state = resetProcs (state session)}
     Trace -> session {trace = []}

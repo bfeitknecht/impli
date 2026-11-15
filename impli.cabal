@@ -104,6 +104,7 @@ executable impli-web
     "-optl-Wl,--export=submit"
     "-optl-Wl,--export=complete"
     "-optl-Wl,--export=incomplete"
+    "-optl-Wl,--export=prompt"
 
   if !arch(wasm32)
     buildable: False

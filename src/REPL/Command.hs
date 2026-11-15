@@ -15,6 +15,7 @@ module REPL.Command (
     Aspect (..),
     Element (..),
     Option (..),
+    Level (..),
     commands,
     helpText,
 ) where
@@ -55,9 +56,18 @@ data Element
     deriving (Eq, Show)
 
 -- | Setting changed via @:set@.
-newtype Option
+data Option
     = Interpretation Semantics
+    | Verbose Level
     deriving (Eq, Show)
+
+-- | Verbosity level, @profile@ reports resource usage and @debug@ additionally
+-- the parsed statement and steps of structural semantics.
+data Level
+    = Normal
+    | Profile
+    | Debug
+    deriving (Bounded, Enum, Eq, Show)
 
 -- | Names of metacommands, for completion.
 commands :: [String]
@@ -81,6 +91,7 @@ helpText =
             , ":write FILE             Write trace to file"
             , ":ast (INPUT | #n)       Show AST of input or n-th statement in trace"
             , ":set semantics SEM      Interpret with semantics (natural, structural)"
+            , ":set verbose LEVEL      Set verbosity level (normal, profile, debug)"
             ]
 
 -- | Parser for aspect.
@@ -104,9 +115,14 @@ instance Parses Element where
 -- | Parser for setting.
 instance Parses Option where
     parses =
-        Interpretation
-            <$ symbol "semantics"
-            <*> choice [Natural <$ symbol "natural", Structural <$ symbol "structural"]
+        choice
+            [ Interpretation
+                <$ symbol "semantics"
+                <*> choice [Natural <$ symbol "natural", Structural <$ symbol "structural"]
+            , Verbose
+                <$ symbol "verbose"
+                <*> choice [Normal <$ symbol "normal", Profile <$ symbol "profile", Debug <$ symbol "debug"]
+            ]
 
 -- | Parser for metacommand, without leading colon.
 instance Parses Command where
@@ -124,5 +140,7 @@ instance Parses Command where
             , AST <$ command "ast" <*> parses
             ]
         where
-            command name@(c : _) = try (symbol name) <|> try (symbol [c] <* notFollowedBy alphaNum)
+            command name@(c : _) = whole name <|> whole [c]
             command [] = parserZero
+            -- INFO: Check the word boundary before whitespace, so the abbreviation in @:l FILE@ parses
+            whole w = try (string w <* notFollowedBy alphaNum) <* whitespace

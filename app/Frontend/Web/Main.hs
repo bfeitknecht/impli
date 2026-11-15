@@ -20,6 +20,7 @@ module Main where
 import Control.Monad.Except
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Data.IORef
+import GHC.Clock (getMonotonicTimeNSec)
 import GHC.Wasm.Prim
 import System.IO.Unsafe (unsafePerformIO)
 import System.Random (randomIO)
@@ -104,6 +105,7 @@ instance MonadREPL Web where
             then Right . fromJSString <$> js_load (toJSString path)
             else return (Left "no such example, try :load followed by tab")
     save path content = liftIO $ Right <$> js_save (toJSString path) (toJSString content)
+    clock = liftIO (toInteger <$> getMonotonicTimeNSec)
 
 -- | Reset to a fresh session and greet.
 boot :: IO ()
@@ -130,6 +132,10 @@ complete prefix = do
     current <- readIORef session
     return . toJSString . unlines $ completions current (fromJSString prefix)
 
+-- | Prompt for input in the current session.
+prompt' :: IO JSString
+prompt' = toJSString . prompt . verbosity <$> readIORef session
+
 -- | Whether input continues on the next line, 1 if so.
 incomplete :: JSString -> IO Int
 incomplete line = return $ if Input.incomplete (fromJSString line) then 1 else 0
@@ -138,6 +144,7 @@ foreign export javascript "boot" boot :: IO ()
 foreign export javascript "submit" submit :: JSString -> IO Int
 foreign export javascript "complete" complete :: JSString -> IO JSString
 foreign export javascript "incomplete" incomplete :: JSString -> IO Int
+foreign export javascript "prompt" prompt' :: IO JSString
 
 -- | Unused, the reactor is driven through its exports.
 main :: IO ()

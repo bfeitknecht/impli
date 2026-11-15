@@ -1,5 +1,9 @@
+{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeApplications #-}
 
 {- |
@@ -15,7 +19,9 @@ The REPL logic shared by all frontends. A frontend reads a line, possibly
 continued over several lines while 'REPL.Input.incomplete', and passes it to
 'submit', which interprets the metacommand or construct and returns the
 updated session. Frontends provide 'MonadREPL' for their context. Failures
-are reported and leave the session as it was before the input.
+are reported and leave the session as it was before the input. Verbosity
+@profile@ reports elapsed time and steps taken after each statement, @debug@
+additionally displays the parsed statement and every structural step.
 -}
 module REPL.Core (
     MonadREPL (..),
@@ -28,21 +34,26 @@ module REPL.Core (
     version,
 ) where
 
-import Control.Monad.Except (catchError)
+import Control.Monad (when)
+import Control.Monad.Except (MonadError, catchError, throwError)
+import Control.Monad.State.Strict (MonadState, StateT, lift, modify, runStateT)
 import Data.Char (isSpace)
 import Data.Version (showVersion)
+import Text.Printf (printf)
 
+import IMP.Check
 import IMP.Effect
 import IMP.Exception
 import IMP.Expression
 import IMP.Interpret
 import IMP.Parser
 import IMP.Pretty
-import IMP.State (State, initial)
+import IMP.State (Flow (..), State, initial)
 import IMP.Syntax
 import REPL.Command
 import REPL.Session
 
+import qualified IMP.Semantics.Structural as Structural
 import qualified Paths_impli as Paths
 
 -- | Monad in which the REPL runs, providing terminal and file access.
@@ -59,6 +70,9 @@ class (MonadIMP m) => MonadREPL m where
     -- | Write file content, or describe failure.
     save :: FilePath -> String -> m (Either String ())
 
+    -- | Monotonic time in nanoseconds, for profiling.
+    clock :: m Integer
+
 -- | Message displayed on entry of the REPL.
 welcome :: String
 welcome = "Welcome to the IMP REPL! Enter :help to list available metacommands or :quit to exit."
@@ -67,9 +81,14 @@ welcome = "Welcome to the IMP REPL! Enter :help to list available metacommands o
 goodbye :: String
 goodbye = "Goodbye!"
 
--- | Prompt for input.
-prompt :: String
-prompt = "IMP> "
+-- | Prompt for input, separator marks verbosity level.
+prompt :: Level -> String
+prompt level = "IMP" ++ separator : " "
+    where
+        separator = case level of
+            Normal -> '>'
+            Profile -> '+'
+            Debug -> '*'
 
 -- | Prompt for continued input.
 continuation :: String
@@ -133,6 +152,12 @@ command cmd session = case cmd of
     Set (Interpretation sem) -> do
         inform $ "semantics: " ++ if sem == Natural then "natural" else "structural"
         continue session {semantics = sem}
+    Set (Verbose level) -> do
+        inform $ "verbosity: " ++ case level of
+            Normal -> "normal"
+            Profile -> "profile"
+            Debug -> "debug"
+        continue session {verbosity = level}
 
 -- | Interpret construct in session.
 construct :: (MonadREPL m) => Construct -> Session -> m Session
@@ -146,10 +171,60 @@ construct c session = case c of
 
 -- | Execute statement in session, recording it on success.
 statement :: (MonadREPL m) => Stm -> Session -> m (Maybe Session)
-statement stm session =
-    attempt (execute (semantics session) stm (state session)) >>= \case
-        Left e -> report e >> return Nothing
-        Right state' -> return . Just $ record stm state' session
+statement stm session = case verbosity session of
+    Normal ->
+        attempt (execute (semantics session) stm (state session)) >>= \case
+            Left e -> report e >> return Nothing
+            Right state' -> return . Just $ record stm state' session
+    level -> do
+        when (level == Debug) $ say (show stm)
+        start <- clock
+        result <- attempt $ case (level, semantics session) of
+            (Debug, Structural) -> stepwise stm (state session)
+            (_, sem) -> counted (execute sem stm (state session))
+        end <- clock
+        case result of
+            Left e -> report e >> return Nothing
+            Right (state', steps) -> do
+                say $ printf "[%s] elapsed: %.3f ms" (if level == Debug then "debug" else "profile") (millis (end - start))
+                    ++ if semantics session == Structural then ", " ++ show steps ++ " steps" else ""
+                return . Just $ record stm state' session
+    where
+        millis ns = fromInteger ns / 1e6 :: Double
+
+-- | Interpretation counting ticks, the steps of structural semantics.
+newtype Counted m a = Counted (StateT Integer m a)
+    deriving (Applicative, Functor, Monad, MonadState Integer)
+
+deriving instance (MonadError Exception m) => MonadError Exception (Counted m)
+
+instance (MonadIMP m) => MonadIMP (Counted m) where
+    input = Counted . lift . input
+    output = Counted . lift . output
+    choose = Counted (lift choose)
+    arbitrary = Counted (lift arbitrary)
+    tick = modify (+ 1) >> Counted (lift tick)
+
+-- | Run interpretation, return result and number of ticks.
+counted :: (MonadIMP m) => Counted m a -> m (a, Integer)
+counted (Counted m) = runStateT m 0
+
+-- | Execute statement with structural semantics, displaying every step.
+stepwise :: (MonadREPL m) => Stm -> State -> m (State, Integer)
+stepwise stm state' = liftEval (check stm) >> go 0 (Structural.step (Structural.Source stm, state'))
+    where
+        go !n conf = case conf of
+            Structural.Stepped s -> do
+                say $ drop 4 (show (Structural.rule s)) ++ " => " ++ stringify (fst (Structural.residual s))
+                mapM_ (\(Structural.Output o) -> output o) (Structural.effects s)
+                tick
+                go (n + 1) (Structural.step (Structural.residual s))
+            Structural.AwaitInput x k -> input x >>= go n . k
+            Structural.AwaitHavoc _ k -> arbitrary >>= go n . k
+            Structural.AwaitChoice k -> choose >>= go n . k
+            Structural.Final (Next final) -> return (final, n)
+            Structural.Final (Broken _) -> throwError $ Error "break outside loop" -- INFO: Unreachable after check
+            Structural.Stuck e -> throwError e
 
 -- | Parse and execute program in initial state, for non-interactive use.
 program :: (MonadIMP m) => Semantics -> String -> String -> m (Either Exception State)
