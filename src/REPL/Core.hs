@@ -153,10 +153,11 @@ command cmd session = case cmd of
         inform $ "semantics: " ++ if sem == Natural then "natural" else "structural"
         continue session {semantics = sem}
     Set (Verbose level) -> do
-        inform $ "verbosity: " ++ case level of
-            Normal -> "normal"
-            Profile -> "profile"
-            Debug -> "debug"
+        inform $
+            "verbosity: " ++ case level of
+                Normal -> "normal"
+                Profile -> "profile"
+                Debug -> "debug"
         continue session {verbosity = level}
 
 -- | Interpret construct in session.
@@ -186,8 +187,9 @@ statement stm session = case verbosity session of
         case result of
             Left e -> report e >> return Nothing
             Right (state', steps) -> do
-                say $ printf "[%s] elapsed: %.3f ms" (if level == Debug then "debug" else "profile") (millis (end - start))
-                    ++ if semantics session == Structural then ", " ++ show steps ++ " steps" else ""
+                say $
+                    printf "[%s] elapsed: %.3f ms" (if level == Debug then "debug" else "profile") (millis (end - start))
+                        ++ if semantics session == Structural then ", " ++ show steps ++ " steps" else ""
                 return . Just $ record stm state' session
     where
         millis ns = fromInteger ns / 1e6 :: Double
