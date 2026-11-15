@@ -1,472 +1,294 @@
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE TypeApplications #-}
 
+{- |
+Module      : Main
+Description : Test suite for the IMP language interpreter
+Copyright   : (c) Basil Feitknecht, 2025
+License     : MIT
+Maintainer  : bfeitknecht@ethz.ch
+Stability   : stable
+Portability : portable
+
+Specification of parsing, pretty-printing and both semantics, including
+agreement of natural and structural semantics on generated programs.
+-}
 module Main where
 
+import Control.Monad.Except
+import Control.Monad.State.Strict hiding (State)
+import System.Directory (listDirectory)
+import System.FilePath (takeExtension, (</>))
+import Test.QuickCheck
 import Test.Tasty hiding (Timeout)
 import Test.Tasty.HUnit
+import Test.Tasty.QuickCheck (QuickCheckTests (..), testProperty)
 
-import Frontend.Native.Meta
-import IMP.Engine hiding (Profile)
-import IMP.Exception (Exception (..))
+import qualified Data.Map.Strict as Map
+
+import qualified IMP.Effect as Effect
+import IMP.Exception
 import IMP.Expression
-import IMP.Kernel
+import IMP.Interpret
 import IMP.Parser
 import IMP.Pretty
 import IMP.State
 import IMP.Syntax
+import REPL.Core (program)
+import REPL.Input (incomplete)
+
+-- | Scripted interpretation: inputs and choices are consumed from lists, output is collected.
+newtype Script a = Script (StateT ([Integer], [Bool], [String]) (Either Exception) a)
+    deriving (Functor, Applicative, Monad, MonadError Exception, MonadState ([Integer], [Bool], [String]))
+
+instance Effect.MonadIMP Script where
+    input _ = state $ \(is, cs, os) -> case is of
+        i : is' -> (i, (is', cs, os))
+        [] -> (0, ([], cs, os))
+    output o = modify $ \(is, cs, os) -> (is, cs, o : os)
+    choose = state $ \(is, cs, os) -> case cs of
+        c : cs' -> (c, (is, cs', os))
+        [] -> (True, (is, [], os))
+    arbitrary = Effect.input "havoc"
+
+-- | Run script with inputs, return result and output.
+script :: [Integer] -> Script a -> Either Exception (a, [String])
+script inputs (Script m) = fmap (\(a, (_, _, os)) -> (a, reverse os)) (runStateT m (inputs, [], []))
+
+-- | Parse statement or fail test.
+stm :: String -> Stm
+stm source = either (error . show) id (parser "test" source)
+
+-- | Execute source with semantics, return final state and output.
+exec :: Semantics -> String -> Either Exception (State, [String])
+exec sem source = script [] (execute sem (stm source) initial)
+
+-- | Both semantics.
+both :: [Semantics]
+both = [Natural, Structural]
+
+-- | Assert output of source under both semantics.
+outputs :: String -> [String] -> TestTree
+outputs source out =
+    testCase source $
+        mapM_
+            (\sem -> fmap snd (exec sem source) @?= Right out)
+            both
+
+-- | Assert failure of source under both semantics.
+fails :: String -> Exception -> TestTree
+fails source e =
+    testCase source $
+        mapM_
+            (\sem -> either Left (const (Right ())) (exec sem source) @?= Left e)
+            both
 
 main :: IO ()
-main = defaultMain tests
+main = do
+    examples <- loadExamples
+    defaultMain . localOption (QuickCheckTests 500) $
+        testGroup
+            "impli"
+            [ parsing
+            , semantics
+            , regressions
+            , properties
+            , testGroup "Examples" examples
+            ]
 
-tests :: TestTree
-tests =
+parsing :: TestTree
+parsing =
     testGroup
-        "IMP Tests"
-        [ testParse
-        , testKernel
-        , testEngine
-        , testMeta
-        , testEval
+        "Parsing"
+        [ testCase "precedence of statements" $
+            stm "a := 1; b := 2 par c := 3 [] d := 4"
+                @?= Seq
+                    (VarDef "a" Def (Val 1))
+                    (Par (VarDef "b" Def (Val 2)) (NonDet (VarDef "c" Def (Val 3)) (VarDef "d" Def (Val 4))))
+        , testCase "sequence is right associative" $
+            stm "a := 1; b := 2; c := 3"
+                @?= Seq (VarDef "a" Def (Val 1)) (Seq (VarDef "b" Def (Val 2)) (VarDef "c" Def (Val 3)))
+        , testCase "parenthesized arithmetic in relation" $
+            parser @Bexp "test" "(1 + 2) * 3 < x" @?= Right (Rel Lt (Bin Mul (Bin Add (Val 1) (Val 2)) (Val 3)) (Var "x"))
+        , testCase "time extends over sequence" $
+            stm "x := time a := 1; b := 2"
+                @?= VarDef "x" Def (Time (Seq (VarDef "a" Def (Val 1)) (VarDef "b" Def (Val 2))))
+        , testCase "boolean operators are reserved" $
+            assertBool "not as variable" (either (const True) (const False) (parser @Stm "test" "not := 1"))
+        , testCase "do until desugars to breaking loop" $
+            stm "do x += 1 until x > 2 end"
+                @?= While (Lit True) (Seq (VarDef "x" Inc (Val 1)) (IfElse (Rel Gt (Var "x") (Val 2)) Break Skip))
+        , testCase "incomplete input continues" $ do
+            incomplete "while x < 3 do" @?= True
+            incomplete "while x < 3 do x += 1 end" @?= False
+            incomplete "x := (1 +" @?= True
+            incomplete "x := 1 )" @?= False
+            incomplete ":show" @?= False
+            incomplete "/* comment" @?= True
         ]
 
--- | Handlers over IO with deterministic scripted resolutions: input and havoc yield 42, choice goes left.
-scriptHandlers :: Handlers IO
-scriptHandlers =
-    Handlers
-        { onInput = \_ -> return 42
-        , onOutput = \_ -> return ()
-        , onChoice = return True
-        , onRandom = return 42
-        , pollInterrupt = return False
-        }
-
-testParse :: TestTree
-testParse =
+semantics :: TestTree
+semantics =
     testGroup
-        "Parse"
-        [ testParseStm
-        , testParseAexp
-        , testParseBexp
-        , testParseConstruct
+        "Semantics"
+        [ outputs "x := 3; while x > 0 do print x; x -= 1 end" ["3", "2", "1"]
+        , outputs "x := 1; let x := 2 in print x end; print x" ["2", "1"]
+        , outputs "let y := 2 in skip end; print y" ["0"]
+        , outputs "procedure f(a; b) begin b := a * a end; f(7; r); print r" ["49"]
+        , outputs "procedure fac(n; r) begin if n <= 1 then r := 1 else fac(n - 1; r); r *= n end end; fac(25; r); print r" ["15511210043330985984000000"]
+        , outputs "x := 5; revert x := 1 if x = 1 end; print x" ["5"]
+        , outputs "x := 5; revert x := 2 if x = 1 end; print x" ["2"]
+        , outputs "try x := 1; raise 7; x := 2 catch e with print e end; print x" ["7", "0"]
+        , outputs "match 2 on 1: print 1, 2: print 2, default: print 0 end" ["2"]
+        , outputs "x := 1; y := 2; swap x y; print x; print y" ["2", "1"]
+        , outputs "i := 0; while i < 4 do flip(0) print 1 flop print 2 end; i += 1 end" ["1", "2", "1", "2"]
+        , outputs "repeat 3 times print 9 end" ["9", "9", "9"]
+        , outputs "for i := 0 to 3 do print i end" ["0", "1", "2"]
+        , outputs "x := 0; timeout while true do x += 1 end after 10 end; print x" ["3"]
+        , outputs "x := 0; (x := x + 1; x := x + 1) alternate x := x * 10; print x" ["11"]
+        , outputs "print (time (a := 1; b := 2))" ["3"]
+        , outputs "print 7 / 0; print 7 % 0" ["0", "7"]
+        , fails "assert 1 = 2" (AssertFail "1 = 2")
+        , fails "raise 3" (Raised 3)
+        , fails "f(; )" (Error "undefined procedure: f")
+        , fails "print (time while true do skip end)" (Error "time exceeded limit of 1000000 steps")
+        , testCase "read input" $
+            fmap snd (script [42] (execute Natural (stm "read x; print x + 1") initial)) @?= Right ["43"]
         ]
 
-testParseStm :: TestTree
-testParseStm =
+regressions :: TestTree
+regressions =
     testGroup
-        "Statement"
-        [ assertParseStm "skip" Skip
-        , assertParseStm "x := 1" (VarDef "x" Def (Val 1))
-        , assertParseStm "(skip; skip)" (Seq Skip Skip)
-        , assertParseStm "if true then skip end" (IfElse (Lit True) Skip Skip)
-        , assertParseStm "if true then skip else skip end" (IfElse (Lit True) Skip Skip)
-        , assertParseStm
-            "if true then skip else if true then skip end end"
-            (IfElse (Lit True) Skip (IfElse (Lit True) Skip Skip))
-        , assertParseStm
-            "while false do if true then skip else if true then skip end end end"
-            (While (Lit False) (IfElse (Lit True) Skip (IfElse (Lit True) Skip Skip)))
-        , assertParseStm "while true do skip end" (While (Lit True) Skip)
-        , assertParseStm "print 1" (Print (Val 1))
-        , assertParseStm "read x" (Read "x")
-        , assertParseStm "let x := 1 in skip end" (Local "x" (Val 1) Skip)
-        , assertParseStm
-            "x := 1 par y := 2"
-            (Par (VarDef "x" Def (Val 1)) (VarDef "y" Def (Val 2)))
-        , assertParseStm
-            "x := 1 [] y := 2"
-            (NonDet (VarDef "x" Def (Val 1)) (VarDef "y" Def (Val 2)))
-        , assertParseStm
-            "skip par skip; skip [] skip"
-            (Seq (Par Skip Skip) (NonDet Skip Skip))
-        , assertParseStm
-            "x := time (a := 1; b := 2)"
-            (VarDef "x" Def (Time (Seq (VarDef "a" Def (Val 1)) (VarDef "b" Def (Val 2)))))
-        , assertParseStm
-            "procedure foo(;) begin skip end; foo(;)"
-            (Seq (ProcDef "foo" [] [] Skip) (ProcInvoc "foo" [] []))
-        , assertParseStm
-            "do x := 1 until false end"
-            (Seq (VarDef "x" Def (Val 1)) (While (Not (Lit False)) (VarDef "x" Def (Val 1))))
-        , assertParseStm
-            "for i := 0 to 3 do skip end"
-            (Local "i" (Val 0) (While (Rel Lt (Var "i") (Val 3)) (Seq Skip (VarDef "i" Inc (Val 1)))))
-        , assertParseStm
-            "repeat 4 times skip end"
-            (Local "_times" (Val 0) (While (Rel Lt (Var "_times") (Val 4)) (Seq Skip (VarDef "_times" Inc (Val 1)))))
-        , assertParseStm
-            "revert x := 1 if true end"
-            (Revert (VarDef "x" Def (Val 1)) (Lit True))
-        , assertParseStm "x := 1 + 2 * 3" (VarDef "x" Def (Bin Add (Val 1) (Bin Mul (Val 2) (Val 3))))
-        , assertParseStm "x := (1 + 2) * 3" (VarDef "x" Def (Bin Mul (Bin Add (Val 1) (Val 2)) (Val 3)))
-        , assertParseStm
-            "x := 1 [] y := 2 par z := 3"
-            (Par (NonDet (VarDef "x" Def (Val 1)) (VarDef "y" Def (Val 2))) (VarDef "z" Def (Val 3)))
+        "Regressions"
+        [ outputs "x := 0; while true do break; x := 1 end; print x" ["0"]
+        , outputs "i := 0; while true do let y := 0 in break end; i := 1 end; print i" ["0"]
+        , outputs "i := 0; while i < 1 do i := 1; break end; j := 0; while j < 3 do j += 1 end; print j" ["3"]
+        , outputs "x := 2; y := (time while x > 0 do x -= 1 end); print y; print x" ["7", "2"]
+        , outputs "x := 0; do x += 1; if x = 5 then break end until x > 9 end; print x" ["5"]
+        , outputs "while true do try break catch e with skip end end; print 1" ["1"]
+        , outputs "while true do revert break if false end end; print 1" ["1"]
+        , outputs "procedure p(; ) begin while true do break end end; p(; ); print 1" ["1"]
+        , fails "break" (Error "break outside loop")
+        , fails "procedure p(; ) begin break end" (Error "break outside loop")
+        , testCase "pretty-print parenthesizes" $
+            stringify (stm "x := (1 + 2) * 3") @?= "x := (1 + 2) * 3"
         ]
 
-testParseAexp :: TestTree
-testParseAexp =
+properties :: TestTree
+properties =
     testGroup
-        "Arithmetic Expression"
-        [ assertParseConstruct "(1)" $ Arithmetic (Val 1)
-        , assertParseConstruct "x" $ Arithmetic (Var "x")
-        , assertParseConstruct "1 + 2" $ Arithmetic (Bin Add (Val 1) (Val 2))
-        , assertParseConstruct "1 - 2" $ Arithmetic (Bin Sub (Val 1) (Val 2))
-        , assertParseConstruct "1 * 2" $ Arithmetic (Bin Mul (Val 1) (Val 2))
+        "Properties"
+        [ testProperty "parse after pretty-print is identity" $ \(Program s) ->
+            counterexample (prettify s) $ parser @Stm "property" (prettify s) === Right s
+        , testProperty "natural and structural agree" $ \(Program s) ->
+            counterexample (prettify s) $
+                let
+                    run sem = either (Left . show) (Right . vars . fst) (script [] (execute sem s initial))
+                in
+                    run Natural === run Structural
         ]
 
-testParseBexp :: TestTree
-testParseBexp =
-    testGroup
-        "Boolean Expression"
-        [ assertParseConstruct "(true)" $ Boolean (Lit True)
-        , assertParseConstruct "x < 0" $ Boolean (Rel Lt (Var "x") (Val 0))
-        ]
+-- | Generated statement.
+newtype Program = Program Stm
+    deriving (Show)
 
-testParseConstruct :: TestTree
-testParseConstruct =
-    testGroup
-        "Construct"
-        [ assertParseConstruct "/**/" Whitespace
-        ]
+instance Arbitrary Program where
+    arbitrary = Program <$> sized (genStm True False)
+    shrink (Program s) = map Program (shrinkStm s)
 
-testKernel :: TestTree
-testKernel =
-    testGroup
-        "Kernel"
-        [ testCase "step vardef updates residual state" $
-            case step (VarDef "x" Def (Val 2), initial) of
-                Stepped Step {residual = (Skip, state')} -> getVar state' "x" @?= 2
-                conf -> assertFailure $ "expected stepped vardef, got: " ++ show conf
-        , testCase "read suspends and resumes with input value" $
-            case step (Read "x", initial) of
-                Blocked (AwaitInput "x") ->
-                    case resume (Read "x", initial) (ResolveInput 7) of
-                        Stepped Step {residual = (Skip, state')} -> getVar state' "x" @?= 7
-                        conf -> assertFailure $ "expected resumed read, got: " ++ show conf
-                conf -> assertFailure $ "expected blocked read, got: " ++ show conf
-        , testCase "havoc suspends and resumes with arbitrary value" $
-            case step (Havoc "x", initial) of
-                Blocked (AwaitHavoc "x") ->
-                    case resume (Havoc "x", initial) (ResolveHavoc 7) of
-                        Stepped Step {residual = (Skip, state')} -> getVar state' "x" @?= 7
-                        conf -> assertFailure $ "expected resumed havoc, got: " ++ show conf
-                conf -> assertFailure $ "expected blocked havoc, got: " ++ show conf
-        , testCase "nondet suspends and resumes with branch choice" $ do
-            let stm = NonDet (VarDef "x" Def (Val 1)) (VarDef "x" Def (Val 2))
-            case step (stm, initial) of
-                Blocked AwaitChoice ->
-                    case resume (stm, initial) (ResolveChoice False) of
-                        Stepped Step {residual = (VarDef "x" Def (Val 2), _)} -> return ()
-                        conf -> assertFailure $ "expected resumed right branch, got: " ++ show conf
-                conf -> assertFailure $ "expected blocked choice, got: " ++ show conf
-        , testCase "parallel suspends and resumes with order choice" $ do
-            let stm = Par (VarDef "x" Def (Val 1)) (VarDef "y" Def (Val 2))
-            case step (stm, initial) of
-                Blocked AwaitChoice ->
-                    case resume (stm, initial) (ResolveChoice False) of
-                        Stepped Step {residual = (Seq (VarDef "y" Def (Val 2)) (VarDef "x" Def (Val 1)), _)} -> return ()
-                        conf -> assertFailure $ "expected resumed reorder, got: " ++ show conf
-                conf -> assertFailure $ "expected blocked choice, got: " ++ show conf
-        , testCase "sequential read suspension resumes into remaining sequence" $
-            case step (Seq (Read "x") (VarDef "y" Def (Val 1)), initial) of
-                Blocked (AwaitInput "x") ->
-                    case resume (Seq (Read "x") (VarDef "y" Def (Val 1)), initial) (ResolveInput 3) of
-                        Stepped Step {residual = (Seq Skip (VarDef "y" Def (Val 1)), state')} ->
-                            getVar state' "x" @?= 3
-                        conf -> assertFailure $ "expected resumed sequence, got: " ++ show conf
-                conf -> assertFailure $ "expected blocked sequence, got: " ++ show conf
-        , testCase "trycatch suspension resumes through contexts" $ do
-            let stm = TryCatch (Seq (Read "x") (Raise (Val 1))) "y" (VarDef "z" Def (Var "y"))
-            (blocked, conf1) <- case step (stm, initial) of
-                Blocked susp -> return (susp, resume (stm, initial) (ResolveInput 5))
-                conf -> assertFailure $ "expected blocked trycatch, got: " ++ show conf
-            case blocked of
-                AwaitInput "x" -> return ()
-                susp -> assertFailure $ "expected input suspension, got: " ++ show susp
-            case conf1 of
-                Stepped Step {residual = (TryCatch (Seq Skip (Raise (Val 1))) "y" _, state')} ->
-                    getVar state' "x" @?= 5
-                conf -> assertFailure $ "expected resumed wrapped trycatch, got: " ++ show conf
-        , testCase "trycatch catches raise from inner statement" $
-            case step (TryCatch (Raise (Val 1)) "y" Skip, initial) of
-                Stepped Step {residual = (Skip, state')} -> getVar state' "y" @?= 1
-                conf -> assertFailure $ "expected caught raise, got: " ++ show conf
-        , testCase "invalid resolution is stuck" $
-            case resume (Read "x", initial) (ResolveChoice True) of
-                Stuck (Error _) -> return ()
-                conf -> assertFailure $ "expected stuck on mismatch, got: " ++ show conf
-        , testCase "procedure invocation rewrites to body with return snapshot" $ do
-            let body = VarDef "x" Def (Bin Add (Var "x") (Val 1))
-            let stm = ProcInvoc "inc" [Val 10] ["y"]
-            let state = setProc initial "inc" (["x"], ["x"], body)
-            case step (stm, state) of
-                Stepped Step {residual = (Seq s' (Return {}), local)} -> do
-                    s' @?= body
-                    getVar local "x" @?= 10
-                    getVar local "y" @?= 0 -- callee state is local
-                conf -> assertFailure $ "expected invocation rewrite, got: " ++ show conf
-        , testCase "local restores scope through restore snapshot" $
-            case step (Local "x" (Val 5) (VarDef "y" Def (Var "x")), initial) of
-                Stepped Step {residual = (Seq s' (Restore _), local)} -> do
-                    s' @?= VarDef "y" Def (Var "x")
-                    getVar local "x" @?= 5
-                conf -> assertFailure $ "expected local rewrite, got: " ++ show conf
-        , testCase "timeout expires to skip" $
-            case step (Timeout Skip (Val 0), initial) of
-                Stepped Step {residual = (Skip, _)} -> return ()
-                conf -> assertFailure $ "expected timeout expiry, got: " ++ show conf
-        , testCase "alternate interleaves" $
-            case step (Alternate (VarDef "x" Def (Val 1)) Skip, initial) of
-                Stepped Step {residual = (Alternate s' _, state')} -> do
-                    s' @?= Skip
-                    getVar state' "x" @?= 1
-                conf -> assertFailure $ "expected alternate interleave, got: " ++ show conf
-        ]
+-- | Variables of generated programs.
+names :: [String]
+names = ["x", "y", "z"]
 
-testEngine :: TestTree
-testEngine =
-    testGroup
-        "Engine"
-        [ testCase "drive natural commits trace and environment" $ do
-            let stm = VarDef "x" Def (Val 1)
-            outcome <- runEngine scriptHandlers boot (drive Natural stm)
-            case outcome of
-                Left fault -> assertFailure $ "drive failed: " ++ show fault
-                Right (_, session) -> do
-                    getVar (environment session) "x" @?= 1
-                    trace session @?= [(stm, initial, [])]
-        , testCase "drive natural soaks up read via handler" $ do
-            outcome <- runEngine scriptHandlers boot (drive Natural (Read "x"))
-            case outcome of
-                Left fault -> assertFailure $ "drive failed: " ++ show fault
-                Right (_, session) -> getVar (environment session) "x" @?= 42
-        , testCase "drive structural suspends on read and handler resolves" $ do
-            outcome <- runEngine scriptHandlers boot (drive Structural (Read "x"))
-            case outcome of
-                Left fault -> assertFailure $ "drive failed: " ++ show fault
-                Right (conf, session) -> do
-                    case conf of
-                        Terminal state' -> getVar state' "x" @?= 42
-                        other -> assertFailure $ "expected terminal, got: " ++ show other
-                    getVar (environment session) "x" @?= 42
-                    trace session @?= [(Read "x", initial, [ResolveInput 42])]
-        , testCase "begin blocks and proceed resolves" $ do
-            outcome <- runEngine scriptHandlers boot $ do
-                conf <- begin (Read "x")
-                case conf of
-                    Blocked _ -> proceed (ResolveInput 9)
-                    other -> return other
-            case outcome of
-                Left fault -> assertFailure $ "engine failed: " ++ show fault
-                Right (conf, session) -> case conf of
-                    Terminal state' -> getVar state' "x" @?= 9
-                    other -> assertFailure $ "expected terminal, got: " ++ show other
-        , testCase "begin on busy flight faults" $ do
-            outcome <- runEngine scriptHandlers boot $ do
-                _ <- begin (Read "x")
-                _ <- begin Skip
-                return ()
-            case outcome of
-                Left BusyFlight -> return ()
-                other -> assertFailure $ "expected busy fault, got: " ++ show other
-        , testCase "proceed without flight faults" $ do
-            outcome <- runEngine scriptHandlers boot (proceed (ResolveInput 1))
-            case outcome of
-                Left NoFlight -> return ()
-                other -> assertFailure $ "expected no-flight fault, got: " ++ show other
-        , testCase "stuck statement clears flight" $ do
-            outcome <- runEngine scriptHandlers boot (drive Structural (Assert (Lit False)))
-            case outcome of
-                Left (RuntimeFault (AssertFail _)) -> return ()
-                other -> assertFailure $ "expected assert failure, got: " ++ show other
-        , testCase "reset aspects" $ do
-            outcome <- runEngine scriptHandlers boot $ do
-                _ <- drive Natural (VarDef "x" Def (Val 1))
-                resetAspect All
-            case outcome of
-                Left fault -> assertFailure $ "reset failed: " ++ show fault
-                Right (_, session) -> do
-                    environment session @?= initial
-                    trace session @?= []
-        , testCase "procedure call by structural drive" $ do
-            let body = VarDef "x" Def (Bin Add (Var "x") (Val 1))
-            let stm = Seq (ProcDef "inc" ["x"] ["x"] body) (ProcInvoc "inc" [Val 10] ["y"])
-            outcome <- runEngine scriptHandlers boot (drive Structural stm)
-            case outcome of
-                Left fault -> assertFailure $ "drive failed: " ++ show fault
-                Right (_, session) -> do
-                    getVar (environment session) "y" @?= 11
-                    getVar (environment session) "x" @?= 0 -- callee scope does not leak
-        , testCase "rule profile is recorded" $ do
-            outcome <- runEngine scriptHandlers boot (drive Structural (VarDef "x" Def (Val 1)))
-            case outcome of
-                Left fault -> assertFailure $ "drive failed: " ++ show fault
-                Right (_, session) -> stepCount (profile session) > 0 @? "expected recorded steps"
-        ]
+genAexp :: Int -> Gen Aexp
+genAexp n
+    | n <= 0 = oneof [Val <$> choose (-3, 9), Var <$> elements names]
+    | otherwise =
+        frequency
+            [ (3, genAexp 0)
+            , (3, Bin <$> elements [Add, Sub, Mul, Div, Mod] <*> genAexp (n `div` 2) <*> genAexp (n `div` 2))
+            , (1, Time <$> genStm False False (n `div` 3))
+            ]
 
-testMeta :: TestTree
-testMeta =
-    testGroup
-        "Command"
-        [ assertParseCommand "help" Help
-        , assertParseCommand "?" Help
-        , assertParseCommand "h" Help
-        , assertParseCommand "quit" Quit
-        , assertParseCommand "q" Quit
-        , assertParseCommand "clear" Clear
-        , assertParseCommand "c" Clear
-        , assertParseCommand "version" Version
-        , assertParseCommand "v" Version
-        , assertParseCommand "reset" (Reset All)
-        , assertParseCommand "reset vars" (Reset Vars)
-        , assertParseCommand "reset procs" (Reset Procs)
-        , assertParseCommand "reset break" (Reset Flag)
-        , assertParseCommand "reset trace" (Reset Trace)
-        , assertParseCommand "r" (Reset All)
-        , assertParseCommand "show" (Show All)
-        , assertParseCommand "show vars" (Show Vars)
-        , assertParseCommand "show procs" (Show Procs)
-        , assertParseCommand "show break" (Show Flag)
-        , assertParseCommand "show trace" (Show Trace)
-        , assertParseCommand "s" (Show All)
-        , assertParseCommand "load foo.imp" (Load "foo.imp")
-        , assertParseCommand "write out.imp" (Write "out.imp")
-        , assertParseCommand "ast skip" (AST (Input (Statement Skip)))
-        , assertParseCommand "ast #1" (AST (Index 1))
-        , assertParseCommand "ast 1 + 2" (AST (Input (Arithmetic (Bin Add (Val 1) (Val 2)))))
-        , assertParseCommand "set verbose normal" (Verbose Normal)
-        , assertParseCommand "set verbose profile" (Verbose Profile)
-        , assertParseCommand "set verbose debug" (Verbose Debug)
-        ]
+genBexp :: Int -> Gen Bexp
+genBexp n
+    | n <= 0 = oneof [Lit <$> arbitrary, Rel <$> elements [Eq, Neq, Lt, Leq, Gt, Geq] <*> genAexp 1 <*> genAexp 1]
+    | otherwise =
+        oneof
+            [ genBexp 0
+            , Not <$> genBexp (n - 1)
+            , And <$> genBexp (n `div` 2) <*> genBexp (n `div` 2)
+            , Or <$> genBexp (n `div` 2) <*> genBexp (n `div` 2)
+            ]
 
-testEval :: TestTree
-testEval =
-    testGroup
-        "Evaluate"
-        [ testExecStm
-        , testExecAexp
-        , testExecBexp
-        ]
-
-testExecStm :: TestTree
-testExecStm =
-    testGroup
-        "Statement"
-        [ assertExec initial Skip ([], [])
-        , assertExec initial (VarDef "x" Def (Val 10)) ([("x", 10)], [])
-        , assertExec
-            initial
-            (IfElse (Lit True) (VarDef "x" Def (Val 1)) Skip)
-            ([("x", 1)], [])
-        , assertExec
-            initial
-            (IfElse (Lit False) Skip (VarDef "x" Def (Val 2)))
-            ([("x", 2)], [])
-        , assertExec
-            (setVar initial "x" 3)
-            (While (Rel Gt (Var "x") (Val 0)) (VarDef "x" Dec (Val 1)))
-            ([("x", 0)], [])
-        , assertExec
-            initial
-            (Local "x" (Val 5) (VarDef "y" Def (Var "x")))
-            ([("x", 0), ("y", 5)], []) -- x is unchanged
-        , assertExec
-            initial
-            (Par (VarDef "x" Def (Val 1)) (VarDef "y" Def (Val 2)))
-            ([("x", 1), ("y", 2)], [])
-        , assertExec
-            initial
-            (NonDet (VarDef "x" Def (Val 1)) (VarDef "x" Def (Val 2)))
-            ([("x", 1)], []) -- scripted choice goes left
-        , let
-            body = VarDef "x" Def (Bin Add (Var "x") (Val 1))
-            stm =
-                Seq
-                    (ProcDef "inc" ["x"] ["x"] body)
-                    (ProcInvoc "inc" [Val 10] ["y"])
-          in
-            assertExec initial stm ([("y", 11)], [("inc", (["x"], ["x"], body))])
-        , assertExec
-            initial
-            (Seq (Read "x") (VarDef "y" Def (Var "x")))
-            ([("x", 42), ("y", 42)], []) -- scripted input is 42
-        , assertExec
-            initial
-            (VarDef "x" Def (Time (Seq (VarDef "a" Def (Val 1)) (VarDef "b" Def (Val 2)))))
-            ([("x", 2)], [])
-        , assertExec (setVar initial "x" 0) (Revert (VarDef "x" Def (Val 1)) (Lit True)) ([("x", 0)], [])
-        , assertExec initial (Havoc "x") ([("x", 42)], []) -- scripted havoc is 42
-        , assertExec
-            initial
-            (TryCatch (Raise (Val 5)) "x" Skip)
-            ([("x", 5)], [])
-        ]
-
-testExecAexp :: TestTree
-testExecAexp =
-    testGroup
-        "Arithmetic Expression"
-        [ assertEvalAexp initial (Val 1) 1
-        , assertEvalAexp initial (Var "x") 0
-        , assertEvalAexp initial (Bin Add (Val 1) (Val 2)) 3
-        , assertEvalAexp initial (Bin Sub (Val 2) (Val 3)) (-1)
-        , assertEvalAexp initial (Bin Mul (Val 3) (Val 4)) 12
-        , let stm =
-                Time $
-                    Seq
-                        (Seq (VarDef "a" Def (Val 1)) (VarDef "a" Def (Val 2)))
-                        (IfElse (Lit True) (VarDef "c" Def (Val 3)) Skip)
-          in assertEvalAexp initial stm 3
-        ]
-
-testExecBexp :: TestTree
-testExecBexp =
-    testGroup
-        "Boolean Expression"
-        [ assertEvalBexp initial (Rel Eq (Val 1) (Val 1)) True
-        , assertEvalBexp initial (Rel Neq (Val 1) (Val 2)) True
-        , assertEvalBexp initial (Rel Lt (Val 1) (Val 2)) True
-        , assertEvalBexp initial (Rel Leq (Val 1) (Val 2)) True
-        , assertEvalBexp initial (Rel Gt (Val 2) (Val 1)) True
-        , assertEvalBexp initial (Rel Geq (Val 1) (Val 1)) True
-        , assertEvalBexp initial (Lit True) True
-        , assertEvalBexp initial (Lit False) False
-        , assertEvalBexp initial (And (Lit True) (Lit False)) False
-        , assertEvalBexp initial (Or (Lit False) (Lit True)) True
-        , assertEvalBexp initial (Not (Lit True)) False
-        ]
-
-assertParseStm :: String -> Stm -> TestTree
-assertParseStm input expected =
-    testCase input $
-        parser "test" input @?= Right expected
-
-assertParseConstruct :: String -> Construct -> TestTree
-assertParseConstruct input expected =
-    testCase input $
-        parser "test" input @?= Right expected
-
-assertParseCommand :: String -> Command -> TestTree
-assertParseCommand input expected =
-    testCase input $
-        parser "test" input @?= Right expected
-
-assertEvalAexp :: State -> Aexp -> Integer -> TestTree
-assertEvalAexp state e val = testCase (stringify e) $ evaluate e state @?= val
-
-assertEvalBexp :: State -> Bexp -> Bool -> TestTree
-assertEvalBexp state b bool = testCase (stringify b) $ evaluate b state @?= bool
-
--- | Assert execution result with both semantics, using scripted handlers.
-assertExec :: State -> Stm -> ([(String, Integer)], [(String, Proc)]) -> TestTree
-assertExec state stm (vars, procs) =
-    testGroup (stringify stm) [assertWith Natural, assertWith Structural]
+-- | Generate statement, whether procedures may be called and whether inside loop.
+-- Loops are bounded by a guard counter and procedures don't call procedures.
+genStm :: Bool -> Bool -> Int -> Gen Stm
+genStm calls looping n
+    | n <= 1 =
+        oneof $
+            [ return Skip
+            , VarDef <$> elements names <*> elements [Def, Inc, Dec, Prod, Quot, Rem] <*> genAexp 2
+            , Print <$> genAexp 1
+            , Swap <$> elements names <*> elements names
+            ]
+                ++ [return Break | looping]
+    | otherwise =
+        let sub = genStm calls looping (n `div` 2)
+        in frequency $
+            [ (2, genStm calls looping 0)
+            , (4, Seq <$> sub <*> sub)
+            , (2, IfElse <$> genBexp 2 <*> sub <*> sub)
+            , (2, bounded <$> elements ["c", "d"] <*> choose (0, 3) <*> genStm calls True (n `div` 2))
+            , (1, Local <$> elements names <*> genAexp 1 <*> sub)
+            , (1, Revert <$> sub <*> genBexp 1)
+            , (1, Match <$> genAexp 1 <*> listOf ((,) <$> choose (0, 3) <*> sub) <*> sub)
+            , (1, FlipFlop <$> choose (0, 2) <*> sub <*> sub)
+            , (1, TryCatch <$> sub <*> elements names <*> sub)
+            , (1, Raise <$> genAexp 1)
+            , (1, Timeout <$> sub <*> genAexp 1)
+            , (1, Alternate <$> sub <*> sub)
+            ]
+                ++ [ (1, ProcDef "p" ["x"] ["y"] <$> genStm False False (n `div` 2)) | calls]
+                ++ [ (1, ProcInvoc "p" <$> vectorOf 1 (genAexp 1) <*> vectorOf 1 (elements names)) | calls]
     where
-        assertWith semantics = testCase (show semantics) $ do
-            outcome <- runEngine scriptHandlers boot {environment = state} (drive semantics stm)
-            case outcome of
-                Left fault -> assertFailure $ "execution failed with fault: " ++ show fault
-                Right (_, session) -> do
-                    let env = environment session
-                    sequence_ [getVar env k @?= v | (k, v) <- vars]
-                    sequence_ [getProc env name @?= Just p | (name, p) <- procs]
+        bounded c k body = Local c (Val 0) (While (Rel Lt (Var c) (Val k)) (Seq (VarDef c Inc (Val 1)) body))
+
+-- | Shrink statement to substatements.
+shrinkStm :: Stm -> [Stm]
+shrinkStm s = case s of
+    Seq s1 s2 -> [s1, s2] ++ [Seq s1' s2 | s1' <- shrinkStm s1] ++ [Seq s1 s2' | s2' <- shrinkStm s2]
+    IfElse b s1 s2 -> [s1, s2] ++ [IfElse b s1' s2 | s1' <- shrinkStm s1] ++ [IfElse b s1 s2' | s2' <- shrinkStm s2]
+    Local x a s' -> s' : [Local x a s'' | s'' <- shrinkStm s']
+    Revert s' b -> s' : [Revert s'' b | s'' <- shrinkStm s']
+    TryCatch s1 _ s2 -> [s1, s2]
+    Timeout s' a -> [s']
+    Alternate s1 s2 -> [s1, s2]
+    FlipFlop _ s1 s2 -> [s1, s2]
+    Match _ ms d -> d : map snd ms
+    _ -> []
+
+-- | Expected outputs of deterministic examples, run with both semantics.
+expected :: [(FilePath, [String])]
+expected =
+    [ ("countdown.imp", map show [10 :: Integer, 9 .. 1])
+    , ("gauss.imp", ["4950"])
+    , ("local.imp", ["59", "42"])
+    , ("factorial.imp", map (show . (\n -> product [1 .. n])) [1 .. 20 :: Integer])
+    , ("divmod.imp", [])
+    ]
+
+-- | Test every example runs, and deterministic ones produce expected output.
+loadExamples :: IO [TestTree]
+loadExamples = do
+    let dir = "docs/examples"
+    files <- filter ((== ".imp") . takeExtension) <$> listDirectory dir
+    sources <- mapM (\f -> (,) f <$> readFile (dir </> f)) files
+    return
+        [ testCase (f ++ " " ++ show sem) $ case script [5, 3] (program sem f source) of
+            Left e -> assertFailure (show e)
+            Right (Left e, _) -> assertFailure (show e)
+            Right (Right _, out) -> maybe (return ()) (out @?=) (lookup f expected)
+        | (f, source) <- sources
+        , sem <- both
+        ]

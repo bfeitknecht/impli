@@ -18,8 +18,10 @@ module REPL.Input (
 ) where
 
 import Data.Char (isSpace)
+import Data.Either (lefts)
 import Data.List (isPrefixOf, nub, sort)
-import Text.Parsec.Error (Message (SysUnExpect), errorMessages)
+import Text.Parsec.Error (errorPos)
+import Text.Parsec.Pos (initialPos, updatePosString)
 
 import qualified Data.Map.Strict as Map
 
@@ -30,14 +32,23 @@ import IMP.Syntax
 import REPL.Command (commands)
 import REPL.Session
 
--- | Whether input is an unfinished construct, i.e. fails to parse only because it ended early.
+-- | Whether input is an unfinished construct, i.e. fails to parse only at its end.
 incomplete :: String -> Bool
 incomplete input = case dropWhile isSpace input of
     "" -> False
     ':' : _ -> False -- INFO: Metacommands are single line
-    _ -> case parser @Construct "input" input of
-        Right _ -> False
-        Left e -> SysUnExpect "" `elem` errorMessages e
+    _ -> case lefts results of
+        errors
+            | length errors < length results -> False -- INFO: Some construct parses
+            | otherwise -> any ((>= end) . errorPos) errors
+    where
+        end = updatePosString (initialPos "input") input
+        results =
+            [ () <$ parser @Stm "input" input
+            , () <$ parser @Aexp "input" input
+            , () <$ parser @Bexp "input" input
+            , () <$ parser @Construct "input" input
+            ]
 
 -- | Completion candidates for word prefix: keywords, metacommands, variables and procedures.
 completions :: Session -> String -> [String]
