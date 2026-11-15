@@ -10,11 +10,11 @@ export type Request =
 
 /** Worker to page. */
 export type Response =
-  | { type: "ready" }
+  | { type: "ready"; prompt: string }
   | { type: "output"; text: string }
   | { type: "clear" }
   | { type: "ask"; prompt: string }
   | { type: "save"; path: string; content: string }
-  | { type: "done" }
+  | { type: "done"; prompt: string }
   | { type: "reply"; id: number; value: unknown }
   | { type: "failed"; message: string };

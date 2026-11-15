@@ -1,16 +1,15 @@
 @font-face {
   font-family: "CommitMono";
   src: url("./CommitMonoV143-VF.woff2") format("woff2");
+  /* INFO: Without the axis range the variable font renders every weight alike */
+  font-weight: 200 700;
   font-display: swap;
 }
 
 /* Palette shared by page and terminal, see theme() in main.ts */
 :root {
-  --bg: #fafafa;
-  --fg: #1f1f1f;
-  --cursor: #1f1f1f;
-  --selection: #c8dcf5;
-  --dim: color-mix(in srgb, var(--fg) 50%, transparent);
+  --bg: #ffffff;
+  --fg: #000000;
 
   --ansi-black: #2e3436;
   --ansi-red: #c4262e;
@@ -32,10 +31,8 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #141414;
-    --fg: #d8d8d8;
-    --cursor: #f0f0f0;
-    --selection: #2c4a6e;
+    --bg: #000000;
+    --fg: #ffffff;
 
     --ansi-black: #1c1c1c;
     --ansi-red: #ef5f5f;
@@ -76,38 +73,29 @@ body {
   height: 100dvh;
 }
 
-header {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  padding: 12px 16px 8px;
-  flex: none;
-}
-
-header .name {
-  font-weight: 600;
-  letter-spacing: 0.02em;
-}
-
-nav {
-  display: flex;
-  gap: 16px;
-}
-
-nav a {
-  color: var(--dim);
-  text-decoration: none;
-  transition: color 120ms ease;
-}
-
-nav a:hover,
-nav a:focus-visible {
-  color: var(--fg);
-}
-
 #terminal {
   flex: 1;
   min-height: 0;
-  padding: 4px 16px 16px;
+  padding: 16px;
   overflow: hidden;
+  /* INFO: ghostty-web makes the container contenteditable, hide the native caret */
+  caret-color: transparent;
+  position: relative;
+}
+
+/* Anchors over the link labels, transparent until hovered, then inverted */
+.links a {
+  position: absolute;
+  color: transparent;
+  font-size: 14px;
+  text-decoration: underline;
+  overflow: hidden;
+  white-space: nowrap;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.links a:hover {
+  background: var(--fg);
+  color: var(--bg);
 }

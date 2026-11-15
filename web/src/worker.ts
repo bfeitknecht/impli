@@ -14,6 +14,7 @@ interface Exports {
   submit(line: string): Promise<number>;
   complete(prefix: string): Promise<string>;
   incomplete(input: string): Promise<number>;
+  prompt(): Promise<string>;
 }
 
 const post = (message: Response) => (self as unknown as Worker).postMessage(message);
@@ -91,7 +92,7 @@ self.onmessage = (event: MessageEvent<Request>) => {
         interrupted = false;
         await exports.submit(message.line);
         interrupted = false;
-        post({ type: "done" });
+        post({ type: "done", prompt: await exports.prompt() });
       });
       return;
     case "incomplete":
@@ -110,5 +111,5 @@ self.onmessage = (event: MessageEvent<Request>) => {
 
 ready.then(async (exports) => {
   await exports.boot();
-  post({ type: "ready" });
+  post({ type: "ready", prompt: await exports.prompt() });
 }).catch((error) => post({ type: "failed", message: String(error) }));

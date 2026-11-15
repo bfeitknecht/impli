@@ -61,6 +61,19 @@ await check("interrupt", ["while true do skip end"], ["*** ERROR: interrupted"])
 interruptAfter = -1;
 await check("session survives interrupt", ["print s"], ["499999500000"]);
 await check("break", ["x := 0; while true do break; x := 1 end; print x"], ["0"]);
+await check("abbreviated load", [":reset", ":l gauss.imp"], (out) => out.includes("4950"));
+await check(
+  "profile verbosity",
+  [":set semantics structural", ":set verbose profile", "print 1", ":set verbose normal", ":set semantics natural"],
+  (out) => out.some((o) => /^\[profile\] elapsed: [\d.]+ ms, \d+ steps$/.test(o)),
+);
+await exports.submit(":set verbose debug");
+const debugPrompt = await exports.prompt();
+await exports.submit(":set verbose normal");
+if (debugPrompt !== "IMP* " || (await exports.prompt()) !== "IMP> ") {
+  failures++;
+  console.log(`✗ prompt\n    got: ${JSON.stringify(debugPrompt)}`);
+} else console.log("✓ prompt");
 for (const name of Object.keys(examples)) {
   answers = ["5", "3"];
   await check(`example ${name}`, [":reset", `:load ${name}`], (out) => !out.some((o) => o.startsWith("*** ERROR")));

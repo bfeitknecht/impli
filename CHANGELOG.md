@@ -22,6 +22,11 @@ Clean-slate rebuild of the interpreter core and web frontend.
 - Web: ghostty-web REPL with the interpreter in a worker, session lives in
   WASM (fresh on reload), streamed output, Ctrl-C interrupts, exact big
   integers; tabs and panels removed for now
+- Fix abbreviated metacommands with arguments, e.g. `:l FILE` and `:s vars`
+- Restore `:set verbose LEVEL`: `profile` reports elapsed time and steps,
+  `debug` also the parsed statement and every structural step
+- Web: restore logo, banner with links to repository and paper, and `:tips`;
+  monochrome theme following the system, inverted selection and link hover
 - Remove engine, JSON session protocol, derivation trees and typst rendering
 
 ---
