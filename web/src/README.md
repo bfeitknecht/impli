@@ -1,32 +1,14 @@
 ## `impli` Web — Frontend Source
 
-This directory contains the TypeScript/Preact source for the `impli` web
-frontend.
+| File                         | Description                                                                      |
+| ---------------------------- | -------------------------------------------------------------------------------- |
+| [`main.ts`](main.ts)         | Page: ghostty-web terminal, REPL loop, Ctrl-C, downloads for `:write`            |
+| [`worker.ts`](worker.ts)     | Web worker hosting `impli.wasm`, bridging its JSFFI imports to the page          |
+| [`readline.ts`](readline.ts) | Line editor: history, completion, multi-line continuation, paste line by line    |
+| [`protocol.ts`](protocol.ts) | Messages between page and worker                                                 |
 
-### Files
-
-| File                                 | Description                                                                            |
-| ------------------------------------ | -------------------------------------------------------------------------------------- |
-| [`App.tsx`](App.tsx)                 | Root Preact component — checks browser compatibility and mounts the terminal           |
-| [`impli.ts`](impli.ts)               | `Impli` class — owns the xterm.js terminal, WASM instantiation, and JSFFI callbacks    |
-| [`util.ts`](util.ts)                 | Shared utilities: context-aware debug logger and `dedent` template-literal tag         |
-| [`Unsupported.tsx`](Unsupported.tsx) | Fallback component displayed when WebAssembly or required browser APIs are unavailable |
-
-### Overview
-
-`App` is the entry point rendered into `document.body`. On mount it instantiates
-`Impli`, which:
-
-1. Creates an `xterm.js` terminal with `FitAddon` (auto-resize) and
-   `LocalEchoAddon` (line editing, history, tab-completion).
-2. Fetches and instantiates `impli.wasm` via `WebAssembly.instantiateStreaming`,
-   wiring up the `@runno/wasi` shim and the auto-generated `stub.js` JSFFI
-   bridge.
-3. Calls `exports.start()` to launch the Haskell REPL inside the browser.
-
-The JSFFI bridge exposes `globalThis.impli` so the Haskell side can call back
-into JavaScript for terminal I/O (`readInput`, `write`, `writeTrace`,
-`writeWelcome`).
-
-For architecture details and build instructions see the
-[`web/` README](../README.md).
+The interpreter session lives in the WASM instance inside the worker, so a
+reload starts fresh. The page submits lines, the worker streams output back
+and asks for `read` input. Long-running interpretation yields to the worker's
+event loop every few thousand steps, where a Ctrl-C from the page is noticed
+and interrupts it without losing the session.

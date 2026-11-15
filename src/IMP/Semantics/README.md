@@ -1,64 +1,40 @@
 ## IMP Semantics
 
-This directory contains the two semantic models for the IMP language.
-
-### Modules
-
-| Module                        | Description                                                                                              |
-| ----------------------------- | -------------------------------------------------------------------------------------------------------- |
-| [`Structural`](Structural.hs) | Small-step (structural) semantics — one pure transition at a time over configurations, with suspensions  |
-| [`Natural`](Natural.hs)       | Big-step (natural) semantics — `MonadError` computation discharged by `Handlers`                             |
-
-### Overview
-
-Both modules implement the semantics defined in the FMFP course at ETH Zürich and documented in [`docs/paper/IMP.pdf`](../../../docs/paper/IMP.pdf).
+The two semantic models of the IMP language, as defined in the FMFP course at
+ETH Zürich and documented in [`docs/paper/IMP.pdf`](../../../docs/paper/IMP.pdf).
+Both agree on all deterministic programs, which the test suite checks on
+generated programs.
 
 #### Structural Semantics (`Structural.hs`)
 
-Implements the small-step judgment $\langle s, \sigma \rangle \underset{1}{\to} \gamma$ as a pair of pure functions on configurations `Gamma = (Stm, State)`.
+Implements $\langle s, \sigma \rangle \to_1 \gamma$ as a pure function on
+configurations `Gamma = (Term, State)`.
 
+```haskell
+step :: Gamma -> Configuration
 ```
-step   :: Gamma -> Configuration                  -- single reduction step
-resume :: Gamma -> Resolution -> Configuration    -- unblock a suspension
-```
 
-Configurations are `Stepped Step`, `Blocked Suspension`, `Stuck Exception` or
-`Terminal State`. Statements that interact with the outside world (`read`,
-`havoc`) and non-deterministic or parallel choice block as a `Suspension`
-which the frontend resolves externally. Applied inference rules are named in
-`Rule`, emitted outputs in `Effect`, so every `Step` is a self-contained
-record of the transition.
+A `Term` is a source statement in runtime context: sequential continuation,
+loop iteration, local scope, revertible transaction, procedure call frame
+(holding the callee's local state), exception handler, bounded or interleaved
+execution. The source syntax thus stays free of internal constructs.
 
-The machine is stack-free: procedure invocation and local scopes rewrite to
-`Return`/`Restore` sequences carrying state snapshots in the program itself,
-so suspension and resumption only need the plain configuration.
+A `Configuration` is one of
+
+- `Stepped Step`, a transition with its residual configuration, emitted output and applied `Rule`,
+- `AwaitInput`, `AwaitHavoc`, `AwaitChoice`, blocked with a continuation awaiting the value,
+- `Final Flow`, completed normally or by `break`,
+- `Stuck Exception`.
+
+`drive` and `run` discharge blocked configurations through `MonadIMP` and run
+to completion. `measure` counts steps purely for `time`.
 
 #### Natural Semantics (`Natural.hs`)
 
-Implements the big-step judgment $\langle s, \sigma \rangle \to \sigma'$ as a `MonadError` computation: external reads, writes, nondeterministic choices and havoc values come from the `Handlers` record of the driving frontend (`IMP.Handlers`), failures are `Exception`s.
+Implements $\langle s, \sigma \rangle \to \sigma'$ over `MonadIMP`, returning a
+`Flow` so `break` propagates to the innermost loop. `timeout` and `alternate`
+have no big-step rules and are delegated to the structural semantics.
 
+```haskell
+run :: MonadIMP m => Stm -> State -> m Flow
 ```
-run    :: Gamma -> Eff Effects State             -- program, interpreted by an engine
-input  :: String -> Eff effs Integer
-output :: String -> Eff effs ()
-choose :: Eff effs Bool
-fate   :: Eff effs Integer
-```
-
-This is the default execution model for the native frontend. Non-deterministic
-and parallel choice, `havoc` and `read` send effects which `IMP.Engine`
-discharges through the frontend's `Handlers`; the `IMP.Kernel` module
-specialises the same program to the fixed effect row `Effects`.
-
-#### Coverage
-
-The structural semantics supports **all** statements of the language,
-including `Timeout`, `Alternate` and `FlipFlop`. The natural semantics
-supports everything except `Timeout` and `Alternate`: bounded and interleaved
-execution are inherently small-step notions for which the big-step judgment
-has no rules — they raise an error in big-step interpretation, consistent
-with previous releases.
-
-Divergence from the legacy implementations: at a suspended `par`, the engine
-sequentialises the branches in the chosen order instead of interleaving
-small-steps.

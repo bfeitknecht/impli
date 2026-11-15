@@ -33,19 +33,24 @@ The most apparent deviations from the specifications are that parentheses are no
 
 The table below depicts the correspondence between semantics functions defined in the lectures and according functions in this project for $\sigma$ equivalent to `state`. For an overview of all natural semantics inference rules, check out the [paper](docs/paper/IMP.pdf).
 
-| FMFP                                          | `impli`                                                              |
-| --------------------------------------------- | -------------------------------------------------------------------- |
-| $\sigma_{\text{zero}}$                        | `IMP.State.initial`                                                  |
-| $\sigma(x)$                                   | `IMP.State.getVar state x`                                           |
-| $\sigma[x \mapsto n]$                         | `IMP.State.setVar state x n`                                         |
-| $\langle s, \sigma \rangle \to \cdot$         | `IMP.Kernel.run (s, state)` (discharged by the engine through handlers)|
-| $\langle s, \sigma \rangle \to_{1} \cdot$     | `IMP.Semantics.Structural.step (s, state)`                           |
-| $\langle s, \sigma \rangle \to_{1}^{*} \cdot$ | `IMP.Engine.drive IMP.Engine.Structural s`                           |
-| $\mathcal{N}[[n]]$                            | `n`                                                                  |
-| $\mathcal{A}[[a]]\sigma$                      | `IMP.Expression.evaluate a state`                                    |
-| $\mathcal{B}[[b]]\sigma$                      | `IMP.Expression.evaluate b state`                                    |
+| FMFP                                          | `impli`                                                       |
+| --------------------------------------------- | ------------------------------------------------------------- |
+| $\sigma_{\text{zero}}$                        | `IMP.State.initial`                                           |
+| $\sigma(x)$                                   | `IMP.State.getVar state x`                                    |
+| $\sigma[x \mapsto n]$                         | `IMP.State.setVar state x n`                                  |
+| $\langle s, \sigma \rangle \to \cdot$         | `IMP.Semantics.Natural.run s state`                           |
+| $\langle s, \sigma \rangle \to_{1} \cdot$     | `IMP.Semantics.Structural.step (Source s, state)`             |
+| $\langle s, \sigma \rangle \to_{1}^{*} \cdot$ | `IMP.Semantics.Structural.run s state`                        |
+| $\mathcal{N}[[n]]$                            | `n`                                                           |
+| $\mathcal{A}[[a]]\sigma$                      | `IMP.Expression.evaluate a state`                             |
+| $\mathcal{B}[[b]]\sigma$                      | `IMP.Expression.evaluate b state`                             |
 
-Blocked small-step configurations are unblocked with `IMP.Semantics.Structural.resume (s, state) resolution`.
+Both semantics run in any monad providing `IMP.Effect.MonadIMP` (input, output, choice, havoc). Some extensions behave as follows:
+
+- `break` immediately exits the innermost enclosing loop. A `break` outside a loop is rejected before execution.
+- `time s` evaluates to the number of small-step transitions of executing `s` (reads and havocs yield zero, choices go left), limited to one million steps.
+- `timeout s after a end` executes at most `a` small-step transitions of `s`. It and `alternate` are delegated to the structural semantics when interpreting with natural semantics.
+- `par` combines the states of both branches executed independently under natural semantics, and interleaves the branches at every step under structural semantics.
 
 ## Star History
 

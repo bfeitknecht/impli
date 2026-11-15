@@ -4,49 +4,33 @@ This directory contains the core modules of the IMP language interpreter.
 
 ### Modules
 
-| Module                        | Description                                                                                        |
-| ----------------------------- | -------------------------------------------------------------------------------------------------- |
-| [`Syntax`](Syntax.hs)         | Abstract syntax definitions for arithmetic, boolean expressions, statements, and procedures        |
-| [`Lexer`](Lexer.hs)           | Lexical analyzer defining keywords, operators, identifiers, and whitespace parsers                 |
-| [`Parser`](Parser.hs)         | Recursive descent parser with operator precedence for all language constructs                      |
-| [`Expression`](Expression.hs) | Expression evaluation for arithmetic (`Aexp`) and boolean (`Bexp`) expressions                     |
-| [`State`](State.hs)           | State management and pure utility functions                                                        |
-| [`Handlers`](Handlers.hs)     | Handlers record through which the semantics and engine reach the frontend's world                  |
-| [`Kernel`](Kernel.hs)         | Pure kernel facade: structural `step`/`resume` and natural `run` as a handler-driven computation   |
-| [`Engine`](Engine.hs)         | Session layer discharging kernel effects through frontend handlers, with trace and profile         |
-| [`Pretty`](Pretty.hs)         | Pretty-printing for all language constructs via the `prettyprinter` library                        |
-| [`Exception`](Exception.hs)   | Exception type encapsulating parse, assertion, IO, and runtime errors                              |
+| Module                        | Description                                                                         |
+| ----------------------------- | ----------------------------------------------------------------------------------- |
+| [`Syntax`](Syntax.hs)         | Abstract syntax of arithmetic and boolean expressions, statements and procedures    |
+| [`Lexer`](Lexer.hs)           | Lexical analyzer defining keywords, operators, identifiers and whitespace parsers   |
+| [`Parser`](Parser.hs)         | Parser with operator precedence for all language constructs                         |
+| [`Pretty`](Pretty.hs)         | Pretty-printing with precedence-aware parentheses, round-trips through the parser   |
+| [`State`](State.hs)           | State of variables and procedures, and the control flow outcome `Flow`              |
+| [`Expression`](Expression.hs) | Evaluation of arithmetic and boolean expressions                                    |
+| [`Check`](Check.hs)           | Static checks before execution, e.g. `break` outside loop                           |
+| [`Effect`](Effect.hs)         | `MonadIMP`, the interface through which the semantics reach the outside world       |
+| [`Interpret`](Interpret.hs)   | Entrypoint: check and execute a statement with either semantics                     |
+| [`Exception`](Exception.hs)   | Exception type for parse, assertion, IO and runtime errors                          |
 
 ### Architecture
 
-The interpreter is organized in three layers.
-
 ```
-Source text
-    │
-    ▼
-[Lexer] ── tokens ──► [Parser] ── AST ──► [Kernel]
+Source ──► [Parser] ── Stm ──► [Check] ──► [Interpret]
                                               │
-                              ┌───────────────┴───────────────┐
-                              ▼                               ▼
-                 [Semantics.Natural]              [Semantics.Structural]
-                 big-step, handler-driven         small-step, pure step/resume
-                 over effects                     on configurations
-                              └───────────────┬───────────────┘
-                                              ▼
-                                           [Engine]
-                              discharges effects through Handlers
-                              supplied by the frontend, manages
-                              environment, trace and profile
+                         ┌────────────────────┴────────────────────┐
+                         ▼                                         ▼
+               [Semantics.Natural]                      [Semantics.Structural]
+               big-step, over MonadIMP                  pure step on (Term, State),
+                                                        driven over MonadIMP
 ```
 
-The structural kernel is pure and serialisable: `step :: Gamma -> Configuration`
-performs a single transition over `Gamma = (Stm, State)` and may yield a
-`Blocked Suspension` for `read`, `havoc` and non-deterministic or parallel
-choice, which the frontend resolves and continues with
-`resume :: Gamma -> Resolution -> Configuration`. The natural semantics is
-computed over an arbitrary monad with `Handlers` (`IMP.Handlers`) for input, output and choice
-plus `Error Exception` via `MonadError`. All statements keep the machine
-configuration a plain `Gamma`: procedure invocation and local scope rewrite
-to `Return`/`Restore` sequences carrying state snapshots, so no state stack
-is needed.
+Frontends (`app/Frontend`) provide a `MonadIMP` instance and use the shared
+REPL logic in `src/REPL`. Planned tools build on the same pieces: the stepper
+and state debugger on `Structural.step`, which exposes every transition with
+its rule and residual configuration, proof trees on a recording instance of
+the natural semantics, the AST view on `Parser`.
