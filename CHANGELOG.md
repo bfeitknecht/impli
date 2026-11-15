@@ -4,6 +4,28 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [Unreleased]
+
+Clean-slate rebuild of the interpreter core and web frontend.
+
+- Fix `break`: exits the innermost loop immediately in both semantics, no
+  longer leaks into the next loop or gets lost in `let`; rejected outside loops
+- Fix `time` hanging on loops: counts small-step transitions of an actual run
+- Fix `timeout` growing its duration expression every step
+- Fix pretty-printing dropping parentheses, output now parses back
+- Fix parsing `(a) < b` and reserve `and`, `or`, `not` as keywords
+- Fix native REPL multi-line input, continuation decided by the parser
+- Natural and structural semantics agree on deterministic programs,
+  `timeout` and `alternate` work in both, checked by property tests
+- Both semantics written over `IMP.Effect.MonadIMP`, REPL logic shared by
+  native and web frontends (`src/REPL`), frontends moved to `app/`
+- Web: ghostty-web REPL with the interpreter in a worker, session lives in
+  WASM (fresh on reload), streamed output, Ctrl-C interrupts, exact big
+  integers; tabs and panels removed for now
+- Remove engine, JSON session protocol, derivation trees and typst rendering
+
+---
+
 ## [6.0.0] - 2026-11-10
 
 The next (hopefully last) huge refactor (#80, also #79, #77, #31).
