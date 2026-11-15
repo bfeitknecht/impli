@@ -19,20 +19,17 @@ module Frontend.Native.CLI (
     runCLI,
 ) where
 
-import Data.Version (showVersion)
 import Options.Applicative
 import System.Exit (exitFailure)
 
 import qualified Control.Exception as Exception
 
-import Frontend.Native.Meta (Level (..), levelName, parseLevel)
 import Frontend.Native.REPL (Options (..), interpret, repl)
-import IMP.Engine (Semantics (..))
+import IMP.Interpret (Semantics (..))
 import IMP.Exception
 import IMP.Parser
 import IMP.Syntax
-
-import qualified Paths_impli as Paths
+import REPL.Core (version)
 
 -- | Mode to run the CLI.
 {- FOURMOLU_DISABLE -}
@@ -61,16 +58,7 @@ mode =
 options :: Parser Options
 options =
     Options
-        <$> option
-            (eitherReader parseLevel)
-            ( long "verbose"
-                <> short 'v'
-                <> metavar "LEVEL"
-                <> help "Verbosity level: normal, profile or debug"
-                <> value Normal
-                <> showDefaultWith levelName
-            )
-        <*> flag Natural Structural (long "structural" <> help "Interpret with structural (small-step) semantics")
+        <$> flag Natural Structural (long "structural" <> help "Interpret with structural (small-step) semantics")
         <*> option
             (Just <$> str)
             (long "history" <> metavar "FILE" <> help "Save REPL history" <> value Nothing)
@@ -99,7 +87,7 @@ runCLI (modus, options) =
         Command cmd -> interpret (optSemantics options) "command" cmd
         AST input -> printAST input
         STDIN -> getContents >>= interpret (optSemantics options) "stdin"
-        Version -> putStrLn $ unwords ["impli", showVersion Paths.version]
+        Version -> putStrLn version
     where
         runFile "-" = getContents >>= interpret (optSemantics options) "stdin"
         runFile path = do

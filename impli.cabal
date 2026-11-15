@@ -33,6 +33,8 @@ common dependencies
   ghc-options:
     -Wall
     -Wextra
+    -fexpose-all-unfoldings
+    -fspecialise-aggressively
 
   build-depends:
     base >=4.14 && <5,
@@ -71,81 +73,49 @@ library
 common native
   build-depends:
     ansi-terminal >=0.11 && <1.1,
-    exceptions >=0.10 && <0.11,
     haskeline >=0.8 && <0.9,
     impli,
     optparse-applicative >=0.15 && <0.19,
 
 common browser
   build-depends:
-    aeson >=2.2 && <2.3,
-    bytestring >=0.10 && <0.13,
     ghc-experimental,
     impli,
-    text >=1.2 && <2.2,
 
 executable impli
   import: dependencies, native
-  hs-source-dirs: src
+  hs-source-dirs: app
   main-is: Frontend/Native/Main.hs
   other-modules:
     Frontend.Native.CLI
-    Frontend.Native.Meta
     Frontend.Native.REPL
-    Paths_impli
-  autogen-modules:
-    Paths_impli
+
+  if arch(wasm32)
+    buildable: False
 
 executable impli-web
   import: dependencies, browser
-  hs-source-dirs: src
+  hs-source-dirs: app
   main-is: Frontend/Web/Main.hs
-  other-modules:
-    IMP.JSON
-    Paths_impli
-  autogen-modules:
-    Paths_impli
-
   ghc-options:
     -no-hs-main
     -optl-mexec-model=reactor
-    "-optl-Wl,--export=start"
-    "-optl-Wl,--export=bootSession"
-    "-optl-Wl,--export=evaluate"
-    "-optl-Wl,--export=advance"
-    "-optl-Wl,--export=resolveInput"
-    "-optl-Wl,--export=resolveChoice"
-    "-optl-Wl,--export=resolveHavoc"
-    "-optl-Wl,--export=cancel"
-    "-optl-Wl,--export=getPrompt"
-    "-optl-Wl,--export=helpText"
-    "-optl-Wl,--export=versionText"
-    "-optl-Wl,--export=parseAst"
-    "-optl-Wl,--export=deriveTree"
-    "-optl-Wl,--export=resetSession"
+    "-optl-Wl,--export=boot"
+    "-optl-Wl,--export=submit"
+    "-optl-Wl,--export=complete"
+    "-optl-Wl,--export=incomplete"
+
+  if !arch(wasm32)
+    buildable: False
 
 test-suite impli-test
   import: dependencies
   type: exitcode-stdio-1.0
-  hs-source-dirs: test src
+  hs-source-dirs: test
   main-is: Spec.hs
-  other-modules:
-    Frontend.Native.Meta
-    IMP.Engine
-    IMP.Exception
-    IMP.Expression
-    IMP.Handlers
-    IMP.Kernel
-    IMP.Lexer
-    IMP.Parser
-    IMP.Pretty
-    IMP.Semantics.Natural
-    IMP.Semantics.Structural
-    IMP.State
-    IMP.Syntax
-    Paths_impli
-  autogen-modules:
-    Paths_impli
   build-depends:
-    tasty >=1.4 && <1.5,
+    impli,
+    QuickCheck >=2.14 && <2.17,
+    tasty >=1.4 && <1.6,
     tasty-hunit >=0.10 && <0.11,
+    tasty-quickcheck >=0.10 && <0.12,
