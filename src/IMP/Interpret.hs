@@ -1,4 +1,5 @@
 {-# LANGUAGE FlexibleContexts #-}
+
 {- |
 Module      : IMP.Interpret
 Description : Interpretation entrypoint for the IMP language
@@ -31,7 +32,7 @@ import qualified IMP.Semantics.Structural as Structural
 data Semantics
     = Natural
     | Structural
-    deriving (Eq, Show, Enum, Bounded)
+    deriving (Bounded, Enum, Eq, Show)
 
 -- | Check and execute statement in state with semantics, return final state.
 execute :: (MonadIMP m) => Semantics -> Stm -> State -> m State

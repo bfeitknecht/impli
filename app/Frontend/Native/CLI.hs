@@ -25,8 +25,8 @@ import System.Exit (exitFailure)
 import qualified Control.Exception as Exception
 
 import Frontend.Native.REPL (Options (..), interpret, repl)
-import IMP.Interpret (Semantics (..))
 import IMP.Exception
+import IMP.Interpret (Semantics (..))
 import IMP.Parser
 import IMP.Syntax
 import REPL.Core (version)

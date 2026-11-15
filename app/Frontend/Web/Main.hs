@@ -28,10 +28,11 @@ import Text.Read (readMaybe)
 import IMP.Effect
 import IMP.Exception
 import IMP.Interpret
-import REPL.Core
+import REPL.Core hiding (submit)
 import REPL.Input (completions)
 import REPL.Session
 
+import qualified REPL.Core as Core
 import qualified REPL.Input as Input
 
 foreign import javascript unsafe "globalThis.impli.output($1)"
@@ -71,7 +72,7 @@ quantum = 20000
 
 -- | Interpretation in the browser.
 newtype Web a = Web {unWeb :: ExceptT Exception IO a}
-    deriving (Functor, Applicative, Monad, MonadIO, MonadError Exception)
+    deriving (Applicative, Functor, Monad, MonadError Exception, MonadIO)
 
 instance MonadIMP Web where
     input x = do
@@ -86,9 +87,9 @@ instance MonadIMP Web where
     choose = liftIO randomIO
     arbitrary = liftIO randomIO
     tick = do
-        n <- liftIO $ atomicModifyIORef' ticks (\n -> (n + 1, n + 1))
+        n <- liftIO $ readIORef ticks
         if n < quantum
-            then return ()
+            then liftIO $ writeIORef ticks (n + 1)
             else do
                 liftIO $ writeIORef ticks 0
                 interrupted <- liftIO js_pause
@@ -121,7 +122,7 @@ submit line = do
         Right Nothing -> js_output (toJSString goodbye) >> boot >> return 1
         Left e -> js_output (toJSString (show e)) >> return 0
     where
-        submit' current = REPL.Core.submit current (fromJSString line)
+        submit' current = Core.submit current (fromJSString line)
 
 -- | Completion candidates for word prefix, newline separated.
 complete :: JSString -> IO JSString

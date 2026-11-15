@@ -26,7 +26,6 @@ import Test.Tasty.QuickCheck (QuickCheckTests (..), testProperty)
 
 import qualified Data.Map.Strict as Map
 
-import qualified IMP.Effect as Effect
 import IMP.Exception
 import IMP.Expression
 import IMP.Interpret
@@ -37,9 +36,11 @@ import IMP.Syntax
 import REPL.Core (program)
 import REPL.Input (incomplete)
 
+import qualified IMP.Effect as Effect
+
 -- | Scripted interpretation: inputs and choices are consumed from lists, output is collected.
 newtype Script a = Script (StateT ([Integer], [Bool], [String]) (Either Exception) a)
-    deriving (Functor, Applicative, Monad, MonadError Exception, MonadState ([Integer], [Bool], [String]))
+    deriving (Applicative, Functor, Monad, MonadError Exception, MonadState ([Integer], [Bool], [String]))
 
 instance Effect.MonadIMP Script where
     input _ = state $ \(is, cs, os) -> case is of
@@ -135,7 +136,9 @@ semantics =
         , outputs "x := 1; let x := 2 in print x end; print x" ["2", "1"]
         , outputs "let y := 2 in skip end; print y" ["0"]
         , outputs "procedure f(a; b) begin b := a * a end; f(7; r); print r" ["49"]
-        , outputs "procedure fac(n; r) begin if n <= 1 then r := 1 else fac(n - 1; r); r *= n end end; fac(25; r); print r" ["15511210043330985984000000"]
+        , outputs
+            "procedure fac(n; r) begin if n <= 1 then r := 1 else fac(n - 1; r); r *= n end end; fac(25; r); print r"
+            ["15511210043330985984000000"]
         , outputs "x := 5; revert x := 1 if x = 1 end; print x" ["5"]
         , outputs "x := 5; revert x := 2 if x = 1 end; print x" ["2"]
         , outputs "try x := 1; raise 7; x := 2 catch e with print e end; print x" ["7", "0"]
@@ -182,10 +185,8 @@ properties =
             counterexample (prettify s) $ parser @Stm "property" (prettify s) === Right s
         , testProperty "natural and structural agree" $ \(Program s) ->
             counterexample (prettify s) $
-                let
-                    run sem = either (Left . show) (Right . vars . fst) (script [] (execute sem s initial))
-                in
-                    run Natural === run Structural
+                let run sem = either (Left . show) (Right . vars . fst) (script [] (execute sem s initial))
+                in run Natural === run Structural
         ]
 
 -- | Generated statement.
@@ -249,8 +250,8 @@ genStm calls looping n
             , (1, Timeout <$> sub <*> genAexp 1)
             , (1, Alternate <$> sub <*> sub)
             ]
-                ++ [ (1, ProcDef "p" ["x"] ["y"] <$> genStm False False (n `div` 2)) | calls]
-                ++ [ (1, ProcInvoc "p" <$> vectorOf 1 (genAexp 1) <*> vectorOf 1 (elements names)) | calls]
+                ++ [(1, ProcDef "p" ["x"] ["y"] <$> genStm False False (n `div` 2)) | calls]
+                ++ [(1, ProcInvoc "p" <$> vectorOf 1 (genAexp 1) <*> vectorOf 1 (elements names)) | calls]
     where
         bounded c k body = Local c (Val 0) (While (Rel Lt (Var c) (Val k)) (Seq (VarDef c Inc (Val 1)) body))
 

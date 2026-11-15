@@ -118,9 +118,10 @@ command cmd session = case cmd of
                         Nothing -> continue session
                         Just session' -> inform ("interpreted: " ++ path) >> continue session'
     Write path ->
-        save path (prettytrace (reverse (trace session))) >>= \case
-            Left e -> report (IOFail (unlines ["write trace to: " ++ path, e]))
-            Right () -> inform ("wrote trace to: " ++ path)
+        save path (prettytrace (reverse (trace session)))
+            >>= \case
+                Left e -> report (IOFail (unlines ["write trace to: " ++ path, e]))
+                Right () -> inform ("wrote trace to: " ++ path)
             >> continue session
     AST element -> do
         case element of

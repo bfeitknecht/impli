@@ -19,10 +19,9 @@ module IMP.Expression (
 ) where
 
 import IMP.Exception
+import {-# SOURCE #-} IMP.Semantics.Structural (measure)
 import IMP.State
 import IMP.Syntax
-
-import {-# SOURCE #-} IMP.Semantics.Structural (measure)
 
 -- | Typeclass to evaluate functional dependency.
 class Evaluate a b | a -> b where

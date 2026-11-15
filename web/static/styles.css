@@ -1,644 +1,113 @@
 @font-face {
   font-family: "CommitMono";
   src: url("./CommitMonoV143-VF.woff2") format("woff2");
-  font-style: normal;
-  font-weight: 400;
-  font-size: 13;
   font-display: swap;
-  font-feature-settings: "calt" 0, "liga" 0;
 }
 
-/*
- * Terminal theme. The ANSI palette below is the single source of truth for
- * the whole page: it is fed into ghostty-web (see getTheme in impli.ts) so
- * the interpreter's colors and the UI chrome draw from the same scheme.
- */
+/* Palette shared by page and terminal, see theme() in main.ts */
 :root {
-  --terminal-bg: #ffffff;
-  --terminal-fg: #000000;
-  --terminal-cursor: #000000;
-  --terminal-selection: #add6ff;
+  --bg: #fafafa;
+  --fg: #1f1f1f;
+  --cursor: #1f1f1f;
+  --selection: #c8dcf5;
+  --dim: color-mix(in srgb, var(--fg) 50%, transparent);
 
   --ansi-black: #2e3436;
-  --ansi-red: #cc0000;
-  --ansi-green: #4e9a06;
-  --ansi-yellow: #c4a000;
-  --ansi-blue: #3465a4;
-  --ansi-magenta: #75507b;
-  --ansi-cyan: #06989a;
-  --ansi-white: #888a85;
-  --ansi-bright-black: #babdb6;
-  --ansi-bright-red: #ef2929;
-  --ansi-bright-green: #51950b;
-  --ansi-bright-yellow: #b59500;
-  --ansi-bright-blue: #3965a3;
-  --ansi-bright-magenta: #75507b;
-  --ansi-bright-cyan: #058789;
-  --ansi-bright-white: #555753;
-
-  /* chrome aliases */
-  --chrome-dim: color-mix(in srgb, var(--terminal-fg) 45%, transparent);
-  --chrome-line: color-mix(in srgb, var(--terminal-fg) 25%, transparent);
-  --chrome-accent: var(--ansi-cyan);
-  --chrome-ok: var(--ansi-green);
-  --chrome-error: var(--ansi-red);
+  --ansi-red: #c4262e;
+  --ansi-green: #3f8a0a;
+  --ansi-yellow: #a37b00;
+  --ansi-blue: #2f63a8;
+  --ansi-magenta: #8a4f8f;
+  --ansi-cyan: #0a8a8c;
+  --ansi-white: #8a8a8a;
+  --ansi-bright-black: #6b6b6b;
+  --ansi-bright-red: #e0393f;
+  --ansi-bright-green: #4ea510;
+  --ansi-bright-yellow: #b88d00;
+  --ansi-bright-blue: #3d75c4;
+  --ansi-bright-magenta: #a160a6;
+  --ansi-bright-cyan: #10a3a5;
+  --ansi-bright-white: #4a4a4a;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --terminal-bg: #1e1e1e;
-    --terminal-fg: #d4d4d4;
-    --terminal-cursor: #ffffff;
-    --terminal-selection: #264f78;
+    --bg: #141414;
+    --fg: #d8d8d8;
+    --cursor: #f0f0f0;
+    --selection: #2c4a6e;
 
-    --ansi-black: #000000;
-    --ansi-red: #ef2929;
-    --ansi-green: #8ae234;
-    --ansi-yellow: #fce94f;
-    --ansi-blue: #729fcf;
-    --ansi-magenta: #ad7fa8;
-    --ansi-cyan: #34e2e2;
-    --ansi-white: #d3d7cf;
-    --ansi-bright-black: #555753;
-    --ansi-bright-red: #ff5c5c;
-    --ansi-bright-green: #b8f27a;
-    --ansi-bright-yellow: #fff39b;
-    --ansi-bright-blue: #a5c9f0;
-    --ansi-bright-magenta: #cf9ec8;
-    --ansi-bright-cyan: #7af3f3;
-    --ansi-bright-white: #eeeeec;
+    --ansi-black: #1c1c1c;
+    --ansi-red: #ef5f5f;
+    --ansi-green: #9ad869;
+    --ansi-yellow: #f2d46b;
+    --ansi-blue: #7fa9e0;
+    --ansi-magenta: #c592c9;
+    --ansi-cyan: #6fd6d6;
+    --ansi-white: #bdbdbd;
+    --ansi-bright-black: #6e6e6e;
+    --ansi-bright-red: #ff7a7a;
+    --ansi-bright-green: #b3ec86;
+    --ansi-bright-yellow: #ffe38a;
+    --ansi-bright-blue: #9cc0f0;
+    --ansi-bright-magenta: #d9aadd;
+    --ansi-bright-cyan: #8ceaea;
+    --ansi-bright-white: #f5f5f5;
   }
 }
 
 * {
   box-sizing: border-box;
-  scrollbar-width: thin;
-  scrollbar-color: var(--chrome-dim) transparent;
 }
 
-*::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-*::-webkit-scrollbar-thumb {
-  background: var(--chrome-dim);
-}
-
-*::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::selection {
-  background: var(--terminal-selection);
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: "CommitMono", ui-monospace, Menlo, monospace;
+  font-size: 14px;
 }
 
 body {
-  margin: 0;
-  padding: 0;
-  height: 100vh;
-  overflow: hidden;
-  background: var(--terminal-bg);
-  color: var(--terminal-fg);
-  font-family: "CommitMono", monospace;
   display: flex;
   flex-direction: column;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  height: 100dvh;
 }
 
-/* Application layout */
-
-.app {
+header {
   display: flex;
-  flex-direction: column;
-  height: 100vh;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 12px 16px 8px;
+  flex: none;
 }
 
-/*
- * Layout: on wide viewports the terminal is always in view on the left and
- * the side pane on the right; on narrow viewports one of them fills the
- * screen. Either way, the dock at the bottom switches what is shown.
- */
-.terminal-pane,
-.side-pane {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-width: 0;
-  min-height: 0;
-}
-
-.terminal-pane.hidden,
-.side-pane.hidden {
-  display: none;
-}
-
-@media (min-width: 900px) {
-  .app .content {
-    flex-direction: row;
-  }
-
-  .terminal-pane {
-    flex: 1.15;
-    border-right: 1px solid var(--chrome-line);
-  }
-}
-
-/*
- * Dock: deliberately *not* terminal chrome. A quiet bar in the system UI
- * font with a segmented control — a soft track and a raised thumb on the
- * active entry — so the navigation reads as part of the page, not part of
- * the interpreter's output.
- */
-.dock {
-  --dock-font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
-    sans-serif;
-  --dock-surface: color-mix(in srgb, var(--terminal-fg) 3%, var(--terminal-bg));
-  --dock-track: color-mix(in srgb, var(--terminal-fg) 7%, var(--terminal-bg));
-  --dock-thumb: var(--terminal-bg);
-  --dock-shadow: 0 1px 2px color-mix(in srgb, #000 18%, transparent),
-    0 0 0 0.5px color-mix(in srgb, #000 10%, transparent);
-
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 0.5rem 0.875rem calc(0.5rem + env(safe-area-inset-bottom));
-  background: var(--dock-surface);
-  border-top: 1px solid var(--chrome-line);
-  font-family: var(--dock-font);
-  font-size: 0.8125rem;
-  user-select: none;
-}
-
-@media (prefers-color-scheme: dark) {
-  .dock {
-    --dock-surface: color-mix(in srgb, var(--terminal-fg) 4%, var(--terminal-bg));
-    --dock-track: color-mix(in srgb, #000 35%, var(--terminal-bg));
-    --dock-thumb: color-mix(in srgb, var(--terminal-fg) 14%, var(--terminal-bg));
-    --dock-shadow: 0 1px 2px color-mix(in srgb, #000 45%, transparent),
-      inset 0 0.5px 0 color-mix(in srgb, #fff 10%, transparent);
-  }
-}
-
-.dock button {
-  font: inherit;
-  color: inherit;
-  background: none;
-  border: none;
-  margin: 0;
-  cursor: pointer;
-  appearance: none;
-  -webkit-appearance: none;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.dock button:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--ansi-blue) 70%, transparent);
-  outline-offset: 2px;
-}
-
-.brand {
-  font-family: "CommitMono", monospace;
+header .name {
   font-weight: 600;
-  letter-spacing: -0.01em;
-  padding: 0.25rem 0.125rem;
-  opacity: 0.8;
-  transition: opacity 120ms ease;
+  letter-spacing: 0.02em;
 }
 
-.brand:hover {
-  opacity: 1;
-}
-
-.segments {
+nav {
   display: flex;
-  gap: 2px;
-  padding: 3px;
-  margin-left: auto;
-  border-radius: 9px;
-  background: var(--dock-track);
-  overflow-x: auto;
-  scrollbar-width: none;
-  max-width: 100%;
+  gap: 16px;
 }
 
-.segments::-webkit-scrollbar {
-  display: none;
+nav a {
+  color: var(--dim);
+  text-decoration: none;
+  transition: color 120ms ease;
 }
 
-.segment {
-  flex: 0 0 auto;
-  padding: 0.3rem 0.85rem;
-  border-radius: 6px;
-  color: var(--chrome-dim) !important;
-  font-weight: 500;
-  white-space: nowrap;
-  transition: color 140ms ease, background-color 140ms ease,
-    box-shadow 140ms ease;
-}
-
-.segment:hover {
-  color: var(--terminal-fg) !important;
-}
-
-.segment.active {
-  color: var(--terminal-fg) !important;
-  background: var(--dock-thumb);
-  box-shadow: var(--dock-shadow);
-}
-
-@media (max-width: 899px) {
-  .dock {
-    gap: 0.5rem;
-    padding-inline: 0.5rem;
-  }
-
-  .segments {
-    margin-left: 0;
-    flex: 1;
-  }
-
-  .segment {
-    flex: 1 0 auto;
-    padding-inline: 0.6rem;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .segment,
-  .brand {
-    transition: none;
-  }
-}
-
-.content {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
+nav a:hover,
+nav a:focus-visible {
+  color: var(--fg);
 }
 
 #terminal {
   flex: 1;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  /* anchor for ghostty-web's hidden input textarea */
-  position: relative;
-  /* ghostty-web draws its own block cursor on the canvas; the editable
-   * container must never show a native caret. */
-  caret-color: transparent;
-}
-
-/* ghostty-web's focus target: keep it focusable but off-screen so no caret
- * artifact blinks along the terminal's left edge. */
-#terminal textarea {
-  position: fixed !important;
-  left: -100vw !important;
-  top: 0 !important;
-  width: 1px !important;
-  height: 1px !important;
-  opacity: 0 !important;
-  caret-color: transparent !important;
-}
-
-.tabpanel {
-  display: none;
-  flex: 1;
   min-height: 0;
+  padding: 4px 16px 16px;
+  overflow: hidden;
 }
-
-.tabpanel.active {
-  display: flex;
-  flex-direction: column;
-}
-
-/*
- * Panels: plain terminal documents. Sections are headed the way `--help`
- * pages are, everything else keeps the background of the terminal.
- */
-.panel {
-  flex: 1;
-  overflow: auto;
-  padding: 0.75rem 1rem 2rem;
-  line-height: 1.45;
-}
-
-.panel h3 {
-  margin: 1rem 0 0.5rem;
-  font-size: 1em;
-  font-weight: bold;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  border-bottom: 1px solid var(--chrome-line);
-  padding-bottom: 0.2rem;
-}
-
-.panel h3::before {
-  content: "# ";
-  color: var(--chrome-dim);
-}
-
-.panel h3:first-child {
-  margin-top: 0;
-}
-
-.panel-note {
-  color: var(--chrome-dim);
-}
-
-.panel-note::before {
-  content: "// ";
-}
-
-a,
-button.link {
-  color: var(--chrome-accent);
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-
-a:hover,
-button.link:hover {
-  color: var(--ansi-bright-cyan);
-}
-
-button.link {
-  font: inherit;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-}
-
-:focus-visible {
-  outline: 1px solid var(--chrome-accent);
-  outline-offset: 2px;
-  border-radius: 0;
-}
-
-.kv {
-  border-collapse: collapse;
-}
-
-.kv-key {
-  padding-right: 0.5rem;
-  color: var(--ansi-cyan);
-}
-
-.proc summary {
-  cursor: pointer;
-}
-
-details summary::marker {
-  color: var(--chrome-dim);
-}
-
-pre.source,
-code.source {
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
-.steps {
-  border-collapse: collapse;
-}
-
-.steps th {
-  text-align: left;
-  font-weight: normal;
-  text-transform: lowercase;
-  color: var(--chrome-dim);
-  border-bottom: 1px solid var(--chrome-line);
-  padding: 0.1rem 0.75rem 0.15rem 0;
-}
-
-.steps td {
-  text-align: left;
-  padding: 0.15rem 0.75rem 0.15rem 0;
-  vertical-align: top;
-}
-
-.step .effect {
-  background: color-mix(in srgb, var(--ansi-yellow) 30%, transparent);
-  padding: 0 0.35em;
-}
-
-.trace-entry {
-  display: flex;
-  gap: 0.5rem;
-  align-items: baseline;
-  padding: 0.1rem 0;
-}
-
-.trace-entry.current code {
-  color: var(--ansi-bright-cyan);
-}
-
-/* Bracketed, square buttons — closer to a curses UI than a web form. */
-.ast-input-row {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 0.75rem;
-}
-
-.ast-input {
-  flex: 1;
-  font: inherit;
-  color: inherit;
-  caret-color: var(--terminal-cursor);
-  background: transparent;
-  border: 1px solid var(--chrome-line);
-  border-radius: 0;
-  padding: 0.25rem 0.5rem;
-}
-
-.ast-input:focus {
-  border-color: var(--chrome-accent);
-  outline: none;
-}
-
-.ast-input::placeholder {
-  color: var(--chrome-dim);
-}
-
-.ast-input-row button,
-.step-controls button {
-  font: inherit;
-  color: inherit;
-  background: none;
-  border: none;
-  border-radius: 0;
-  padding: 0.25rem 0.4rem;
-  cursor: pointer;
-}
-
-.ast-input-row button::before,
-.step-controls button::before {
-  content: "[";
-}
-
-.ast-input-row button::after,
-.step-controls button::after {
-  content: "]";
-}
-
-.ast-input-row button::before,
-.ast-input-row button::after,
-.step-controls button::before,
-.step-controls button::after {
-  color: var(--chrome-dim);
-}
-
-.ast-input-row button:hover,
-.step-controls button:hover {
-  color: var(--terminal-bg);
-  background: var(--terminal-fg);
-}
-
-.ast-input-row button:hover::before,
-.ast-input-row button:hover::after,
-.step-controls button:hover::before,
-.step-controls button:hover::after {
-  color: inherit;
-}
-
-.step-controls {
-  display: flex;
-  gap: 0.25rem;
-  flex-wrap: wrap;
-  margin-bottom: 0.75rem;
-}
-
-details.ast-node {
-  margin-left: 1rem;
-}
-
-.ast-leaf {
-  margin-left: 1.35rem;
-}
-
-.ast-tag {
-  font-weight: bold;
-  color: var(--ansi-cyan);
-}
-
-.ast-scalar {
-  color: var(--chrome-dim);
-  margin-left: 0.5em;
-}
-
-.ast-children {
-  margin-left: 0.5rem;
-  border-left: 1px dotted var(--chrome-line);
-  padding-left: 0.75rem;
-}
-
-.ast-field {
-  display: flex;
-  gap: 0.5rem;
-  align-items: baseline;
-}
-
-.ast-field-name {
-  color: var(--ansi-magenta);
-  font-size: 0.9em;
-  min-width: 5.5em;
-  text-align: right;
-  flex: 0 0 auto;
-}
-
-.ast-field-child {
-  display: inline;
-}
-
-/* Railroad diagrams, adapted from railroad-diagrams (CC0) */
-
-.railroad svg.railroad-diagram {
-  max-width: 100%;
-  height: auto;
-}
-
-.railroad .railroad-diagram path {
-  stroke-width: 3;
-  stroke: var(--terminal-fg);
-  fill: none;
-}
-
-.railroad .railroad-diagram text {
-  font: bold 13px "CommitMono", monospace;
-  text-anchor: middle;
-  fill: var(--terminal-fg);
-}
-
-.railroad .railroad-diagram text.diagram-text {
-  font-size: 12px;
-}
-
-.railroad .railroad-diagram text.diagram-arrow {
-  font-size: 16px;
-}
-
-.railroad .railroad-diagram text.label {
-  text-anchor: start;
-}
-
-.railroad .railroad-diagram text.comment {
-  font: italic 12px "CommitMono", monospace;
-}
-
-.railroad .railroad-diagram g.non-terminal text {
-  font-style: italic;
-}
-
-.railroad .railroad-diagram rect {
-  stroke-width: 3;
-  stroke: var(--terminal-fg);
-  fill: color-mix(in srgb, var(--terminal-fg) 12%, transparent);
-}
-
-.railroad .railroad-diagram g.non-terminal rect {
-  fill: none;
-}
-
-.railroad .railroad-diagram rect.group-box {
-  stroke: var(--chrome-dim);
-  stroke-dasharray: 3 3;
-  fill: none;
-}
-
-.railroad .railroad-diagram path.diagram-text {
-  stroke-width: 3;
-  stroke: var(--terminal-fg);
-  fill: var(--terminal-fg);
-  cursor: help;
-}
-
-.railroad .railroad-diagram g.diagram-text:hover path.diagram-text {
-  fill: var(--chrome-accent);
-}
-
-.ebnf .railroad {
-  overflow-x: auto;
-}
-
-/* Derivation trees are typeset by Typst (curryst) and embedded as SVG. */
-
-.typst-tree {
-  overflow: auto;
-  padding: 0.75rem 0 1rem;
-}
-
-.typst-tree svg {
-  display: block;
-  height: auto;
-  /* trees may grow very wide; scroll instead of squashing */
-  max-width: none;
-}
-
-/*
- * ghostty-web renders to a canvas mounted directly in #terminal; colors are
- * driven by the terminal theme (see impli.ts), set from the CSS variables.
- */

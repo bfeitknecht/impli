@@ -137,5 +137,5 @@ next :: (Monad m) => State -> m Flow
 next = return . Next
 
 -- | Evaluate expression in the interpretation monad.
-eval :: (MonadIMP m, Evaluate a b) => a -> State -> m b
+eval :: (Evaluate a b, MonadIMP m) => a -> State -> m b
 eval e state = liftEval (evaluate e state)

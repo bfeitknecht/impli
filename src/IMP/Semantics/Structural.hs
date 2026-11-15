@@ -1,5 +1,5 @@
-{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE LambdaCase #-}
 
 {- |
@@ -39,14 +39,14 @@ module IMP.Semantics.Structural (
 import Control.Monad.Except (throwError)
 import Prettyprinter
 
+import qualified Data.Map.Strict as Map
+
 import IMP.Effect
 import IMP.Exception
 import IMP.Expression
 import IMP.Pretty
 import IMP.State
 import IMP.Syntax
-
-import qualified Data.Map.Strict as Map
 
 {- FOURMOLU_DISABLE -}
 -- | Statement under execution, source statement in runtime context.
@@ -199,7 +199,8 @@ source stm state = case stm of
                 Prod -> u * v
                 Quot -> u // v
                 Rem -> u %% v
-        in stepped RuleAssign (Source Skip) (setVar state x w)
+        in
+            stepped RuleAssign (Source Skip) (setVar state x w)
     Seq s1 s2 -> step (Then (Source s1) s2, state)
     IfElse b s1 s2 -> evaluated b state $ \v ->
         if v
@@ -321,7 +322,9 @@ instance Pretty Term where
         Scope x _ t -> vsep [pretty t, pretty ("/* restore " ++ x ++ " */")]
         Transaction _ b t -> vsep [pretty "revert", indent 4 (pretty t), pretty "if" <+> pretty b <+> pretty "end"]
         Call _ returns _ t -> vsep [pretty t, pretty ("/* return to " ++ unwords returns ++ " */")]
-        Guard _ t x s -> vsep [pretty "try", indent 4 (pretty t), pretty "catch" <+> pretty x <+> pretty "with", indent 4 (pretty s), pretty "end"]
+        Guard _ t x s ->
+            vsep
+                [pretty "try", indent 4 (pretty t), pretty "catch" <+> pretty x <+> pretty "with", indent 4 (pretty s), pretty "end"]
         Limit n t -> vsep [pretty "timeout", indent 4 (pretty t), pretty "after" <+> pretty n, pretty "end"]
         Fork t1 t2 -> parens (pretty t1) <+> pretty "par" <+> parens (pretty t2)
         Weave t1 t2 -> parens (pretty t1) <+> pretty "alternate" <+> parens (pretty t2)

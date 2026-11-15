@@ -1,21 +1,19 @@
 {
   "tasks": {
-    "build": "deno run --allow-read --allow-write --allow-net=registry.npmjs.org --allow-run=tar --unstable-bundle build.ts"
+    "build": "deno run --allow-read --allow-write --unstable-bundle build.ts",
+    "serve": "deno run --allow-net --allow-read jsr:@std/http@1.0.13/file-server public",
+    "smoke": "deno run --allow-read test/smoke.ts"
   },
   "compilerOptions": {
-    "baseUrl": ".",
-    "paths": { "@/*": ["./src/*"] },
     "lib": ["dom", "dom.iterable", "deno.ns", "esnext"]
+  },
+  "lint": {
+    "rules": { "exclude": ["no-explicit-any"] }
   },
   "imports": {
     "@/": "./src/",
     "ghostty-web": "npm:ghostty-web@^0.4.0",
     "@runno/wasi": "npm:@runno/wasi@^0.10.0",
-    "preact": "npm:preact@^10.29.1",
-    "htm": "npm:htm@^3.1.1",
-    "railroad-diagrams": "npm:railroad-diagrams@^1.0.0",
-    "@myriaddreamin/typst-ts-web-compiler": "npm:@myriaddreamin/typst-ts-web-compiler@0.7.0",
-    "@myriaddreamin/typst-ts-renderer": "npm:@myriaddreamin/typst-ts-renderer@0.7.0",
     "stub": "./public/stub.js",
     "examples": "./public/examples.js"
   }

@@ -1,5 +1,5 @@
-{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE TypeApplications #-}
 
 {- |
 Module      : Frontend.Native.REPL
@@ -22,8 +22,8 @@ module Frontend.Native.REPL (
 ) where
 
 import Control.Monad.Except
-import Control.Monad.Trans.Class (lift)
 import Control.Monad.IO.Class (MonadIO, liftIO)
+import Control.Monad.Trans.Class (lift)
 import Data.List (isPrefixOf)
 import System.Console.Haskeline
 import System.Exit (exitFailure)
@@ -50,7 +50,7 @@ data Options = Options
 
 -- | Interpretation in haskeline.
 newtype Native a = Native {unNative :: ExceptT Exception (InputT IO) a}
-    deriving (Functor, Applicative, Monad, MonadIO, MonadError Exception)
+    deriving (Applicative, Functor, Monad, MonadError Exception, MonadIO)
 
 -- | Run native interpretation.
 runNative :: Native a -> InputT IO (Either Exception a)

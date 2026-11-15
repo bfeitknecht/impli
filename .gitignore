@@ -6,3 +6,4 @@ cabal.project.local
 hie.yaml
 
 web/public/
+dist-wasm/

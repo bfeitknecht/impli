@@ -2,31 +2,24 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>impli - Web REPL</title>
+    <title>impli</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta
-      name="description"
-      content="The IMP Language Interpreter Web REPL."
-    />
-    <meta
-      name="theme-color"
-      content="#ffffff"
-      media="(prefers-color-scheme: light)"
-    >
-    <meta
-      name="theme-color"
-      content="#1e1e1e"
-      media="(prefers-color-scheme: dark)"
-    >
+    <meta name="description" content="Web REPL of impli, the interpreter for the IMP language." />
+    <meta name="theme-color" content="#fafafa" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#141414" media="(prefers-color-scheme: dark)" />
     <link rel="shortcut icon" href="./favicon.ico" />
+    <link rel="preload" href="./CommitMonoV143-VF.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="stylesheet" href="./styles.css" />
-    <link
-      rel="preload"
-      href="./CommitMonoV143-VF.woff2"
-      as="font"
-      type="font/woff2"
-      crossorigin
-    />
     <script src="./module.mjs" type="module"></script>
   </head>
+  <body>
+    <header>
+      <span class="name">impli</span>
+      <nav>
+        <a href="./IMP.pdf" target="_blank" rel="noopener">paper</a>
+        <a href="https://github.com/bfeitknecht/impli" target="_blank" rel="noopener">source</a>
+      </nav>
+    </header>
+    <main id="terminal"></main>
+  </body>
 </html>
