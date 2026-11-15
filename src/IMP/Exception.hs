@@ -23,6 +23,7 @@ data Exception
     | Raised Integer -- ^ Value raised during execution.
     | Error String -- ^ Generic error.
     | Info String -- ^ Generic information.
+    | Interrupted -- ^ Execution interrupted by user.
     | Empty -- ^ Read aborted.
     deriving (Eq)
 {- FOURMOLU_ENABLE -}
@@ -36,4 +37,5 @@ instance Show Exception where
         Raised val -> "*** ERROR: uncaught exception raised with: " ++ show val
         Error msg -> "*** ERROR: " ++ msg
         Info msg -> "+++ INFO: " ++ msg
+        Interrupted -> "*** ERROR: interrupted"
         Empty -> ""

@@ -20,7 +20,6 @@ module IMP.Syntax (
     Stm (..),
     Dop (..),
     Proc,
-    Snapshot,
     Construct (..),
     Variables,
     variables,
@@ -36,41 +35,6 @@ data Aexp
     | Val Integer -- ^ Integer value.
     | Time Stm -- ^ Atomic execution metric.
     deriving (Eq, Show)
-
--- | Instance of 'Num' for 'Aexp' to allow numerical operations.
-instance Num Aexp where
-    (+) = Bin Add
-    (-) = Bin Sub
-    (*) = Bin Mul
-    fromInteger = Val
-    abs (Val v) = Val $ abs v
-    abs _ = error "abs not supported for abstract syntax"
-    signum (Val v) = Val $ signum v
-    signum _ = error "signum not supported for abstract syntax"
-
--- | Instance of 'Ord' for 'Aexp' to allow ordering.
-instance Ord Aexp where
-    Val v1 <= Val v2 = v1 <= v2
-    _ <= _ = error "order not supported for abstract syntax"
-
--- | Instance of 'Enum' for 'Aexp' to allow conversion with 'Int'.
-instance Enum Aexp where
-    toEnum = Val . toEnum
-    fromEnum (Val v) = fromEnum v
-    fromEnum _ = error "fromEnum not supported for abstract syntax"
-
--- | Instance of 'Real' for 'Aexp' to allow conversion with 'Rational'.
-instance Real Aexp where
-    toRational (Val v) = toRational v
-    toRational _ = error "toRational not supported for abstract syntax"
-
--- | Instance of 'Integral' for 'Aexp' to allow integer operations.
-instance Integral Aexp where
-    div = Bin Div
-    mod = Bin Mod
-    quotRem a1 a2 = (div a1 a2, mod a1 a2)
-    toInteger (Val v) = v
-    toInteger _ = error "toInteger not supported for abstract syntax"
 
 -- | Arithmetic operator for binary operations.
 data Aop
@@ -124,8 +88,6 @@ data Stm
     | NonDet Stm Stm -- ^ Non-deterministic choice.
     | ProcDef String [String] [String] Stm -- ^ Procedure definition.
     | ProcInvoc String [Aexp] [String] -- ^ Procedure invocation.
-    | Restore Snapshot -- ^ Restore state snapshot (internal use).
-    | Return Snapshot [String] [String] -- ^ Return to caller state (internal use).
     | Break -- ^ Break loop.
     | Revert Stm Bexp -- ^ Transactional execution.
     | Match Aexp [(Integer, Stm)] Stm -- ^ Pattern match on integer values.
@@ -149,9 +111,6 @@ instance Monoid Stm where
 
 -- | Procedure encapsulation as signature and body.
 type Proc = ([String], [String], Stm)
-
--- | State snapshot as association lists, captured for restoration or procedure return.
-type Snapshot = ([(String, Integer)], [(String, Proc)], Bool)
 
 -- | Construct in the IMP language.
 data Construct
@@ -198,8 +157,6 @@ instance Variables Stm where
         NonDet s1 s2 -> variables s1 ++ variables s2
         ProcDef p ps rs s -> p : ps ++ rs ++ variables s
         ProcInvoc p as rs -> p : rs ++ concatMap variables as
-        Restore _ -> error $ "illegal statement for variables: " ++ show stm
-        Return {} -> error $ "illegal statement for variables: " ++ show stm
         Break -> []
         Revert s b -> variables s ++ variables b
         Match a ms d -> variables d ++ variables a ++ concatMap (variables . snd) ms

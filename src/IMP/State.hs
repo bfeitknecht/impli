@@ -8,18 +8,38 @@ Stability   : stable
 Portability : portable
 
 State implementation for the IMP language.
-Provides definition and manipulation of state with some QOL helpers.
-Entirely pure: interpretation effects are reified by the semantics modules
-in @IMP.Semantics@ and discharged by frontends through @IMP.Engine@ handlers.
+Provides definition and manipulation of state with some QOL helpers, and the
+control flow outcome shared by both semantics.
 -}
-module IMP.State where
+module IMP.State (
+    Vars,
+    Procs,
+    State (..),
+    Flow (..),
+    flowState,
+    onFlow,
+    initial,
+    getVar,
+    lookupVar,
+    setVar,
+    setVars,
+    restoreVar,
+    resetVars,
+    getProc,
+    setProc,
+    resetProcs,
+    visible,
+    flipvar,
+    getFlip,
+    setFlip,
+    setFlop,
+    (//),
+    (%%),
+) where
 
-import qualified Data.Map as Map
+import qualified Data.Map.Strict as Map
 
 import IMP.Syntax
-
--- | Tuple of statement and state, the machine configuration between steps.
-type Gamma = (Stm, State)
 
 -- | Map of defined variables from string identifier to integer values.
 type Vars = Map.Map String Integer
@@ -27,63 +47,79 @@ type Vars = Map.Map String Integer
 -- | Map of defined procedures from name to procedure.
 type Procs = Map.Map String Proc
 
--- | Interpreter state as triple of defined variables, procedures and break flag.
-type State = (Vars, Procs, Bool)
+-- | Interpreter state of defined variables and procedures.
+data State = State
+    { vars :: !Vars
+    -- ^ Defined variables, undefined ones read as zero.
+    , procs :: !Procs
+    -- ^ Defined procedures.
+    }
+    deriving (Eq, Show)
 
--- | Initial state with no variable definitions, no procedures defined and break flag unset.
+-- | Control flow outcome of executing a statement.
+data Flow
+    = -- | Completed normally.
+      Next !State
+    | -- | Interrupted by @break@, propagating to the innermost enclosing loop.
+      Broken !State
+    deriving (Eq, Show)
+
+-- | State of control flow outcome.
+flowState :: Flow -> State
+flowState (Next state) = state
+flowState (Broken state) = state
+
+-- | Map over state of control flow outcome.
+onFlow :: (State -> State) -> Flow -> Flow
+onFlow f (Next state) = Next (f state)
+onFlow f (Broken state) = Broken (f state)
+
+-- | Initial state with no variables or procedures defined.
 initial :: State
-initial = (Map.empty, Map.empty, False)
-
--- | Get defined variables.
-getVars :: State -> Vars
-getVars (vars, _, _) = vars
+initial = State Map.empty Map.empty
 
 -- | Get integer value of provided variable identifier or zero if undefined.
 getVar :: State -> String -> Integer
-getVar (vars, _, _) x = Map.findWithDefault 0 x vars
+getVar state x = Map.findWithDefault 0 x (vars state)
+
+-- | Get integer value of provided variable identifier, 'Nothing' if undefined.
+lookupVar :: State -> String -> Maybe Integer
+lookupVar state x = Map.lookup x (vars state)
 
 -- | Set variable name to integer value.
 setVar :: State -> String -> Integer -> State
 setVar state "_" _ = state -- INFO: Placeholder write-only variable
 setVar _ "" _ = error "illegal argument for variable: identifier can't be empty string"
-setVar (vars, procs, flag) var val = (Map.insert var val vars, procs, flag)
+setVar state x v = state {vars = Map.insert x v (vars state)}
 
 -- | Set list of variable names to their paired integer values.
 setVars :: State -> [(String, Integer)] -> State
 setVars = foldl $ uncurry . setVar
 
+-- | Restore variable to previous value, or undefine it if there was none.
+restoreVar :: State -> String -> Maybe Integer -> State
+restoreVar state x = maybe (state {vars = Map.delete x (vars state)}) (setVar state x)
+
 -- | Reset variable definitions.
 resetVars :: State -> State
-resetVars (_, procs, flag) = (Map.empty, procs, flag)
-
--- | Get defined procedures.
-getProcs :: State -> Procs
-getProcs (_, procs, _) = procs
+resetVars state = state {vars = Map.empty}
 
 -- | Get some procedure by name, return 'Nothing' if undefined.
 getProc :: State -> String -> Maybe Proc
-getProc (_, procs, _) name = Map.lookup name procs
+getProc state name = Map.lookup name (procs state)
 
 -- | Set procedure.
 setProc :: State -> String -> Proc -> State
-setProc (vars, procs, flag) name proc =
-    (vars, Map.insert name proc procs, flag)
+setProc state name proc = state {procs = Map.insert name proc (procs state)}
 
 -- | Reset procedure definitions.
 resetProcs :: State -> State
-resetProcs (vars, _, flag) = (vars, Map.empty, flag)
+resetProcs state = state {procs = Map.empty}
 
--- | Get break flag.
-getBreak :: State -> Bool
-getBreak (_, _, flag) = flag
-
--- | Set break flag to 'True'.
-setBreak :: State -> State
-setBreak (vars, procs, _) = (vars, procs, True)
-
--- | Set break flag to 'False'.
-resetBreak :: State -> State
-resetBreak (vars, procs, _) = (vars, procs, False)
+-- | Whether variable is user visible, i.e. not internal like the @repeat@ counter.
+visible :: String -> Bool
+visible ('_' : _) = False
+visible _ = True
 
 -- | Indicator variable for corresponding flip-flop index for internal use.
 flipvar :: Integer -> String

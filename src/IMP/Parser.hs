@@ -62,13 +62,13 @@ instance Parses Bexp where
     parses = buildExpressionParser table term <?> "boolean expression"
         where
             table =
-                [ [Prefix (Not <$ operator "not")]
-                , [Infix (And <$ operator "and") AssocLeft]
-                , [Infix (Or <$ operator "or") AssocLeft]
+                [ [Prefix (Not <$ keyword "not")]
+                , [Infix (And <$ keyword "and") AssocLeft]
+                , [Infix (Or <$ keyword "or") AssocLeft]
                 ]
             term =
                 choice
-                    [ parens (parses @Bexp) <?> "parenthesized boolean expression"
+                    [ try (parens (parses @Bexp)) <?> "parenthesized boolean expression"
                     , flip Rel <$> parses @Aexp <*> parses @Rop <*> parses @Aexp <?> "relation"
                     , Lit True <$ keyword "true"
                     , Lit False <$ keyword "false"
@@ -104,9 +104,9 @@ instance Parses Stm where
         where
             table =
                 [ [Infix (NonDet <$ operator "[]") AssocLeft]
-                , [Infix (Par <$ operator "par") AssocLeft]
-                , [Infix (Alternate <$ operator "alternate") AssocLeft]
-                , [Infix (Seq <$ operator ";") AssocLeft]
+                , [Infix (Par <$ keyword "par") AssocLeft]
+                , [Infix (Alternate <$ keyword "alternate") AssocLeft]
+                , [Infix (Seq <$ symbol ";") AssocRight]
                 ]
             term = choice . map try $ imp ++ ext
 
@@ -154,7 +154,7 @@ ext =
     , (uncurry . ProcInvoc)
         <$> identifier
         <*> parens (signature (parses @Aexp) variable) -- INFO: Allow placeholder in return variables
-    , (\s b -> s <> While (Not b) s)
+    , doUntil
         <$ keyword "do"
         <*> parses @Stm
         <* keyword "until"
@@ -231,6 +231,10 @@ instance Parses Construct where
             , Arithmetic <$> parses @Aexp
             , Whitespace <$ whitespace
             ]
+
+-- | Helper for post-condition loops, transforming them into loops that break once the condition holds.
+doUntil :: Stm -> Bexp -> Stm
+doUntil s b = While (Lit True) (s <> IfElse b Break Skip)
 
 -- | Helper parser for incremental loops, transforming them into equivalent while loops.
 for :: String -> Aexp -> Aexp -> Stm -> Stm

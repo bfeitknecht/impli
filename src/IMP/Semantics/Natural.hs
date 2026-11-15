@@ -1,4 +1,5 @@
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE LambdaCase #-}
 
 {- |
 Module      : IMP.Semantics.Natural
@@ -10,127 +11,131 @@ Stability   : stable
 Portability : portable
 
 Implementation of natural (big-step) semantics for the IMP language.
-Execution is abstracted over an arbitrary 'MonadError' monad and reads or
-writes the outside world only through the supplied 'Handlers', so the
-semantics itself stays pure: a frontend discharges the handlers in whatever
-context it runs in.
+Execution is abstracted over 'IMP.Effect.MonadIMP', which discharges input,
+output and nondeterminism. The interleaving constructs @timeout@ and
+@alternate@ have no big-step rules of their own and are delegated to the
+structural semantics.
 -}
 module IMP.Semantics.Natural (
     run,
 ) where
 
-import Control.Monad.Except (MonadError, catchError, throwError)
+import Control.Monad.Except (catchError, throwError)
 
-import qualified Data.Map as Map
+import qualified Data.Map.Strict as Map
 
+import IMP.Effect
 import IMP.Exception
 import IMP.Expression
-import IMP.Handlers
 import IMP.Pretty
 import IMP.State
 import IMP.Syntax
 
--- | Execute statement in the state with effects discharged by handlers, return final state.
-run :: (MonadError Exception m) => Handlers m -> Gamma -> m State
-run handlers (stm, state) = case stm of
-    Skip -> return state
-    VarDef x dop a ->
-        let
-            v = getVar state x
-            v' = evaluate a state
-        in
-            return $ setVar state x $ case dop of
-                Def -> v'
-                Inc -> v + v'
-                Dec -> v - v'
-                Prod -> v * v'
-                Quot -> v // v'
-                Rem -> v %% v'
-    Seq s1 s2 -> run handlers (s1, state) >>= curry (run handlers) s2
-    IfElse b s1 s2 ->
-        if evaluate b state
-            then run handlers (s1, state)
-            else run handlers (s2, state)
-    While b s ->
-        if evaluate b state
-            then
-                if not $ getBreak state
-                    then run handlers (s <> While b s, state)
-                    else return $ resetBreak state
-            else return state
-    Print e -> onOutput handlers (show (evaluate e state)) >> return state
+import qualified IMP.Semantics.Structural as Structural
+
+-- | Execute statement in state to completion.
+run :: (MonadIMP m) => Stm -> State -> m Flow
+run stm state = case stm of
+    Skip -> next state
+    VarDef x dop a -> do
+        v <- eval a state
+        let u = getVar state x
+        next . setVar state x $ case dop of
+            Def -> v
+            Inc -> u + v
+            Dec -> u - v
+            Prod -> u * v
+            Quot -> u // v
+            Rem -> u %% v
+    Seq s1 s2 ->
+        run s1 state >>= \case
+            Next state' -> run s2 state'
+            broken -> return broken
+    IfElse b s1 s2 -> do
+        v <- eval b state
+        run (if v then s1 else s2) state
+    While b s -> loop state
+        where
+            loop state' = do
+                v <- eval b state'
+                if v
+                    then do
+                        tick
+                        run s state' >>= \case
+                            Next state'' -> loop state''
+                            Broken state'' -> next state''
+                    else next state'
+    Print a -> do
+        v <- eval a state
+        output (show v)
+        next state
     Read x -> do
-        v <- onInput handlers x
-        return $ setVar state x v
+        v <- input x
+        next (setVar state x v)
     Local x a s -> do
-        let
-            old = getVar state x
-            new = evaluate a state
-            local = setVar state x new
-        state' <- run handlers (s, local)
-        return $ setVar state' x old
+        v <- eval a state
+        let old = lookupVar state x
+        flow <- run s (setVar state x v)
+        return $ onFlow (\state' -> restoreVar state' x old) flow
     Par s1 s2 -> do
-        (vs1', ps1', flag') <- run handlers (s1, state)
-        (vs2', ps2', _) <- run handlers (s2, state)
+        flow1 <- run s1 state
+        flow2 <- run s2 state
         -- INFO: On conflict, state result from s1 dominates
-        return (Map.union vs1' vs2', Map.union ps1' ps2', flag')
-    NonDet s1 s2 -> do
-        left <- onChoice handlers
-        if left
-            then run handlers (s1, state)
-            else run handlers (s2, state)
-    ProcDef name params rets body -> return $ setProc state name (params, rets, body)
-    ProcInvoc name arguments returns ->
-        case getProc state name of
-            Nothing -> throwError . Error $ "undefined procedure: " ++ name
-            Just (params, rets, body)
-                | length arguments /= length params -> throwError $ Error "mismatched number of arguments to parameters"
-                | length returns /= length rets -> throwError $ Error "mismatched number of return variables"
-                | otherwise -> do
-                    let
-                        vals = map (`evaluate` state) arguments -- evaluate arguments
-                        local = (Map.fromList (zip params vals), getProcs state, getBreak state) -- into local state
-                    state' <- run handlers (body, local) -- run body
-                    let rets' = zip returns $ map (getVar state') rets -- extract returns
-                    return $ setVars state rets' -- insert into callside
-    Restore _ -> throwError . Error $ "illegal statement for run in natural semantics: " ++ show stm
-    Return {} -> throwError . Error $ "illegal statement for run in natural semantics: " ++ show stm
-    Break -> return $ setBreak state
-    Revert s b -> do
-        let old = state
-        new <- run handlers (s, state)
-        if evaluate b new
-            then return old
-            else return new
-    Match a ms d ->
-        let v = evaluate a state
-        in case lookup v ms of
-            Just s -> run handlers (s, state)
-            Nothing -> run handlers (d, state)
-    Havoc x -> do
-        v <- onRandom handlers
-        return $ setVar state x v
-    Assert b ->
-        if evaluate b state
-            then return state
-            else throwError . AssertFail $ prettify b
-    FlipFlop i s1 s2 -> do
-        if getFlip state i
-            then do
-                state' <- run handlers (s1, state)
-                return $ setFlop state' i
-            else do
-                state' <- run handlers (s2, state)
-                return $ setFlip state' i
-    Raise a -> throwError . Raised $ evaluate a state
-    TryCatch s1 x s2 -> catchError (run handlers (s1, state)) $ \e -> case e of
-        Raised v -> run handlers (s2, setVar state x v) -- catch in x, continue with s2
-        _ -> throwError e -- can't catch, propagate
-    Swap x y ->
         let
-            v = getVar state x
-            w = getVar state y
-        in
-            return $ setVars state [(x, w), (y, v)]
-    Timeout _ _ -> throwError $ Error "timeout statement not supported in big-step semantics"
-    Alternate _ _ -> throwError $ Error "alternate execution not supported in big-step semantics"
+            State vs1 ps1 = flowState flow1
+            State vs2 ps2 = flowState flow2
+            union = State (Map.union vs1 vs2) (Map.union ps1 ps2)
+        return $ case (flow1, flow2) of
+            (Next _, Next _) -> Next union
+            _ -> Broken union
+    NonDet s1 s2 -> do
+        left <- choose
+        run (if left then s1 else s2) state
+    ProcDef name params rets body -> next $ setProc state name (params, rets, body)
+    ProcInvoc name arguments returns -> case getProc state name of
+        Nothing -> throwError . Error $ "undefined procedure: " ++ name
+        Just (params, rets, body)
+            | length arguments /= length params -> throwError $ Error "mismatched number of arguments to parameters"
+            | length returns /= length rets -> throwError $ Error "mismatched number of return variables"
+            | otherwise -> do
+                vals <- mapM (`eval` state) arguments
+                tick
+                run body (State (Map.fromList (zip params vals)) (procs state)) >>= \case
+                    Next local -> next . setVars state $ zip returns (map (getVar local) rets)
+                    Broken _ -> throwError $ Error "break outside loop"
+    Break -> return (Broken state)
+    Revert s b -> do
+        flow <- run s state
+        v <- eval b (flowState flow)
+        return $ if v then onFlow (const state) flow else flow
+    Match a ms d -> do
+        v <- eval a state
+        run (maybe d id (lookup v ms)) state
+    Havoc x -> do
+        v <- arbitrary
+        next (setVar state x v)
+    Assert b -> do
+        v <- eval b state
+        if v
+            then next state
+            else throwError . AssertFail $ stringify b
+    FlipFlop i s1 s2 ->
+        if getFlip state i
+            then run s1 (setFlop state i)
+            else run s2 (setFlip state i)
+    Raise a -> eval a state >>= throwError . Raised
+    TryCatch s1 x s2 -> catchError (run s1 state) $ \case
+        Raised v -> run s2 (setVar state x v) -- catch in x, continue with s2
+        e -> throwError e -- can't catch, propagate
+    Swap x y -> next $ setVars state [(x, getVar state y), (y, getVar state x)]
+    Timeout {} -> Structural.run stm state
+    Alternate {} -> Structural.run stm state
+{-# INLINEABLE run #-}
+
+-- | Complete normally.
+next :: (Monad m) => State -> m Flow
+next = return . Next
+
+-- | Evaluate expression in the interpretation monad.
+eval :: (MonadIMP m, Evaluate a b) => a -> State -> m b
+eval e state = liftEval (evaluate e state)

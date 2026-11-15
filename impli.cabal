@@ -46,21 +46,27 @@ common dependencies
 library
   import: dependencies
   hs-source-dirs: src
-  -- cabal-gild: discover src --include=src/IMP/** --exclude=src/IMP/JSON.hs
   exposed-modules:
-    IMP.Engine
+    IMP.Check
+    IMP.Effect
     IMP.Exception
     IMP.Expression
-    IMP.Handlers
-    IMP.Kernel
+    IMP.Interpret
     IMP.Lexer
     IMP.Parser
     IMP.Pretty
     IMP.Semantics.Natural
-    IMP.Semantics.Natural.Derive
     IMP.Semantics.Structural
     IMP.State
     IMP.Syntax
+    REPL.Command
+    REPL.Core
+    REPL.Input
+    REPL.Session
+  other-modules:
+    Paths_impli
+  autogen-modules:
+    Paths_impli
 
 common native
   build-depends:

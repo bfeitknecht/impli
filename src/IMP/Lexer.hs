@@ -31,7 +31,6 @@ keywords =
     , "true"
     , "false"
     , "par"
-    , "[]"
     , "print"
     , "read"
     , "let"
@@ -60,6 +59,9 @@ keywords =
     , "timeout"
     , "after"
     , "alternate"
+    , "not"
+    , "and"
+    , "or"
     ]
 
 -- | List of operator symbols in the IMP language.
@@ -76,15 +78,13 @@ operators =
     , "<="
     , ">"
     , ">="
-    , "not"
-    , "and"
-    , "or"
     , ":="
     , "+="
     , "-="
     , "*="
     , "/="
     , "%="
+    , "[]"
     ]
 
 -- | TokenParser configuration for the parsers of the IMP language.
