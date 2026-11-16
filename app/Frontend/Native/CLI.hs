@@ -29,6 +29,7 @@ import IMP.Exception
 import IMP.Interpret (Semantics (..))
 import IMP.Parser
 import IMP.Syntax
+import REPL.Command (Level (..), levelName)
 import REPL.Core (version)
 
 -- | Mode to run the CLI.
@@ -60,8 +61,23 @@ options =
     Options
         <$> flag Natural Structural (long "structural" <> help "Interpret with structural (small-step) semantics")
         <*> option
+            (eitherReader verbosity)
+            ( long "verbose"
+                <> short 'v'
+                <> metavar "LEVEL"
+                <> help "Verbosity level of the REPL: normal, profile or debug"
+                <> value Normal
+                <> showDefaultWith levelName
+            )
+        <*> option
             (Just <$> str)
             (long "history" <> metavar "FILE" <> help "Save REPL history" <> value Nothing)
+
+-- | Read verbosity level by name.
+verbosity :: String -> Either String Level
+verbosity name = case [level | level <- [minBound ..], levelName level == name] of
+    level : _ -> Right level
+    [] -> Left $ "unknown verbosity level: " ++ name
 
 -- | Parser for the CLI options and information.
 cli :: ParserInfo (Mode, Options)

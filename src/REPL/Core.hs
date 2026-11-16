@@ -153,11 +153,7 @@ command cmd session = case cmd of
         inform $ "semantics: " ++ if sem == Natural then "natural" else "structural"
         continue session {semantics = sem}
     Set (Verbose level) -> do
-        inform $
-            "verbosity: " ++ case level of
-                Normal -> "normal"
-                Profile -> "profile"
-                Debug -> "debug"
+        inform $ "verbosity: " ++ levelName level
         continue session {verbosity = level}
 
 -- | Interpret construct in session.

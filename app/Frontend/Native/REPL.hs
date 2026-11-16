@@ -37,6 +37,7 @@ import qualified System.Console.ANSI as ANSI
 import IMP.Effect
 import IMP.Exception
 import IMP.Interpret
+import REPL.Command (Level)
 import REPL.Core
 import REPL.Input
 import REPL.Session
@@ -45,6 +46,8 @@ import REPL.Session
 data Options = Options
     { optSemantics :: Semantics
     -- ^ Semantics to interpret with.
+    , optVerbosity :: Level
+    -- ^ Verbosity level of the REPL.
     , optHistory :: Maybe FilePath
     -- ^ History file for haskeline.
     }
@@ -86,7 +89,7 @@ instance MonadREPL Native where
 repl :: Options -> IO ()
 repl opts = do
     putStrLn welcome
-    runInputT settings . withInterrupt $ loop (fresh (optSemantics opts))
+    runInputT settings . withInterrupt $ loop (fresh (optSemantics opts)) {verbosity = optVerbosity opts}
     putStrLn goodbye
     where
         settings = setComplete completer defaultSettings {historyFile = optHistory opts}

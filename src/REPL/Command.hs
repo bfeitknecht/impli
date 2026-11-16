@@ -16,6 +16,7 @@ module REPL.Command (
     Element (..),
     Option (..),
     Level (..),
+    levelName,
     commands,
     helpText,
 ) where
@@ -69,6 +70,13 @@ data Level
     | Debug
     deriving (Bounded, Enum, Eq, Show)
 
+-- | Name of verbosity level.
+levelName :: Level -> String
+levelName level = case level of
+    Normal -> "normal"
+    Profile -> "profile"
+    Debug -> "debug"
+
 -- | Names of metacommands, for completion.
 commands :: [String]
 commands = [":help", ":quit", ":clear", ":version", ":reset", ":show", ":load", ":write", ":ast", ":set"]
@@ -121,7 +129,7 @@ instance Parses Option where
                 <*> choice [Natural <$ symbol "natural", Structural <$ symbol "structural"]
             , Verbose
                 <$ symbol "verbose"
-                <*> choice [Normal <$ symbol "normal", Profile <$ symbol "profile", Debug <$ symbol "debug"]
+                <*> choice [level <$ symbol (levelName level) | level <- [minBound ..]]
             ]
 
 -- | Parser for metacommand, without leading colon.
