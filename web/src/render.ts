@@ -38,6 +38,18 @@ const renderer = (terminal: Terminal) => (terminal as unknown as { renderer: Ren
 const rgb = (hex: string) => parseInt(hex.replace("#", ""), 16);
 
 /**
+ * Theme for creating the terminal. The VT core reads color 0 as unset and
+ * substitutes its default, so black is nudged to the next blue.
+ */
+export function creation(theme: ITheme): ITheme {
+  const result = { ...theme };
+  for (const key of Object.keys(result) as (keyof ITheme)[]) {
+    if (typeof result[key] === "string" && rgb(result[key]) === 0) result[key] = "#000001";
+  }
+  return result;
+}
+
+/**
  * Patch renderer of opened terminal, created with `initial` theme. Returns
  * function to switch to another theme.
  */

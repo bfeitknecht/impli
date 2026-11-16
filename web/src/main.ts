@@ -7,7 +7,7 @@ import { FitAddon, init, Terminal } from "ghostty-web";
 import type { ITheme } from "ghostty-web";
 import { examples } from "examples";
 import { Readline } from "@/readline.ts";
-import { adjust, label, link } from "@/render.ts";
+import { adjust, creation, label, link } from "@/render.ts";
 import type { Request, Response } from "@/protocol.ts";
 
 const CONTINUATION = "IMP| ";
@@ -76,7 +76,7 @@ function download(path: string, content: string) {
 async function main() {
   await init();
   const container = document.getElementById("terminal")!;
-  const initial = theme();
+  const initial = creation(theme());
   const terminal = new Terminal({
     cursorBlink: true,
     fontFamily: '"CommitMono", ui-monospace, Menlo, monospace',
@@ -154,7 +154,9 @@ async function main() {
         readline.print(message.text + "\n");
         return;
       case "clear":
+        // INFO: The banner survives clearing
         terminal.write("\x1b[2J\x1b[3J\x1b[H");
+        readline.print(BANNER);
         return;
       case "save":
         download(message.path, message.content);

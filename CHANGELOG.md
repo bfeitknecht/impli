@@ -23,10 +23,12 @@ Clean-slate rebuild of the interpreter core and web frontend.
   WASM (fresh on reload), streamed output, Ctrl-C interrupts, exact big
   integers; tabs and panels removed for now
 - Fix abbreviated metacommands with arguments, e.g. `:l FILE` and `:s vars`
-- Restore `:set verbose LEVEL`: `profile` reports elapsed time and steps,
-  `debug` also the parsed statement and every structural step
+- Restore `:set verbose LEVEL` and `--verbose LEVEL`: `profile` reports
+  elapsed time and steps, `debug` also the parsed statement and every
+  structural step
 - Web: restore logo, banner with links to repository and paper, and `:tips`;
-  monochrome theme following the system, inverted selection and link hover
+  monochrome theme following the system, inverted selection and link hover;
+  `:clear` keeps the banner
 - Remove engine, JSON session protocol, derivation trees and typst rendering
 
 ---
